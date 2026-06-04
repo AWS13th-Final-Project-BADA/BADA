@@ -19,7 +19,7 @@ backend/   FastAPI API 서버
 worker/    분석 워커 (rules = 규칙엔진, llm = OCR·문장화)
 prompts/   LLM 프롬프트 템플릿
 frontend/  Next.js + next-intl (다국어)
-infra/     AWS CDK (Python)
+infra/     Terraform (AWS IaC)
 eval/      평가셋 + 정확도 측정
 docs/      체크리스트·문서
 .kiro/steering/  AI-DLC 규칙 (AI가 항상 참조)

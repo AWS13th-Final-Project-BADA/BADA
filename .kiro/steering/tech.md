@@ -20,7 +20,7 @@ inclusion: always
 - LLM: **Amazon Bedrock (Claude)** — OCR, 문장화, 요약
 - 번역: **Amazon Translate**
 - 로깅: **CloudWatch**
-- IaC: **AWS CDK**
+- IaC: **Terraform**
 
 ### 백엔드 / 프론트
 - 백엔드: **FastAPI (Python)** — 비동기, Bedrock/규칙로직 연동

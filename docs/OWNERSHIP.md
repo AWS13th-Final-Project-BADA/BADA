@@ -48,7 +48,7 @@
 
 ## 5) 스토리지/인프라 담당 — 파일·배포
 
-- **구현할 것**: `backend/app/services/storage.py:S3Storage` (이미 골격), `infra/stacks/bada_stack.py` (RDS+PostGIS·S3·SQS·Cognito·Fargate)
+- **구현할 것**: `backend/app/services/storage.py:S3Storage` (이미 골격), `infra/*.tf` (RDS+PostGIS·S3·SQS·Cognito·Fargate)
 - **참고**: `docs/aws-setup-checklist.md`
 - **전환**: `STORAGE_MODE=s3`, `DATABASE_URL`을 Postgres로.
 

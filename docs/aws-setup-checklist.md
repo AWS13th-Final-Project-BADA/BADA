@@ -17,8 +17,8 @@
 - [ ] ⚠️ 전송 전 PII 마스킹 적용 확인 (security.md)
 
 ## 데이터/스토리지
-- [ ] CDK bootstrap: `cdk bootstrap aws://<acct>/ap-northeast-2`
-- [ ] S3 버킷(KMS 암호화, 퍼블릭 차단) — CDK로 생성
+- [ ] Terraform 초기화: `cd infra && terraform init`
+- [ ] S3 버킷(KMS 암호화, 퍼블릭 차단) — Terraform으로 생성
 - [ ] RDS PostgreSQL 생성 후 `CREATE EXTENSION postgis;`
 - [ ] SQS 큐 생성, URL을 `.env` `SQS_QUEUE_URL`
 

@@ -1,0 +1,7 @@
+project_name         = "bada"
+environment          = "dev"
+aws_region           = "ap-northeast-2"
+db_username          = "bada_admin"
+db_password          = "change-me"
+api_container_image  = "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/bada-api:latest"
+worker_container_image = "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/bada-worker:latest"
