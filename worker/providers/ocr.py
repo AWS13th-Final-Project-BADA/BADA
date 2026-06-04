@@ -1,8 +1,12 @@
 """OCR provider — 이미지/문서 → 텍스트·엔티티. 카테고리 기준 하이브리드 라우팅(tech.md).
 
-- 정형(contract/statement/schedule) → Upstage 또는 Parseur(STRUCTURED_ENGINE) → Claude Text 구조화
-- 비정형(chat/other/사진/앱캡처)     → Claude Vision (이미지/PDF → 엔티티 1샷)
-- 애매                              → Claude Vision (안전 기본값)
+엔진을 나눈 이유 = 강점이 다름:
+  - 정형(contract/statement/schedule) → Upstage/Parseur : 표·셀·숫자 정밀
+  - 비정형(chat/other/사진/앱캡처)     → Claude Vision     : 맥락·발화자 이해
+  - 애매                              → Claude Vision (안전 기본값)
+
+엄격 라우팅 — 강점이 다르므로 자동 강등(정형→Vision) 하지 않는다.
+정형 엔진 키가 없으면 그 경로는 실패(ocr_status=failed)로 정직하게 표기한다.
 
 출력: {"raw_text": str, "entities": dict}  (schema.OcrResult 검증 통과본)
 판단·계산 금지 — 읽기/구조화만(architecture.md).

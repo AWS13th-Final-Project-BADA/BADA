@@ -1,9 +1,23 @@
 """타임라인 조립 — 규칙 기반 정렬 + LLM 문장화 보조(architecture.md).
 
-정렬·이벤트 선택은 규칙. 문장 다듬기는 llm.summarize_event(mock=항등).
-번역 병기는 translator(mock=원문 유지).
+정렬·이벤트 선택은 규칙. 문장 다듬기는 llm.summarize_event, 번역 병기는 translator.
+LLM/번역 호출이 실패해도(권한·네트워크 등) 규칙 결과는 살아있게 폴백한다.
 """
 from __future__ import annotations
+
+
+def _safe_summarize(llm, fact: str) -> str:
+    try:
+        return llm.summarize_event(fact)
+    except Exception:
+        return fact  # LLM 실패 시 사실 그대로
+
+
+def _safe_translate(translator, text: str, lang: str) -> str:
+    try:
+        return translator.translate(text, lang)
+    except Exception:
+        return text  # 번역 실패 시 원문 유지
 
 
 def build_timeline(ctx: dict, result: dict, llm, translator, target_lang: str = "ko") -> list[dict]:
@@ -28,14 +42,13 @@ def build_timeline(ctx: dict, result: dict, llm, translator, target_lang: str = 
         events.append({"date": None, "type": "gps",
                        "fact": f"근무지 도착 정황(카톡-GPS 교차일치) {gps['cross_matches']}건이 확인됩니다."})
 
-    # 규칙 정렬: 날짜 있는 것 오름차순, 없는 것 뒤로
     events.sort(key=lambda e: (e["date"] is None, e["date"] or ""))
 
     out = []
     for e in events:
-        desc = llm.summarize_event(e["fact"])          # mock=항등
+        desc = _safe_summarize(llm, e["fact"])
         out.append({
             "date": e["date"], "type": e["type"], "description": desc,
-            "description_translated": translator.translate(desc, target_lang),
+            "description_translated": _safe_translate(translator, desc, target_lang),
         })
     return out
