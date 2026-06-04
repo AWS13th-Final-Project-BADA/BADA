@@ -180,7 +180,8 @@
       <p class="small-muted" id="extractStatus"></p>
       <div id="extractDetail"></div>
       <details class="numbox">
-        <summary data-k="num_title">분석에 쓸 숫자 입력 (OCR 연결 전)</summary>
+        <summary data-k="num_title">분석에 쓸 값 (AI 추출값 자동 채움 · 수정 가능)</summary>
+        <label>약속 시급(원) · 손글씨면 꼭 확인</label><input id="n_hw" type="number" placeholder="10350"/>
         <label data-k="num_hours">근무시간 (콤마 구분)</label><input id="n_hrs" placeholder="174,168,180,176"/>
         <label data-k="num_dep">입금 내역 (한 줄에 '날짜, 금액')</label><textarea id="n_dep" placeholder="2026-01-15, 1500000"></textarea>
         <label data-k="num_ded">공제 항목 (한 줄에 '이름, 금액')</label><textarea id="n_ded" placeholder="기숙사비, 250000"></textarea>
@@ -221,8 +222,16 @@
         <p data-k="r_disc">이 금액은 체불 확정액이 아니라, 고용노동부 또는 전문가 상담에서 확인이 필요한 차이입니다.</p>
       </div>
       <div class="card">
+        <div class="section-title" style="margin:0 0 6px"><h2>📋 사건 요약 <span class="muted" style="font-weight:400;font-size:12px">(AI 정리 · 확인 필요)</span></h2></div>
+        <p id="r_summary" style="font-size:14px;line-height:1.65;margin:0"></p>
+      </div>
+      <div class="card">
         <div class="section-title" style="margin:0 0 6px"><h2 data-k="r_cmp">금액 비교</h2></div>
         <table class="mini-table" id="r_cmp_tbl"></table>
+      </div>
+      <div class="card">
+        <div class="section-title" style="margin:0 0 6px"><h2>🔍 증거 대조 (검증 포인트)</h2></div>
+        <div id="r_cmp_pts"></div>
       </div>
       <div class="card">
         <div class="section-title" style="margin:0 0 6px"><h2 data-k="r_ded">공제 항목</h2></div>
@@ -267,9 +276,9 @@
 <script>
 // ---------- i18n ----------
 const T={
- ko:{badge:"✨ 신고 전 증거 준비 서비스",h1:"흩어진 자료를<br/>상담 가능한 사건 파일로",hp:"계약서, 급여명세서, 입금내역, 대화 캡처를 올리면 Evidence Pack으로 정리해드려요.",hbtn:"내 증거 패키지 만들기",qtitle:"무엇을 도와드릴까요?",qsub:"3분 시작",q1t:"급여 차이 확인",q1p:"명세서 금액과 실제 입금액을 비교해요.",q2t:"공제 항목 정리",q2p:"기숙사비, 식비, 작업복비를 구분해요.",q3t:"증거 목록화",q3p:"계약서, 대화, 입금내역을 사건별로 묶어요.",q4t:"절차 안내 챗봇",q4p:"고용노동부에 가기 전 준비를 알려줘요.",notice:"BADA은 법률 판단을 하지 않습니다. 업로드한 자료를 상담 준비용으로 정리합니다.",nc_title:"사건 정보",f_wp:"사업장명",f_start:"근무 시작일",f_end:"근무 종료일",f_wage:"약속 시급(원)",f_weekly:"주당 근무시간",f_issue:"문제 유형",nc_next:"다음: 자료 올리기",up_title:"자료를 올려주세요",num_title:"분석에 쓸 숫자 입력 (OCR 연결 전)",num_hours:"근무시간 (콤마 구분)",num_dep:"입금 내역 (한 줄에 '날짜, 금액')",num_ded:"공제 항목 (한 줄에 '이름, 금액')",num_gps:"GPS 정황 포함",num_wp:"근무지 (lat,lng,반경m)",num_png:"GPS 핑 (ts,lat,lng,mocked)",num_arr:"도착 카톡 시각 (ISO)",num_demo:"데모 데이터 채우기",up_extract:"📸 자료에서 AI로 추출",up_run:"Evidence Pack 분석 시작",up_hint:"증거를 분류로 등록하면 누락 안내에 반영됩니다.",an_h2:"자료를 사건 파일로<br/>정리하고 있어요",an_p1:"계약서와 급여명세서를 분석하는 중입니다.",an_s1:"문서 OCR 및 금액 추출",an_s2:"급여와 입금액 비교 (규칙 기반)",an_s3:"타임라인·공제 정리",an_s4:"Evidence Pack 생성",r_tag:"Evidence Pack 생성 완료",r_h2:"상담 시 확인할<br/>금액 차이가 있어요",r_disc:"이 금액은 체불 확정액이 아니라, 고용노동부 또는 전문가 상담에서 확인이 필요한 차이입니다.",r_cmp:"금액 비교",r_ded:"공제 항목",r_gps:"GPS 정황",r_tl:"사건 타임라인",r_miss:"더 준비하면 좋은 자료",r_report:"제출용 리포트 열기",r_chat:"다음 단계 물어보기",c_tag:"절차 안내",c_q1:"고용노동부에 가기 전에 무엇을 준비해야 하나요?",c_a1:"현재 Evidence Pack에는 급여 비교, 공제 항목, 사건 타임라인이 정리되어 있습니다. 추가로 근로계약서 전체 사진과 사업주와의 대화 원본을 준비하면 상담이 더 원활합니다.",c_a2:"BADA은 법률 판단을 하지 않습니다. 최종 판단은 고용노동부 또는 전문가 상담을 통해 확인해야 합니다.",c_home:"처음으로 돌아가기",nav_home:"홈",nav_up:"업로드",nav_pkg:"패키지",nav_chat:"챗봇",cmp_expected:"기대 급여 (시급×시간)",cmp_received:"실제 수령",cmp_suspected:"미지급 의심",need:"확인 필요"},
- en:{badge:"✨ Pre-report evidence prep",h1:"Turn scattered files<br/>into a consultable case",hp:"Upload contract, payslip, deposits and chat captures, and we organize them into an Evidence Pack.",hbtn:"Build my Evidence Pack",qtitle:"How can we help?",qsub:"3-min start",q1t:"Pay gap check",q1p:"Compare payslip vs actual deposit.",q2t:"Deduction sorting",q2p:"Separate dorm, meal, uniform fees.",q3t:"Evidence listing",q3p:"Group contract, chat, deposits by case.",q4t:"Guidance chatbot",q4p:"What to prepare before the Labor Office.",notice:"BADA does not make legal judgments. It organizes your files for consultation prep.",nc_title:"Case info",f_wp:"Workplace",f_start:"Start date",f_end:"End date",f_wage:"Hourly wage (KRW)",f_weekly:"Weekly hours",f_issue:"Issue types",nc_next:"Next: upload files",up_title:"Upload your files",num_title:"Enter numbers (before OCR)",num_hours:"Hours (comma separated)",num_dep:"Deposits (per line 'date, amount')",num_ded:"Deductions (per line 'name, amount')",num_gps:"Include GPS",num_wp:"Workplace (lat,lng,radius m)",num_png:"GPS pings (ts,lat,lng,mocked)",num_arr:"Arrival msg times (ISO)",num_demo:"Fill demo data",up_extract:"📸 Extract with AI",up_run:"Start Evidence Pack analysis",up_hint:"Registered categories feed the missing-docs check.",an_h2:"Organizing your files<br/>into a case",an_p1:"Analyzing contract and payslip.",an_s1:"Document OCR & amount extraction",an_s2:"Compare pay vs deposit (rule-based)",an_s3:"Timeline & deductions",an_s4:"Evidence Pack generation",r_tag:"Evidence Pack ready",r_h2:"There is a gap<br/>to check at consultation",r_disc:"This is not a confirmed amount, but a gap to verify with the Labor Office or an expert.",r_cmp:"Amount comparison",r_ded:"Deductions",r_gps:"GPS context",r_tl:"Case timeline",r_miss:"Helpful documents to add",r_report:"Open report",r_chat:"Ask next steps",c_tag:"Guidance",c_q1:"What should I prepare before the Labor Office?",c_a1:"Your Evidence Pack has a pay comparison, deductions and a timeline. Adding the full contract photo and original chat helps the consultation.",c_a2:"BADA does not make legal judgments. Final judgment must be confirmed by the Labor Office or an expert.",c_home:"Back to start",nav_home:"Home",nav_up:"Upload",nav_pkg:"Pack",nav_chat:"Chat",cmp_expected:"Expected pay (wage×hrs)",cmp_received:"Received",cmp_suspected:"Suspected unpaid",need:"needs review"},
- vi:{badge:"✨ Chuẩn bị bằng chứng trước khi tố cáo",h1:"Biến tài liệu rời rạc<br/>thành hồ sơ tư vấn được",hp:"Tải hợp đồng, phiếu lương, lịch sử chuyển khoản, ảnh chụp tin nhắn — chúng tôi sắp xếp thành Evidence Pack.",hbtn:"Tạo Evidence Pack",qtitle:"Chúng tôi giúp gì?",qsub:"Bắt đầu 3 phút",q1t:"Kiểm tra chênh lệch lương",q1p:"So sánh phiếu lương với tiền vào.",q2t:"Sắp xếp khoản trừ",q2p:"Phân biệt ký túc xá, ăn, đồng phục.",q3t:"Liệt kê bằng chứng",q3p:"Gom hợp đồng, tin nhắn, tiền vào theo vụ.",q4t:"Chatbot hướng dẫn",q4p:"Chuẩn bị trước khi đến Sở Lao động.",notice:"BADA không đưa ra phán quyết pháp lý. Chỉ sắp xếp tài liệu để chuẩn bị tư vấn.",nc_title:"Thông tin vụ việc",f_wp:"Nơi làm việc",f_start:"Ngày bắt đầu",f_end:"Ngày kết thúc",f_wage:"Lương giờ (KRW)",f_weekly:"Giờ/tuần",f_issue:"Loại vấn đề",nc_next:"Tiếp: tải tài liệu",up_title:"Tải tài liệu của bạn",num_title:"Nhập số liệu (trước OCR)",num_hours:"Giờ làm (cách dấu phẩy)",num_dep:"Tiền vào (mỗi dòng 'ngày, số tiền')",num_ded:"Khoản trừ (mỗi dòng 'tên, số tiền')",num_gps:"Kèm GPS",num_wp:"Nơi làm (lat,lng,bán kính m)",num_png:"GPS ping (ts,lat,lng,mocked)",num_arr:"Giờ tin nhắn đến (ISO)",num_demo:"Điền dữ liệu mẫu",up_extract:"📸 Trích xuất bằng AI",up_run:"Bắt đầu phân tích",up_hint:"Phân loại đã đăng ký sẽ vào mục thiếu tài liệu.",an_h2:"Đang sắp xếp tài liệu<br/>thành hồ sơ",an_p1:"Đang phân tích hợp đồng và phiếu lương.",an_s1:"OCR tài liệu & trích số tiền",an_s2:"So sánh lương với tiền vào",an_s3:"Dòng thời gian & khoản trừ",an_s4:"Tạo Evidence Pack",r_tag:"Đã tạo Evidence Pack",r_h2:"Có chênh lệch<br/>cần kiểm tra khi tư vấn",r_disc:"Đây không phải số tiền xác định, mà là chênh lệch cần kiểm tra với Sở Lao động hoặc chuyên gia.",r_cmp:"So sánh số tiền",r_ded:"Khoản trừ",r_gps:"GPS",r_tl:"Dòng thời gian",r_miss:"Tài liệu nên bổ sung",r_report:"Mở báo cáo",r_chat:"Hỏi bước tiếp theo",c_tag:"Hướng dẫn",c_q1:"Cần chuẩn bị gì trước khi đến Sở Lao động?",c_a1:"Evidence Pack của bạn có so sánh lương, khoản trừ và dòng thời gian. Thêm ảnh hợp đồng đầy đủ và tin nhắn gốc sẽ giúp buổi tư vấn.",c_a2:"BADA không phán quyết pháp lý. Quyết định cuối cùng phải xác nhận với Sở Lao động hoặc chuyên gia.",c_home:"Về đầu",nav_home:"Trang chủ",nav_up:"Tải lên",nav_pkg:"Hồ sơ",nav_chat:"Chat",cmp_expected:"Lương dự kiến (giờ×lương)",cmp_received:"Đã nhận",cmp_suspected:"Nghi chưa trả",need:"cần kiểm tra"}
+ ko:{badge:"✨ 신고 전 증거 준비 서비스",h1:"흩어진 자료를<br/>상담 가능한 사건 파일로",hp:"계약서, 급여명세서, 입금내역, 대화 캡처를 올리면 Evidence Pack으로 정리해드려요.",hbtn:"내 증거 패키지 만들기",qtitle:"무엇을 도와드릴까요?",qsub:"3분 시작",q1t:"급여 차이 확인",q1p:"명세서 금액과 실제 입금액을 비교해요.",q2t:"공제 항목 정리",q2p:"기숙사비, 식비, 작업복비를 구분해요.",q3t:"증거 목록화",q3p:"계약서, 대화, 입금내역을 사건별로 묶어요.",q4t:"절차 안내 챗봇",q4p:"고용노동부에 가기 전 준비를 알려줘요.",notice:"BADA은 법률 판단을 하지 않습니다. 업로드한 자료를 상담 준비용으로 정리합니다.",nc_title:"사건 정보",f_wp:"사업장명",f_start:"근무 시작일",f_end:"근무 종료일",f_wage:"약속 시급(원)",f_weekly:"주당 근무시간",f_issue:"문제 유형",nc_next:"다음: 자료 올리기",up_title:"자료를 올려주세요",num_title:"분석에 쓸 값 (AI 추출값 자동 채움 · 수정 가능)",num_hours:"근무시간 (콤마 구분)",num_dep:"입금 내역 (한 줄에 '날짜, 금액')",num_ded:"공제 항목 (한 줄에 '이름, 금액')",num_gps:"GPS 정황 포함",num_wp:"근무지 (lat,lng,반경m)",num_png:"GPS 핑 (ts,lat,lng,mocked)",num_arr:"도착 카톡 시각 (ISO)",num_demo:"데모 데이터 채우기",up_extract:"📸 자료에서 AI로 추출",up_run:"Evidence Pack 분석 시작",up_hint:"증거를 분류로 등록하면 누락 안내에 반영됩니다.",an_h2:"자료를 사건 파일로<br/>정리하고 있어요",an_p1:"계약서와 급여명세서를 분석하는 중입니다.",an_s1:"문서 OCR 및 금액 추출",an_s2:"급여와 입금액 비교 (규칙 기반)",an_s3:"타임라인·공제 정리",an_s4:"Evidence Pack 생성",r_tag:"Evidence Pack 생성 완료",r_h2:"상담 시 확인할<br/>금액 차이가 있어요",r_disc:"이 금액은 체불 확정액이 아니라, 고용노동부 또는 전문가 상담에서 확인이 필요한 차이입니다.",r_cmp:"금액 비교",r_ded:"공제 항목",r_gps:"GPS 정황",r_tl:"사건 타임라인",r_miss:"더 준비하면 좋은 자료",r_report:"제출용 리포트 열기",r_chat:"다음 단계 물어보기",c_tag:"절차 안내",c_q1:"고용노동부에 가기 전에 무엇을 준비해야 하나요?",c_a1:"현재 Evidence Pack에는 급여 비교, 공제 항목, 사건 타임라인이 정리되어 있습니다. 추가로 근로계약서 전체 사진과 사업주와의 대화 원본을 준비하면 상담이 더 원활합니다.",c_a2:"BADA은 법률 판단을 하지 않습니다. 최종 판단은 고용노동부 또는 전문가 상담을 통해 확인해야 합니다.",c_home:"처음으로 돌아가기",nav_home:"홈",nav_up:"업로드",nav_pkg:"패키지",nav_chat:"챗봇",cmp_expected:"기대 급여 (시급×시간)",cmp_received:"실제 수령",cmp_suspected:"미지급 의심",need:"확인 필요"},
+ en:{badge:"✨ Pre-report evidence prep",h1:"Turn scattered files<br/>into a consultable case",hp:"Upload contract, payslip, deposits and chat captures, and we organize them into an Evidence Pack.",hbtn:"Build my Evidence Pack",qtitle:"How can we help?",qsub:"3-min start",q1t:"Pay gap check",q1p:"Compare payslip vs actual deposit.",q2t:"Deduction sorting",q2p:"Separate dorm, meal, uniform fees.",q3t:"Evidence listing",q3p:"Group contract, chat, deposits by case.",q4t:"Guidance chatbot",q4p:"What to prepare before the Labor Office.",notice:"BADA does not make legal judgments. It organizes your files for consultation prep.",nc_title:"Case info",f_wp:"Workplace",f_start:"Start date",f_end:"End date",f_wage:"Hourly wage (KRW)",f_weekly:"Weekly hours",f_issue:"Issue types",nc_next:"Next: upload files",up_title:"Upload your files",num_title:"Values for analysis (auto-filled, editable)",num_hours:"Hours (comma separated)",num_dep:"Deposits (per line 'date, amount')",num_ded:"Deductions (per line 'name, amount')",num_gps:"Include GPS",num_wp:"Workplace (lat,lng,radius m)",num_png:"GPS pings (ts,lat,lng,mocked)",num_arr:"Arrival msg times (ISO)",num_demo:"Fill demo data",up_extract:"📸 Extract with AI",up_run:"Start Evidence Pack analysis",up_hint:"Registered categories feed the missing-docs check.",an_h2:"Organizing your files<br/>into a case",an_p1:"Analyzing contract and payslip.",an_s1:"Document OCR & amount extraction",an_s2:"Compare pay vs deposit (rule-based)",an_s3:"Timeline & deductions",an_s4:"Evidence Pack generation",r_tag:"Evidence Pack ready",r_h2:"There is a gap<br/>to check at consultation",r_disc:"This is not a confirmed amount, but a gap to verify with the Labor Office or an expert.",r_cmp:"Amount comparison",r_ded:"Deductions",r_gps:"GPS context",r_tl:"Case timeline",r_miss:"Helpful documents to add",r_report:"Open report",r_chat:"Ask next steps",c_tag:"Guidance",c_q1:"What should I prepare before the Labor Office?",c_a1:"Your Evidence Pack has a pay comparison, deductions and a timeline. Adding the full contract photo and original chat helps the consultation.",c_a2:"BADA does not make legal judgments. Final judgment must be confirmed by the Labor Office or an expert.",c_home:"Back to start",nav_home:"Home",nav_up:"Upload",nav_pkg:"Pack",nav_chat:"Chat",cmp_expected:"Expected pay (wage×hrs)",cmp_received:"Received",cmp_suspected:"Suspected unpaid",need:"needs review"},
+ vi:{badge:"✨ Chuẩn bị bằng chứng trước khi tố cáo",h1:"Biến tài liệu rời rạc<br/>thành hồ sơ tư vấn được",hp:"Tải hợp đồng, phiếu lương, lịch sử chuyển khoản, ảnh chụp tin nhắn — chúng tôi sắp xếp thành Evidence Pack.",hbtn:"Tạo Evidence Pack",qtitle:"Chúng tôi giúp gì?",qsub:"Bắt đầu 3 phút",q1t:"Kiểm tra chênh lệch lương",q1p:"So sánh phiếu lương với tiền vào.",q2t:"Sắp xếp khoản trừ",q2p:"Phân biệt ký túc xá, ăn, đồng phục.",q3t:"Liệt kê bằng chứng",q3p:"Gom hợp đồng, tin nhắn, tiền vào theo vụ.",q4t:"Chatbot hướng dẫn",q4p:"Chuẩn bị trước khi đến Sở Lao động.",notice:"BADA không đưa ra phán quyết pháp lý. Chỉ sắp xếp tài liệu để chuẩn bị tư vấn.",nc_title:"Thông tin vụ việc",f_wp:"Nơi làm việc",f_start:"Ngày bắt đầu",f_end:"Ngày kết thúc",f_wage:"Lương giờ (KRW)",f_weekly:"Giờ/tuần",f_issue:"Loại vấn đề",nc_next:"Tiếp: tải tài liệu",up_title:"Tải tài liệu của bạn",num_title:"Giá trị phân tích (tự điền, sửa được)",num_hours:"Giờ làm (cách dấu phẩy)",num_dep:"Tiền vào (mỗi dòng 'ngày, số tiền')",num_ded:"Khoản trừ (mỗi dòng 'tên, số tiền')",num_gps:"Kèm GPS",num_wp:"Nơi làm (lat,lng,bán kính m)",num_png:"GPS ping (ts,lat,lng,mocked)",num_arr:"Giờ tin nhắn đến (ISO)",num_demo:"Điền dữ liệu mẫu",up_extract:"📸 Trích xuất bằng AI",up_run:"Bắt đầu phân tích",up_hint:"Phân loại đã đăng ký sẽ vào mục thiếu tài liệu.",an_h2:"Đang sắp xếp tài liệu<br/>thành hồ sơ",an_p1:"Đang phân tích hợp đồng và phiếu lương.",an_s1:"OCR tài liệu & trích số tiền",an_s2:"So sánh lương với tiền vào",an_s3:"Dòng thời gian & khoản trừ",an_s4:"Tạo Evidence Pack",r_tag:"Đã tạo Evidence Pack",r_h2:"Có chênh lệch<br/>cần kiểm tra khi tư vấn",r_disc:"Đây không phải số tiền xác định, mà là chênh lệch cần kiểm tra với Sở Lao động hoặc chuyên gia.",r_cmp:"So sánh số tiền",r_ded:"Khoản trừ",r_gps:"GPS",r_tl:"Dòng thời gian",r_miss:"Tài liệu nên bổ sung",r_report:"Mở báo cáo",r_chat:"Hỏi bước tiếp theo",c_tag:"Hướng dẫn",c_q1:"Cần chuẩn bị gì trước khi đến Sở Lao động?",c_a1:"Evidence Pack của bạn có so sánh lương, khoản trừ và dòng thời gian. Thêm ảnh hợp đồng đầy đủ và tin nhắn gốc sẽ giúp buổi tư vấn.",c_a2:"BADA không phán quyết pháp lý. Quyết định cuối cùng phải xác nhận với Sở Lao động hoặc chuyên gia.",c_home:"Về đầu",nav_home:"Trang chủ",nav_up:"Tải lên",nav_pkg:"Hồ sơ",nav_chat:"Chat",cmp_expected:"Lương dự kiến (giờ×lương)",cmp_received:"Đã nhận",cmp_suspected:"Nghi chưa trả",need:"cần kiểm tra"}
 };
 const ISSUES={wage_unpaid:"임금체불",statement_mismatch:"명세서 불일치",deduction:"공제",overtime:"초과근무",no_contract:"계약서 미교부"};
 const ROWS=[
@@ -350,6 +359,11 @@ const _esc=(s)=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt
 const _catLabel=(c)=>{const r=ROWS.find(x=>x.cat===c);return r?r.t:c;};
 const _won=(n)=>Number(n).toLocaleString()+"원";
 
+function renderSanity(items){
+  return items.map(s=>`<div style="margin-top:8px;padding:8px 10px;background:#fff7ed;border-radius:8px;border-left:3px solid #f59e0b">
+    <div style="font-size:12px;font-weight:700;color:#b45309">⚠ ${_esc(s.field)} 값 확인 필요</div>
+    <div class="small-muted">${_esc(s.note)}</div></div>`).join("");
+}
 function renderQuality(q){
   const color={high:"#047857",medium:"#b45309",low:"#b91c1c"}[q.level]||"#6b7280";
   const lvl={high:"증거력 높음",medium:"증거력 보통",low:"증거력 낮음"}[q.level]||q.level;
@@ -381,6 +395,7 @@ function renderExtract(r){
       if((en.utterances||[]).length) rows.push("발화:<br>"+en.utterances.map(u=>"&nbsp;· "+_esc(u.speaker||"?")+': "'+_esc(u.text)+'" <span class="tag">'+_esc(u.kind)+"</span>").join("<br>"));
       body=(rows.length?"<div style='font-size:13px;line-height:1.7'>"+rows.join("<br>")+"</div>":"<p class='small-muted'>구조화된 항목은 없지만 원문은 읽었어요(아래).</p>")
         +(e.evidence_quality?renderQuality(e.evidence_quality):"")
+        +(e.sanity&&e.sanity.length?renderSanity(e.sanity):"")
         +(e.ocr_text?"<details style='margin-top:6px'><summary class='small-muted' style='cursor:pointer'>읽은 원문 보기</summary><pre style='white-space:pre-wrap;font-size:12px;color:#374151;background:#f8fafc;padding:8px;border-radius:8px;max-height:180px;overflow:auto'>"+_esc(e.ocr_text)+"</pre></details>":"");
     }
     return "<div class='card' style='margin:8px 0;padding:14px'><div style='display:flex;justify-content:space-between;align-items:center;gap:8px'><strong style='font-size:13px'>"+_esc(e.file_name||"")+" <span class='tag'>"+_esc(_catLabel(e.category))+"</span></strong>"+badge+"</div>"+body+"</div>";
@@ -394,6 +409,7 @@ async function runExtract(){
   st.textContent="AI가 자료에서 추출 중..."; det.innerHTML="";
   try{
     const r=await api("POST","/cases/"+S.caseId+"/evidences/extract");
+    if(r.agreed_hourly_wage) document.getElementById("n_hw").value=r.agreed_hourly_wage;
     if(r.worked_hours&&r.worked_hours.length) document.getElementById("n_hrs").value=r.worked_hours.join(",");
     if(r.deposits&&r.deposits.length) document.getElementById("n_dep").value=r.deposits.map(d=>`${d.date||""}, ${d.amount}`).join("\n");
     if(r.deductions&&r.deductions.length) document.getElementById("n_ded").value=r.deductions.map(d=>`${d.name}, ${d.amount}`).join("\n");
@@ -422,6 +438,7 @@ function buildReq(){
   const deposits=lines(document.getElementById("n_dep").value).map(l=>{const p=l.split(",");return{date:(p[0]||"").trim()||null,amount:parseInt((p[1]||"").replace(/[^0-9]/g,""))||0};});
   const deductions=lines(document.getElementById("n_ded").value).map(l=>{const p=l.split(",");return{name:(p[0]||"").trim(),amount:parseInt((p[1]||"").replace(/[^0-9]/g,""))||0};});
   const req={worked_hours:hours,deposits,deductions};
+  const hw=parseInt(document.getElementById("n_hw").value); if(hw) req.agreed_hourly_wage=hw;
   if(document.getElementById("n_gchk").checked){
     const w=(document.getElementById("n_wp").value||"").split(",").map(s=>s.trim());
     if(w[0])req.workplace={lat:parseFloat(w[0]),lng:parseFloat(w[1]),radius_m:parseInt(w[2])||50};
@@ -453,23 +470,22 @@ function startAnalysis(){
 function renderResult(){
   const a=S.analysis;
   document.getElementById("r_money").textContent=won(a.suspected_unpaid);
+  document.getElementById("r_summary").textContent=a.timeline_summary||"(요약을 생성하지 못했습니다)";
   document.getElementById("r_cmp_tbl").innerHTML=
     `<tr><td>${t("cmp_expected")}</td><td>${won(a.total_expected_wage)}</td></tr>`+
     `<tr><td>${t("cmp_received")}</td><td>${won(a.total_received_wage)}</td></tr>`+
     `<tr><td>${t("cmp_suspected")}</td><td style="color:var(--blue)">${won(a.suspected_unpaid)}</td></tr>`;
+  // 검증 포인트
+  const cmp=a.compare||[];
+  document.getElementById("r_cmp_pts").innerHTML=cmp.length?cmp.map(c=>{
+    const st=c.status==="match"?'<span class="tag" style="background:#e8fbf3;color:#047857">일치</span>'
+      :c.status==="mismatch"?'<span class="tag" style="background:#fef2f2;color:#b91c1c">차이</span>'
+      :'<span class="tag">자료 부족</span>';
+    const vals=Object.entries(c.values||{}).map(([k,v])=>k+" "+(typeof v==="number"?Number(v).toLocaleString():(v==null?"-":v))).join(" · ");
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-size:13px;font-weight:700">${_esc(c.label)} ${st}</div><div class="small-muted">${_esc(vals)}</div>${c.note?`<div class="need">${_esc(c.note)}</div>`:""}</div>`;
+  }).join(""):'<p class="small-muted" style="margin:0">대조할 자료가 부족해요. 명세서·통장·계약서를 함께 올리면 자동으로 비교돼요.</p>';
   document.getElementById("r_ded_tbl").innerHTML=(a.deduction_items||[]).map(d=>
-    `<tr><td>${d.name} <span class="need">${d.category} · ${t("need")}</span></td><td>${won(d.amount)}</td></tr>`).join("")||`<tr><td>-</td><td>-</td></tr>`;
+    `<tr><td>${_esc(d.name)} <span class="need">${d.category} · ${t("need")}</span></td><td>${won(d.amount)}</td></tr>`).join("")||`<tr><td>-</td><td>-</td></tr>`;
   const g=a.gps||{};
   document.getElementById("r_gps").innerHTML=(g.tagged_count!==undefined)
-    ?`<p style="margin:0;font-size:14px">핑 ${g.tagged_count}건 · 카톡-근무지 교차일치 <b>${g.cross_matches}건</b> <span class="need">조작 핑 자동 배제</span></p>`
-    :`<p class="small-muted" style="margin:0">GPS 데이터 없음</p>`;
-  document.getElementById("r_tl").innerHTML=(a.timeline||[]).map(e=>
-    `<div class="timeline-item"><strong>${e.date||"-"}</strong><p>${e.description}</p></div>`).join("")||`<div class="timeline-item"><p>날짜 정보 부족</p></div>`;
-  document.getElementById("r_miss").innerHTML=(a.missing_evidences||[]).map(m=>`<li>${m.reason}</li>`).join("")||"<li>충분합니다.</li>";
-}
-function openReport(){ if(S.caseId)window.open("/cases/"+S.caseId+"/report.html","_blank"); }
-
-applyLang();
-</script>
-</body>
-</html>
+    ?`<p style="margin:0;font-size:14px">핑 ${g.tagged_count}건 · 카톡-근무지 교차일치 <b>${g.cross_matches}건</b> <span class="need">조작 핑 자동 

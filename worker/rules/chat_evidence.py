@@ -37,7 +37,7 @@ def assess_chat(entities: dict) -> dict:
     if not checklist["날짜 표시"]:
         warnings.append("날짜/시각이 안 보입니다 — 날짜가 보이는 화면을 함께 캡처하세요.")
     if not checklist["앞뒤 맥락(3줄 이상)"]:
-        warnings.append("중간 대화 누락 가능 — 핵심 문장 앞뒤 3~5줄을 포함해 다시 캡처하세요.")
+        warnings.append("앞뒤 맥락 부족(중간 대화 누락 가능) — 핵심 문장 앞뒤 3~5줄을 포함해 다시 캡처하세요.")
     if not checklist["지급약속/체불인정 문장"]:
         warnings.append("지급약속·체불인정 문장이 보이지 않습니다.")
 
@@ -52,5 +52,4 @@ def assess_chat(entities: dict) -> dict:
         "max_score": len(checklist),
         "level": level,
         "warnings": warnings,
-        "key_statements": key_statements,
-    }
+        "key_statements": 

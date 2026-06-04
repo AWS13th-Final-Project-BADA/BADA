@@ -30,9 +30,9 @@ class WorkplaceGeo(BaseModel):
 
 
 class AnalyzeRequest(BaseModel):
+    agreed_hourly_wage: Optional[int] = None   # 사용자가 수정한 시급(추출값 override)
     worked_hours: list[float] = Field(default_factory=list)
     deposits: list[DepositItem] = Field(default_factory=list)
     deductions: list[DeductionInput] = Field(default_factory=list)
     workplace: Optional[WorkplaceGeo] = None
-    gps_logs: list[GpsPing] = Field(default_factory=list)
-    chat_arrivals: list[str] = Field(default_factory=list)   # ISO datetimes
+    gps_logs: list[GpsPing] = Field(

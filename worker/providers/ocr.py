@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from config import PROVIDER_MODE, STRUCTURED_ENGINE
+from config import PARSEUR_API_KEY, PROVIDER_MODE, STRUCTURED_ENGINE, UPSTAGE_API_KEY
 
 STRUCTURED = {"contract", "statement", "schedule"}
 
@@ -91,10 +91,7 @@ class ParseurOcr(OcrProvider):
 
 
 def _structured_provider() -> OcrProvider:
-    return ParseurOcr() if STRUCTURED_ENGINE == "parseur" else UpstageOcr()
-
-
-def get_ocr(category: str) -> OcrProvider:
-    if PROVIDER_MODE != "aws":
-        return MockOcr()
-    return _structured_provider() if category in STRUCTURED else ClaudeVisionOcr()
+    # 기본(vision) 또는 키 없음 → Claude Vision. 명시적으로 upstage/parseur + 키 있을 때만 해당 엔진.
+    if STRUCTURED_ENGINE == "upstage" and UPSTAGE_API_KEY:
+        return UpstageOcr()
+    if STRUCTU

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # 동작 모드 (기능 담당자가 전환)
     #   provider_mode: local=Mock / aws=실제 OCR·AI·번역(Bedrock/Upstage/Translate)
     provider_mode: str = "local"
-    structured_engine: str = "upstage"   # 정형문서 OCR: upstage | parseur
+    structured_engine: str = "vision"    # 정형문서 OCR: vision(기본) | upstage | parseur
     auth_mode: str = "demo"        # demo | cognito
     storage_mode: str = "local"    # local | s3
     upload_dir: str = "./uploads"
@@ -46,4 +46,4 @@ os.environ.setdefault("BEDROCK_MODEL_ID", settings.bedrock_model_id)
 if settings.upstage_api_key:
     os.environ.setdefault("UPSTAGE_API_KEY", settings.upstage_api_key)
 if settings.parseur_api_key:
-    os.environ.setdefault("PARSEUR_API_KEY", settings.parseur_api_key)
+    os.environ.setdefault("PARSEUR_API_KEY", settings.

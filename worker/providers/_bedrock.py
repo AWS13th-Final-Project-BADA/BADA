@@ -84,10 +84,10 @@ def extract_json(system: str, content_blocks: list[dict], schema_model, max_retr
     last = None
     blocks = list(content_blocks)
     for _ in range(max_retries + 1):
-        raw = invoke(system, blocks)
+        raw = invoke(system, blocks, max_tokens=8000)   # 긴 문서도 안 잘리게 충분히
         try:
             return schema_model.model_validate(json.loads(_strip_fences(raw)))
         except Exception as e:
             last = e
-            blocks = blocks + [text_block("이전 출력이 형식에 맞지 않았습니다. 반드시 유효한 JSON만 출력하세요.")]
-    raise ValueError(f"schema validation failed after retries: {last}")
+            blocks = blocks + [text_block(
+                "이전 출력이 잘렸거나 JSON 형식이 아니었습니다. 반드시 유효한 JSON 하�
