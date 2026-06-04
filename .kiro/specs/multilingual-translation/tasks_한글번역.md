@@ -148,3 +148,37 @@ Wave 5: 선택적 테스트들 (property-based)
 
 각 "Wave"는 앞 단계가 끝나야 시작할 수 있는 그룹이다.
 같은 Wave 안의 작업들은 서로 독립적이라 동시에 진행해도 됨.
+
+---
+
+## 추가 작업 (테스트 중 발견된 개선사항 — 완료됨)
+
+### ✅ 추가 작업 A: 프론트→API lang 파라미터 전달
+
+- 분석 실행 시 현재 선택된 UI 언어를 `?lang=` 파라미터로 API에 전달
+- 리포트 열기 시에도 `?lang=` 전달
+- 파일: `backend/app/static/index.html`
+
+### ✅ 추가 작업 B: 리포트 실시간 번역 (report.html 리팩터링)
+
+- 기존: 분석 시점에 번역 저장 → 리포트에서 저장된 값만 표시 (언어 고정)
+- 변경: 리포트 조회 시점에 DB의 한국어 원문을 `translator.translate()`로 실시간 번역
+- 사용자가 언어를 바꿔도 분석을 다시 돌릴 필요 없음
+- 파일: `backend/app/routers/analysis.py`
+
+### ✅ 추가 작업 C: PDF 인쇄 버튼은 한국어 고정
+
+- 리포트의 인쇄 버튼은 항상 `?lang=ko`로 한국어 리포트를 새 탭에 엶
+- 공공기관/법무법인 제출용이므로 번역하지 않음
+- `@media print` CSS로 인쇄 시 버튼 숨김
+
+### ✅ 추가 작업 D: TRANSLATE_MODE 환경변수 분리
+
+- `TRANSLATE_MODE=aws`로 번역만 실제 AWS 사용 가능 (LLM/OCR은 Mock 유지)
+- `worker/config.py`에 `TRANSLATE_MODE` 추가
+- `get_translator()`가 `TRANSLATE_MODE`를 참조하도록 수정
+
+### ✅ 추가 작업 E: 대조표 증거유형 다국어 표시
+
+- report.html에서 evidence_type 컬럼도 언어별 매핑 (en/vi)
+- 한국어 모드에서는 한국어 그대로 표시
