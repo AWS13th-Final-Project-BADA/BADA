@@ -11,15 +11,17 @@ inclusion: always
 ## 1. 허용 스택 (이것만 사용)
 
 ### 인프라 (AWS 관리형)
+- 컨테이너 이미지: **ECR**
 - 컴퓨트: **ECS Fargate** (Backend API + Worker 컨테이너)
-- API: **API Gateway** (REST)
+- API 진입점: **ALB**
 - DB: **RDS PostgreSQL + PostGIS 확장** (사용자/사건/분석결과 + GPS 공간연산)
 - 스토리지: **S3 + KMS 암호화** (원본 증거 + 생성 PDF)
-- 큐: **SQS** (분석 작업 비동기 — 단일 워커가 단계 순차 실행)
+- 큐: **SQS + DLQ** (분석 작업 비동기 — 단일 워커가 단계 순차 실행)
 - 인증: **Cognito** (이메일 로그인)
+- 시크릿: **Secrets Manager** (민감정보), **SSM Parameter Store** (비민감 설정)
 - LLM: **Amazon Bedrock (Claude)** — OCR, 문장화, 요약
 - 번역: **Amazon Translate**
-- 로깅: **CloudWatch**
+- 로깅: **CloudWatch Logs + Alarms**
 - IaC: **Terraform**
 
 ### 백엔드 / 프론트
@@ -39,6 +41,7 @@ inclusion: always
 | --- | --- | --- |
 | Kubernetes / K8s / HPA | 5주에 클러스터 운영 불가 | ECS Fargate |
 | Kafka | 데모 트래픽 스파이크 없음 | SQS |
+| NAT Gateway | 현재 기간/예산 대비 고정비 부담이 큼 | ECS public subnet + RDS private subnet |
 | Step Functions | W1 부담 | 단일 워커 순차 실행 (MVP) |
 | OpenSearch | 본격 RAG는 Phase 2 | (MVP) 정적 FAQ / pgvector는 Phase 2 |
 | **OpenAI / 외부 LLM API** | 스택은 Bedrock(AWS 신뢰경계). 외부 직배송 안 함 | Bedrock Claude |
@@ -89,3 +92,12 @@ CSS는 `:lang()` 으로 폰트 자동 분기:
 
 - 제출용 PDF: **한국어 고정** (공식 행정문서).
 - 이해용: MVP에서는 별도 PDF 대신 **모국어 결과 화면**으로 대체 (W3 부하 감소).
+
+## 7. 인프라 운영 원칙
+
+- 프로젝트 운영 기간: `2026-06-04` ~ `2026-07-10`
+- 팀 전체 AWS 총 예산: `1,500달러`
+- 인프라는 AI(Bedrock/OCR/번역) 비용을 고려해 구성하되, 데모 안정성을 해치지 않는 수준의 관리형 서비스를 사용한다
+- RDS는 `Single-AZ`로 시작한다
+- ECS Fargate는 `backend 1 task`, `worker 1 task`의 최소 안정 사양부터 시작한다
+- CloudWatch 로그 보존기간은 짧게 가져가고, 민감정보와 비민감 설정은 분리 저장한다
