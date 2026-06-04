@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 
-from config import AWS_REGION, BEDROCK_MODEL_ID, PROVIDER_MODE
+from config import AWS_REGION, BEDROCK_MODEL_ID, PROVIDER_MODE, TRANSLATE_MODE
 from providers.language_config import (
     SUPPORTED_LANGUAGES,
     UnsupportedLanguageError,
@@ -355,4 +355,4 @@ class AmazonTranslator(Translator):
 
 
 def get_translator() -> Translator:
-    return AmazonTranslator(region=AWS_REGION) if PROVIDER_MODE == "aws" else MockTranslator()
+    return AmazonTranslator(region=AWS_REGION) if TRANSLATE_MODE == "aws" else MockTranslator()
