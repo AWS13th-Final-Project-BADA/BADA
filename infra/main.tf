@@ -104,10 +104,10 @@ resource "aws_ecs_cluster" "main" {
 }
 
 # TODO:
-# - public/private subnet 구성
-# - NAT/IGW 구성
+# - public/private subnet 구성 (ALB/ECS public, RDS private)
+# - Internet Gateway 구성 (NAT Gateway는 사용하지 않음)
 # - ECS task definition / service
-# - ALB 또는 API Gateway 연동
+# - ALB 연동
 # - CloudWatch log group / alarms
 # - IAM task role / execution role
 # - PostGIS extension 초기화 전략
