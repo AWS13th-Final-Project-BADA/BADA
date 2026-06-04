@@ -1,0 +1,18 @@
+{
+  "app_name": "BADA",
+  "disclaimer": "Đây là công cụ sắp xếp bằng chứng để chuẩn bị tư vấn, không phải tư vấn pháp lý.",
+  "nav": { "cases": "Hồ sơ của tôi", "new_case": "Hồ sơ mới" },
+  "upload_btn": "Tải lên bằng chứng",
+  "category": {
+    "contract": "Hợp đồng", "schedule": "Bản ghi công việc", "payment": "Chứng từ thanh toán",
+    "chat": "Tin nhắn", "statement": "Phiếu lương", "other": "Khác"
+  },
+  "result": {
+    "suspected_unpaid": "Số tiền nghi chưa trả",
+    "need_check": "Cần kiểm tra",
+    "timeline": "Dòng thời gian vụ việc",
+    "missing": "Tài liệu nên bổ sung"
+  },
+  "download_ko": "Nộp cho Sở Lao động (Tiếng Hàn)",
+  "download_native": "Bản tóm tắt"
+}

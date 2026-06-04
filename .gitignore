@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+
+# CDK
+infra/cdk.out/
+cdk.context.json
+
+# Databases (로컬 SQLite — 커밋 금지)
+*.db
+*.sqlite
+*.sqlite3
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Data (민감 — 절대 커밋 금지)
+eval/dataset/raw/
+*.local.json
+uploads/

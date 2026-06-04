@@ -1,0 +1,22 @@
+{
+  "case_id": "demo-nguyen",
+  "_note": "데모 페르소나 A — 베트남 E-9 제조업. 합성 데이터(비민감). 데모 안전망 겸 회귀 테스트.",
+  "inputs": {
+    "agreed_hourly_wage": 10320,
+    "worked_hours": [174.0, 168.0, 180.0, 176.0],
+    "deposits": [1500000, 1600000, 1550000, 1600000],
+    "raw_deductions": [
+      { "name": "기숙사비", "amount": 250000 },
+      { "name": "식비", "amount": 150000 },
+      { "name": "작업복비", "amount": 80000 },
+      { "name": "관리비 명목", "amount": 50000 }
+    ],
+    "present_categories": ["contract", "statement", "payment", "chat"]
+  },
+  "expected": {
+    "total_expected_wage": 7203360,
+    "suspected_unpaid": 953360,
+    "deduction_categories": ["기숙사비", "식비", "작업복/장비", "기타공제"],
+    "missing_items": ["schedule"]
+  }
+}

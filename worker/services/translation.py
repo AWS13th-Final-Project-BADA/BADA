@@ -1,0 +1,29 @@
+"""원문-번역 대조표 조립 — 원문 항상 보존(병기). 번역만 translator에 위임.
+
+대조표 항목: 공제 항목, 미지급 의심 진술 등 상담에 쓸 핵심 문장.
+"""
+from __future__ import annotations
+
+
+def build_translation_pairs(ctx: dict, result: dict, translator, target_lang: str = "ko") -> list[dict]:
+    pairs: list[dict] = []
+
+    for d in result.get("deduction_items", []):
+        src = f"{d['name']} {int(d['amount']):,}원이 공제되었습니다. ({d['check']})"
+        pairs.append({
+            "source_text": src,
+            "translated_text": translator.translate(src, target_lang),
+            "evidence_type": "급여명세서/공제",
+            "related_issue": "deduction",
+        })
+
+    if result.get("suspected_unpaid") and result["suspected_unpaid"] > 0:
+        src = f"급여와 입금액 사이에 약 {result['suspected_unpaid']:,}원의 차이가 확인됩니다. 확인이 필요합니다."
+        pairs.append({
+            "source_text": src,
+            "translated_text": translator.translate(src, target_lang),
+            "evidence_type": "사용자 진술",
+            "related_issue": "wage_unpaid",
+        })
+
+    return pairs

@@ -1,0 +1,18 @@
+{
+  "app_name": "BADA",
+  "disclaimer": "본 자료는 법률자문이 아닌 상담 준비용 증거 정리 도구입니다.",
+  "nav": { "cases": "내 사건", "new_case": "새 사건" },
+  "upload_btn": "증거 업로드",
+  "category": {
+    "contract": "계약서", "schedule": "근무기록", "payment": "지급증빙",
+    "chat": "대화", "statement": "급여명세서", "other": "기타"
+  },
+  "result": {
+    "suspected_unpaid": "미지급 의심 금액",
+    "need_check": "확인 필요",
+    "timeline": "사건 타임라인",
+    "missing": "더 준비하면 좋은 자료"
+  },
+  "download_ko": "노동청 제출용 (한국어)",
+  "download_native": "이해용 요약"
+}

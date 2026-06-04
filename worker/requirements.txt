@@ -1,0 +1,9 @@
+# Rule engine runs on stdlib only (testable without these).
+# The packages below are for the full worker runtime.
+# NOTE: weasyprint needs GTK libs on Windows - install at W3, not required for tests.
+boto3==1.35.30
+pydantic==2.9.2
+jinja2==3.1.4
+pytest==8.3.3
+shapely==2.0.6          # local geofence (polygon). Prod uses PostGIS ST_Contains.
+weasyprint==62.3        # PDF render. Windows: needs GTK runtime (W3 only).

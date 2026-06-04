@@ -1,0 +1,18 @@
+{
+  "app_name": "BADA",
+  "disclaimer": "This is an evidence-organizing tool for consultation prep, not legal advice.",
+  "nav": { "cases": "My Cases", "new_case": "New Case" },
+  "upload_btn": "Upload Evidence",
+  "category": {
+    "contract": "Contract", "schedule": "Work Record", "payment": "Payment Proof",
+    "chat": "Messages", "statement": "Payslip", "other": "Other"
+  },
+  "result": {
+    "suspected_unpaid": "Suspected Unpaid Amount",
+    "need_check": "Needs Review",
+    "timeline": "Case Timeline",
+    "missing": "Helpful Documents to Add"
+  },
+  "download_ko": "For Labor Office (Korean)",
+  "download_native": "Summary"
+}

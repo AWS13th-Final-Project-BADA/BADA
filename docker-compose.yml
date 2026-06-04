@@ -1,0 +1,20 @@
+# 로컬 개발용 — PostgreSQL + PostGIS (GPS 공간연산)
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: bada
+      POSTGRES_PASSWORD: bada
+      POSTGRES_DB: bada
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bada"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

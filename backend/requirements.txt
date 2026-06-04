@@ -1,0 +1,13 @@
+# Local run (SQLite, no AWS) needs only these:
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlalchemy==2.0.35
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-multipart==0.0.12
+
+# Optional - only for AWS mode (S3/SQS). Safe to install (pure-python wheel).
+boto3==1.35.30
+
+# For Postgres later (not needed with SQLite):
+# psycopg[binary]==3.2.3

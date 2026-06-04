@@ -1,0 +1,20 @@
+{
+  "_note": "내 데이터로 바꿔서 테스트하세요. 숫자만 고치면 됩니다.",
+  "agreed_hourly_wage": 10320,
+  "worked_hours": [174.0, 168.0, 180.0, 176.0],
+  "deposits": [1500000, 1600000, 1550000, 1600000],
+  "raw_deductions": [
+    { "name": "기숙사비", "amount": 250000 },
+    { "name": "식비", "amount": 150000 },
+    { "name": "작업복비", "amount": 80000 },
+    { "name": "관리비 명목", "amount": 50000 }
+  ],
+  "present_categories": ["contract", "statement", "payment", "chat"],
+  "workplace": { "lat": 37.5000, "lng": 127.0000, "radius_m": 50 },
+  "gps_logs": [
+    { "ts": "2026-01-15T09:05:00", "lat": 37.50003, "lng": 127.00003 },
+    { "ts": "2026-01-15T13:00:00", "lat": 37.50300, "lng": 127.00300 },
+    { "ts": "2026-01-15T09:00:00", "lat": 37.50003, "lng": 127.00003, "is_mocked": true }
+  ],
+  "chat_arrivals": ["2026-01-15T09:00:00"]
+}

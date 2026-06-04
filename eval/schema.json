@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BADA gold label",
+  "type": "object",
+  "required": ["case_id", "inputs", "expected"],
+  "properties": {
+    "case_id": { "type": "string" },
+    "inputs": {
+      "type": "object",
+      "description": "규칙엔진 입력(라벨러가 정답으로 채움)",
+      "properties": {
+        "agreed_hourly_wage": { "type": ["integer", "null"] },
+        "worked_hours": { "type": "array", "items": { "type": "number" } },
+        "deposits": { "type": "array", "items": { "type": "integer" } },
+        "raw_deductions": {
+          "type": "array",
+          "items": { "type": "object", "properties": { "name": {"type":"string"}, "amount": {"type":"integer"} } }
+        },
+        "present_categories": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "properties": {
+        "total_expected_wage": { "type": ["integer", "null"] },
+        "suspected_unpaid": { "type": ["integer", "null"] },
+        "deduction_categories": { "type": "array", "items": { "type": "string" } },
+        "missing_items": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
