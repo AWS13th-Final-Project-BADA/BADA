@@ -1,4 +1,4 @@
-# Local run (SQLite, no AWS) needs only these:
+# One file covers both local (Mock) and AWS (real OCR/AI/translate) modes.
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 sqlalchemy==2.0.35
@@ -6,8 +6,9 @@ pydantic==2.9.2
 pydantic-settings==2.5.2
 python-multipart==0.0.12
 
-# Optional - only for AWS mode (S3/SQS). Safe to install (pure-python wheel).
-boto3==1.35.30
+# AWS mode (PROVIDER_MODE=aws): Bedrock / Translate / Upstage
+boto3==1.35.30          # Bedrock (Claude Vision/Text), Amazon Translate
+requests==2.32.3        # Upstage Document Parse API
 
-# For Postgres later (not needed with SQLite):
+# Postgres only (SQLite needs nothing):
 # psycopg[binary]==3.2.3
