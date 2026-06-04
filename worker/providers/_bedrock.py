@@ -1,6 +1,6 @@
-"""Bedrock Claude 호출 헬퍼 — 메시지 API + 이미지 블록 + JSON 스키마 강제/재시도.
+"""Bedrock Claude 호출 헬퍼 — 메시지 API + 이미지/PDF 블록 + JSON 스키마 강제/재시도.
 
-OCR(Vision)과 Upstage 후처리(Text 구조화)가 공유한다.
+OCR(Vision)과 Upstage/Parseur 후처리(Text 구조화)가 공유한다.
 """
 from __future__ import annotations
 
@@ -29,6 +29,17 @@ def image_block(image_bytes: bytes, media_type: str = "image/jpeg") -> dict:
                                         "data": base64.b64encode(image_bytes).decode()}}
 
 
+def document_block(pdf_bytes: bytes, title: str = "document") -> dict:
+    """PDF 입력용 document 블록 (Claude 3.5+/4 지원)."""
+    return {"type": "document", "title": title,
+            "source": {"type": "base64", "media_type": "application/pdf",
+                       "data": base64.b64encode(pdf_bytes).decode()}}
+
+
+def is_pdf(data: bytes) -> bool:
+    return data[:5] == b"%PDF-"
+
+
 def media_type_of(data: bytes) -> str:
     if data[:8].startswith(b"\x89PNG"):
         return "image/png"
@@ -37,6 +48,11 @@ def media_type_of(data: bytes) -> str:
     if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
         return "image/webp"
     return "image/jpeg"
+
+
+def file_block(data: bytes, title: str = "document") -> dict:
+    """파일 바이트 → PDF면 document, 아니면 image 블록 자동 선택."""
+    return document_block(data, title) if is_pdf(data) else image_block(data, media_type_of(data))
 
 
 def invoke(system: str, content_blocks: list[dict], max_tokens: int = 2000) -> str:

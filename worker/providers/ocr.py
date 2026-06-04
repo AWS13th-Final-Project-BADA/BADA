@@ -1,7 +1,7 @@
 """OCR provider — 이미지/문서 → 텍스트·엔티티. 카테고리 기준 하이브리드 라우팅(tech.md).
 
-- 정형(contract/statement/schedule) → Upstage(텍스트 추출) → Claude Text(엔티티 구조화)
-- 비정형(chat/other/사진/앱캡처)     → Claude Vision(이미지→엔티티 1샷)
+- 정형(contract/statement/schedule) → Upstage 또는 Parseur(STRUCTURED_ENGINE) → Claude Text 구조화
+- 비정형(chat/other/사진/앱캡처)     → Claude Vision (이미지/PDF → 엔티티 1샷)
 - 애매                              → Claude Vision (안전 기본값)
 
 출력: {"raw_text": str, "entities": dict}  (schema.OcrResult 검증 통과본)
@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from config import PROVIDER_MODE
+from config import PROVIDER_MODE, STRUCTURED_ENGINE
 
 STRUCTURED = {"contract", "statement", "schedule"}
 
@@ -48,32 +48,49 @@ class MockOcr(OcrProvider):
 
 
 class ClaudeVisionOcr(OcrProvider):
-    """이미지 → Bedrock Claude Vision → 엔티티(1샷). Pydantic 검증+재시도."""
+    """이미지/PDF → Bedrock Claude → 엔티티(1샷). Pydantic 검증+재시도."""
 
     def extract(self, image_bytes: bytes, category: str) -> dict:
         from providers import _bedrock
         from providers.schema import OcrResult
         blocks = [
-            _bedrock.image_block(image_bytes, _bedrock.media_type_of(image_bytes)),
+            _bedrock.file_block(image_bytes, title=category),   # PDF면 document, 아니면 image
             _bedrock.text_block(_instruction(category)),
         ]
         res = _bedrock.extract_json(_SYSTEM, blocks, OcrResult)
         return {"raw_text": res.raw_text, "entities": res.entities.model_dump()}
 
 
+def _structure_text(text: str, category: str) -> dict:
+    """정형문서에서 뽑은 텍스트 → Claude Text로 엔티티 구조화 (Upstage/Parseur 공용)."""
+    from providers import _bedrock
+    from providers.schema import OcrResult
+    blocks = [_bedrock.text_block(_instruction(category) + "\n\n[문서 텍스트]\n" + text)]
+    res = _bedrock.extract_json(_SYSTEM, blocks, OcrResult)
+    return {"raw_text": text, "entities": res.entities.model_dump()}
+
+
 class UpstageOcr(OcrProvider):
-    """정형문서 → Upstage(텍스트/표) → Bedrock Claude Text(엔티티 구조화). 2단계."""
+    """정형문서 → Upstage(텍스트/표) → Claude Text(엔티티 구조화). 2단계."""
 
     def extract(self, image_bytes: bytes, category: str) -> dict:
-        from providers import _bedrock, _upstage
-        from providers.schema import OcrResult
-        text = _upstage.document_parse(image_bytes)
-        blocks = [_bedrock.text_block(_instruction(category) + "\n\n[문서 텍스트]\n" + text)]
-        res = _bedrock.extract_json(_SYSTEM, blocks, OcrResult)
-        return {"raw_text": text, "entities": res.entities.model_dump()}
+        from providers import _upstage
+        return _structure_text(_upstage.document_parse(image_bytes), category)
+
+
+class ParseurOcr(OcrProvider):
+    """정형문서 → Parseur(텍스트) → Claude Text(엔티티 구조화). 2단계. (스텁)"""
+
+    def extract(self, image_bytes: bytes, category: str) -> dict:
+        from providers import _parseur
+        return _structure_text(_parseur.parse_document(image_bytes), category)
+
+
+def _structured_provider() -> OcrProvider:
+    return ParseurOcr() if STRUCTURED_ENGINE == "parseur" else UpstageOcr()
 
 
 def get_ocr(category: str) -> OcrProvider:
     if PROVIDER_MODE != "aws":
         return MockOcr()
-    return UpstageOcr() if category in STRUCTURED else ClaudeVisionOcr()
+    return _structured_provider() if category in STRUCTURED else ClaudeVisionOcr()

@@ -1,0 +1,34 @@
+{
+  "_comment": "BADA 앱 런타임 최소권한 (Bedrock 호출 + Amazon Translate). <ACCOUNT_ID>를 본인 계정 번호로 바꾸세요.",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BedrockInvoke",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-*",
+        "arn:aws:bedrock:*:<ACCOUNT_ID>:inference-profile/*anthropic.claude-*"
+      ]
+    },
+    {
+      "Sid": "AmazonTranslate",
+      "Effect": "Allow",
+      "Action": ["translate:TranslateText"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DiscoverReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:ListInferenceProfiles",
+        "bedrock:ListFoundationModels",
+        "bedrock:GetInferenceProfile"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

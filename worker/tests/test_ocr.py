@@ -1,6 +1,6 @@
-"""OCR 하이브리드 라우팅 + 집계 로직 테스트 (실제 API 호출 없이)."""
+"""OCR 하이브리드 라우팅 + 엔진 스위치 + 집계 로직 테스트 (실제 API 호출 없이)."""
 import providers.ocr as o
-from providers.ocr import ClaudeVisionOcr, MockOcr, UpstageOcr, get_ocr
+from providers.ocr import ClaudeVisionOcr, MockOcr, ParseurOcr, UpstageOcr, get_ocr
 from services.extract import aggregate
 
 
@@ -10,16 +10,27 @@ def test_routing_local_is_mock():
     assert isinstance(get_ocr("chat"), MockOcr)
 
 
-def test_routing_aws_hybrid():
+def test_routing_aws_hybrid_default_upstage():
     o.PROVIDER_MODE = "aws"
+    o.STRUCTURED_ENGINE = "upstage"
     try:
-        assert isinstance(get_ocr("statement"), UpstageOcr)   # 정형
+        assert isinstance(get_ocr("statement"), UpstageOcr)   # 정형 → Upstage
         assert isinstance(get_ocr("contract"), UpstageOcr)
-        assert isinstance(get_ocr("schedule"), UpstageOcr)
-        assert isinstance(get_ocr("chat"), ClaudeVisionOcr)   # 비정형
-        assert isinstance(get_ocr("other"), ClaudeVisionOcr)  # 애매 → 안전 기본값
+        assert isinstance(get_ocr("chat"), ClaudeVisionOcr)   # 비정형 → Vision
+        assert isinstance(get_ocr("other"), ClaudeVisionOcr)  # 애매 → Vision
     finally:
         o.PROVIDER_MODE = "local"
+
+
+def test_routing_structured_engine_parseur():
+    o.PROVIDER_MODE = "aws"
+    o.STRUCTURED_ENGINE = "parseur"
+    try:
+        assert isinstance(get_ocr("statement"), ParseurOcr)   # 정형 → Parseur
+        assert isinstance(get_ocr("chat"), ClaudeVisionOcr)   # 비정형은 그대로 Vision
+    finally:
+        o.PROVIDER_MODE = "local"
+        o.STRUCTURED_ENGINE = "upstage"
 
 
 def test_mock_returns_empty():
