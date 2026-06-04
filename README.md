@@ -42,9 +42,18 @@ cd worker && pip install -r requirements.txt && pytest -q
 
 ## 스택 (AWS 관리형 단일 노선)
 
-ECS Fargate · API Gateway · RDS PostgreSQL+PostGIS · S3+KMS · SQS · Cognito ·
+ECR · ECS Fargate · ALB · RDS PostgreSQL+PostGIS · S3+KMS · SQS(+DLQ) · Cognito ·
+Secrets Manager · SSM Parameter Store · CloudWatch Logs/Alarms ·
 Bedrock(Claude) · Amazon Translate · WeasyPrint.
 금지: K8s, Kafka, OpenAI, Textract, ReportLab (이유는 `.kiro/steering/tech.md`).
+
+## 인프라 운영 기준
+
+- 프로젝트 운영 기간: `2026-06-04` ~ `2026-07-10`
+- 팀 전체 AWS 총 예산: `1,500달러`
+- 원칙: AI(Bedrock/OCR/번역) 비용도 함께 고려하되, 인프라는 지나치게 축소하지 않고 안정적인 데모가 가능한 수준으로 구성
+- 네트워크 기본 원칙: `ALB/ECS는 public subnet`, `RDS는 private subnet`, `NAT Gateway는 사용하지 않음`
+- 비용 통제 원칙: `RDS Single-AZ`, `Fargate 최소 안정 사양`, `CloudWatch 로그 보존기간 단축`, `Secrets 최소화 + 비민감 값은 SSM 분리`
 
 ## 5주 로드맵 / bolt
 
