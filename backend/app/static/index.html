@@ -2,152 +2,16 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>BADA</title>
-<style>
-  :root{
-    --bg:#f4f6fb;--card:#fff;--text:#111827;--sub:#6b7280;--muted:#9ca3af;--line:#edf0f5;
-    --blue:#2563eb;--blue-soft:#eaf2ff;--green:#10b981;--green-soft:#e8fbf3;
-    --orange:#f59e0b;--orange-soft:#fff7e6;--red:#ef4444;
-    --shadow:0 22px 60px rgba(31,41,55,.15);
-  }
-  *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-    background:radial-gradient(circle at 18% 20%,rgba(37,99,235,.16),transparent 26%),
-      radial-gradient(circle at 85% 15%,rgba(16,185,129,.16),transparent 24%),
-      linear-gradient(135deg,#f8fafc 0%,#eef2ff 55%,#f8fafc 100%);
-    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Segoe UI","Malgun Gothic",sans-serif;color:var(--text)}
-  .phone{width:390px;height:820px;background:#f7f9fc;border-radius:44px;box-shadow:var(--shadow);
-    border:10px solid #111827;overflow:hidden;position:relative}
-  .screen{height:100%;overflow-y:auto;padding:18px 22px 92px;scrollbar-width:none}
-  .screen::-webkit-scrollbar{display:none}
-  .status{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:13px;padding:2px 4px 18px}
-  .signal{display:flex;gap:5px;align-items:center}
-  .pill-signal{width:18px;height:8px;border-radius:999px;background:#111827;opacity:.92}
-  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-  .brand{display:flex;align-items:center;gap:10px}
-  .logo{width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#22c55e);
-    display:grid;place-items:center;color:#fff;font-weight:900;letter-spacing:-1px}
-  .brand strong{font-size:20px;letter-spacing:-.6px}
-  .lang{display:flex;gap:4px}
-  .lang button{border:1px solid var(--line);background:#fff;width:34px;height:32px;border-radius:11px;
-    font-size:11px;font-weight:800;cursor:pointer;color:#6b7280}
-  .lang button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
-  .lang select{border:1px solid var(--line);background:#fff;height:34px;border-radius:11px;
-    font-size:12px;font-weight:800;cursor:pointer;color:#6b7280;padding:0 10px;
-    appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
-    background-repeat:no-repeat;background-position:right 10px center;padding-right:26px}
-  .hero{background:linear-gradient(180deg,#fff 0%,#f7fbff 100%);border-radius:32px;padding:26px 22px;
-    box-shadow:0 18px 45px rgba(30,64,175,.08);margin-bottom:18px;position:relative;overflow:hidden}
-  .hero::before{content:"";position:absolute;width:190px;height:190px;right:-70px;top:-70px;
-    background:radial-gradient(circle,rgba(37,99,235,.16),transparent 65%);border-radius:50%}
-  .hero-badge{display:inline-flex;align-items:center;gap:7px;background:var(--blue-soft);color:var(--blue);
-    padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;margin-bottom:16px}
-  .hero h1{margin:0;font-size:28px;line-height:1.2;letter-spacing:-1.2px}
-  .hero p{margin:14px 0 22px;color:var(--sub);font-size:15px;line-height:1.55;letter-spacing:-.3px}
-  .primary-btn{width:100%;border:0;border-radius:20px;background:#111827;color:#fff;padding:17px 18px;
-    font-size:16px;font-weight:850;letter-spacing:-.4px;cursor:pointer;box-shadow:0 16px 28px rgba(17,24,39,.22);
-    transition:transform .16s ease}
-  .primary-btn:active{transform:scale(.98)}
-  .ghost-btn{background:#fff;color:var(--blue);border:1px solid var(--blue);box-shadow:none}
-  .section-title{display:flex;justify-content:space-between;align-items:end;margin:24px 0 12px}
-  .section-title h2{margin:0;font-size:20px;letter-spacing:-.7px}
-  .section-title span{color:var(--blue);font-size:13px;font-weight:800}
-  .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .quick-card{background:#fff;border-radius:23px;padding:17px;min-height:122px;box-shadow:0 10px 28px rgba(17,24,39,.06)}
-  .quick-card .emoji{width:42px;height:42px;border-radius:16px;display:grid;place-items:center;font-size:21px;margin-bottom:12px}
-  .quick-card strong{display:block;font-size:16px;letter-spacing:-.6px;margin-bottom:5px}
-  .quick-card p{margin:0;color:var(--sub);font-size:12px;line-height:1.4}
-  .soft-blue{background:var(--blue-soft)}.soft-green{background:var(--green-soft)}.soft-orange{background:var(--orange-soft)}
-  .card{background:#fff;border-radius:26px;padding:20px;box-shadow:0 12px 32px rgba(17,24,39,.06);margin-bottom:14px}
-  label{display:block;font-size:12px;color:var(--sub);margin:10px 0 4px;font-weight:700}
-  input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:14px;
-    font-size:14px;font-family:inherit;background:#fbfcfe}
-  textarea{min-height:60px;resize:vertical}
-  .frow{display:flex;gap:10px}.frow>div{flex:1}
-  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
-  .chip-sel{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:12px;
-    font-weight:700;cursor:pointer;color:#6b7280}
-  .chip-sel.on{background:var(--blue);color:#fff;border-color:var(--blue)}
-  .upload-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
-  .upload-row:last-child{border-bottom:0;padding-bottom:0}
-  .upload-left{display:flex;align-items:center;gap:12px;min-width:0}
-  .file-icon{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;font-size:20px;flex:none}
-  .upload-left strong{display:block;font-size:15px;letter-spacing:-.4px}
-  .upload-left span{display:block;margin-top:3px;color:var(--muted);font-size:12px}
-  .upload-chip{border:0;background:#f3f6fb;color:#1f2937;border-radius:999px;padding:9px 13px;font-size:12px;
-    font-weight:800;cursor:pointer;white-space:nowrap}
-  .upload-chip.done{background:var(--green-soft);color:#047857}
-  details.numbox{background:#fff;border-radius:26px;padding:6px 20px;box-shadow:0 12px 32px rgba(17,24,39,.06);margin-bottom:14px}
-  details.numbox summary{list-style:none;cursor:pointer;font-size:16px;font-weight:800;padding:14px 0;letter-spacing:-.5px}
-  details.numbox summary::-webkit-details-marker{display:none}
-  .progress-card{background:#111827;color:#fff;border-radius:30px;padding:22px;box-shadow:0 18px 40px rgba(17,24,39,.22);margin-bottom:16px}
-  .progress-card h2{margin:0 0 8px;font-size:21px;letter-spacing:-.8px}
-  .progress-card p{color:#cbd5e1;margin:0 0 18px;font-size:13px;line-height:1.5}
-  .bar{width:100%;height:11px;background:rgba(255,255,255,.16);border-radius:999px;overflow:hidden;margin:18px 0 10px}
-  .bar span{display:block;height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,#3b82f6,#22c55e);transition:width .55s ease}
-  .step-list{margin-top:16px}
-  .step{display:flex;align-items:center;gap:10px;padding:9px 0;color:#94a3b8;font-size:13px;font-weight:700}
-  .step .dot{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:12px}
-  .step.active{color:#fff}
-  .step.active .dot{background:#22c55e;color:#fff;animation:pulse 1.3s infinite}
-  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.45)}50%{box-shadow:0 0 0 9px rgba(34,197,94,0)}}
-  .result-hero{background:#111827;color:#fff;border-radius:32px;padding:24px 22px;margin-bottom:16px;position:relative;overflow:hidden}
-  .result-hero::after{content:"";position:absolute;width:160px;height:160px;right:-42px;top:-54px;background:radial-gradient(circle,rgba(37,99,235,.46),transparent 68%)}
-  .result-hero span.tagp{display:inline-flex;background:rgba(255,255,255,.12);padding:8px 12px;border-radius:999px;color:#bfdbfe;font-size:12px;font-weight:800;margin-bottom:18px}
-  .result-hero h2{margin:0 0 8px;font-size:21px;letter-spacing:-.8px}
-  .money{font-size:38px;font-weight:950;letter-spacing:-1.6px;margin:2px 0}
-  .result-hero p{color:#cbd5e1;margin:10px 0 0;font-size:13px;line-height:1.5}
-  .mini-table{width:100%;border-collapse:collapse;margin-top:6px}
-  .mini-table tr{border-bottom:1px solid var(--line)}
-  .mini-table tr:last-child{border-bottom:0}
-  .mini-table td{padding:13px 0;font-size:14px}
-  .mini-table td:last-child{text-align:right;font-weight:850}
-  .need{color:var(--red);font-size:11px;font-weight:800;display:block;margin-top:2px}
-  .timeline{position:relative;padding-left:20px;margin-top:6px}
-  .timeline::before{content:"";position:absolute;left:6px;top:5px;bottom:5px;width:2px;background:#e5e7eb}
-  .timeline-item{position:relative;padding:0 0 18px 8px}
-  .timeline-item:last-child{padding-bottom:0}
-  .timeline-item::before{content:"";position:absolute;left:-18px;top:4px;width:12px;height:12px;border-radius:50%;
-    background:var(--blue);border:3px solid #fff;box-shadow:0 0 0 2px var(--blue-soft)}
-  .timeline-item strong{display:block;font-size:13px;color:var(--blue);margin-bottom:4px}
-  .timeline-item p{margin:0;font-size:14px;line-height:1.45;letter-spacing:-.2px}
-  .chat-card{background:#fff;border-radius:28px;padding:18px;box-shadow:0 12px 32px rgba(17,24,39,.07);margin-bottom:16px}
-  .chat-bubble{padding:13px 15px;border-radius:18px;font-size:14px;line-height:1.5;margin:10px 0;letter-spacing:-.2px}
-  .chat-bubble.user{background:var(--blue);color:#fff;margin-left:40px;border-bottom-right-radius:6px}
-  .chat-bubble.bot{background:#f3f6fb;color:#1f2937;margin-right:22px;border-bottom-left-radius:6px}
-  .chat-list{min-height:250px}
-  .chat-list.empty{min-height:0}
-  .chat-meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px}
-  .chat-meta span{background:#eef2ff;color:#3730a3;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:800}
-  .next-actions{margin:8px 0 2px;padding-left:18px;color:#374151;font-size:13px;line-height:1.45}
-  .chat-disclaimer{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);color:var(--sub);font-size:11px;line-height:1.45}
-  .quick-chat{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
-  .quick-chat button{border:1px solid var(--line);background:#fff;color:#374151;border-radius:999px;padding:8px 10px;font-size:12px;font-weight:800;cursor:pointer}
-  .chat-form{display:flex;gap:8px;align-items:end;margin-top:12px}
-  .chat-form textarea{min-height:46px;max-height:120px;border-radius:16px;flex:1}
-  .chat-form button{width:56px;height:46px;border:0;border-radius:16px;background:var(--blue);color:#fff;font-size:18px;font-weight:900;cursor:pointer;flex:none}
-  .chat-form button:disabled{background:#cbd5e1;cursor:default}
-  .bottom-nav{position:absolute;left:0;right:0;bottom:0;height:76px;background:rgba(255,255,255,.92);
-    backdrop-filter:blur(18px);border-top:1px solid rgba(229,231,235,.8);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 14px 14px;z-index:10}
-  .nav-item{border:0;background:transparent;color:#9ca3af;font-size:11px;font-weight:750;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;cursor:pointer}
-  .nav-item .nav-icon{font-size:19px}
-  .nav-item.active{color:var(--blue)}
-  .page{display:none;animation:fadeUp .34s ease both}
-  .page.active{display:block}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-  .floating-scan{width:74px;height:74px;border-radius:28px;background:linear-gradient(135deg,#2563eb,#22c55e);
-    display:grid;place-items:center;font-size:30px;color:#fff;margin:20px auto 4px;box-shadow:0 20px 35px rgba(37,99,235,.28);animation:float 2.3s ease-in-out infinite}
-  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-  .flow-steps{display:flex;gap:6px;margin-bottom:14px}
-  .fstep{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:#9ca3af;font-size:11px;font-weight:700}
-  .fstep b{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#eef2f7;color:#9ca3af;font-size:12px}
-  .fstep.on{color:var(--blue)}
-  .fstep.on b{background:var(--blue);color:#fff}
-  .fstep.done b{background:var(--green);color:#fff}
-  .notice{background:#fff7ed;color:#9a3412;border-radius:18px;padding:13px 14px;font-size:12px;line-height:1.45;font-weight:650;margin-top:14px}
-  .small-muted{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
-</style>
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#2563eb" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="BADA" />
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
+<link rel="icon" type="image/png" href="/static/icon-192.png" />
+<link rel="stylesheet" href="/static/css/styles.css" />
 </head>
 <body>
 <main class="phone">
@@ -315,18 +179,9 @@
   </nav>
 </main>
 
+<script src="/static/js/i18n.js"></script>
 <script>
-// ---------- i18n ----------
-const T={
- ko:{badge:"✨ 신고 전 증거 준비 서비스",h1:"흩어진 자료를<br/>상담 가능한 사건 파일로",hp:"계약서, 급여명세서, 입금내역, 대화 캡처를 올리면 Evidence Pack으로 정리해드려요.",hbtn:"내 증거 패키지 만들기",qtitle:"무엇을 도와드릴까요?",qsub:"3분 시작",q1t:"급여 차이 확인",q1p:"명세서 금액과 실제 입금액을 비교해요.",q2t:"공제 항목 정리",q2p:"기숙사비, 식비, 작업복비를 구분해요.",q3t:"증거 목록화",q3p:"계약서, 대화, 입금내역을 사건별로 묶어요.",q4t:"절차 안내 챗봇",q4p:"고용노동부에 가기 전 준비를 알려줘요.",notice:"BADA은 법률 판단을 하지 않습니다. 업로드한 자료를 상담 준비용으로 정리합니다.",nc_title:"사건 정보",f_wp:"사업장명",f_start:"근무 시작일",f_end:"근무 종료일",f_wage:"약속 시급(원)",f_weekly:"주당 근무시간",f_issue:"문제 유형",nc_next:"다음: 자료 올리기",up_title:"자료를 올려주세요",num_title:"분석에 쓸 값 (AI 추출값 자동 채움 · 수정 가능)",num_hours:"근무시간 (콤마 구분)",num_dep:"입금 내역 (한 줄에 '날짜, 금액')",num_ded:"공제 항목 (한 줄에 '이름, 금액')",num_gps:"GPS 정황 포함",num_wp:"근무지 (lat,lng,반경m)",num_png:"GPS 핑 (ts,lat,lng,mocked)",num_arr:"도착 카톡 시각 (ISO)",num_demo:"데모 데이터 채우기",up_extract:"📸 자료에서 AI로 추출",up_run:"Evidence Pack 분석 시작",up_hint:"증거를 분류로 등록하면 누락 안내에 반영됩니다.",an_h2:"자료를 사건 파일로<br/>정리하고 있어요",an_p1:"계약서와 급여명세서를 분석하는 중입니다.",an_s1:"문서 OCR 및 금액 추출",an_s2:"급여와 입금액 비교 (규칙 기반)",an_s3:"타임라인·공제 정리",an_s4:"Evidence Pack 생성",r_tag:"Evidence Pack 생성 완료",r_h2:"상담 시 확인할<br/>금액 차이가 있어요",r_disc:"이 금액은 체불 확정액이 아니라, 고용노동부 또는 전문가 상담에서 확인이 필요한 차이입니다.",r_cmp:"금액 비교",r_ded:"공제 항목",r_gps:"GPS 정황",r_tl:"사건 타임라인",r_miss:"더 준비하면 좋은 자료",r_report:"제출용 리포트 열기",r_chat:"다음 단계 물어보기",c_tag:"절차 안내",c_q1:"고용노동부에 가기 전에 무엇을 준비해야 하나요?",c_a1:"현재 Evidence Pack에는 급여 비교, 공제 항목, 사건 타임라인이 정리되어 있습니다. 추가로 근로계약서 전체 사진과 사업주와의 대화 원본을 준비하면 상담이 더 원활합니다.",c_a2:"BADA은 법률 판단을 하지 않습니다. 최종 판단은 고용노동부 또는 전문가 상담을 통해 확인해야 합니다.",c_home:"처음으로 돌아가기",nav_home:"홈",nav_up:"업로드",nav_pkg:"패키지",nav_chat:"챗봇",cmp_expected:"기대 급여 (시급×시간)",cmp_received:"실제 수령",cmp_suspected:"미지급 의심",need:"확인 필요",fs1:"올리기",fs2:"AI 추출",fs3:"확인·수정",fs4:"분석"},
- en:{badge:"✨ Pre-report evidence prep",h1:"Turn scattered files<br/>into a consultable case",hp:"Upload contract, payslip, deposits and chat captures, and we organize them into an Evidence Pack.",hbtn:"Build my Evidence Pack",qtitle:"How can we help?",qsub:"3-min start",q1t:"Pay gap check",q1p:"Compare payslip vs actual deposit.",q2t:"Deduction sorting",q2p:"Separate dorm, meal, uniform fees.",q3t:"Evidence listing",q3p:"Group contract, chat, deposits by case.",q4t:"Guidance chatbot",q4p:"What to prepare before the Labor Office.",notice:"BADA does not make legal judgments. It organizes your files for consultation prep.",nc_title:"Case info",f_wp:"Workplace",f_start:"Start date",f_end:"End date",f_wage:"Hourly wage (KRW)",f_weekly:"Weekly hours",f_issue:"Issue types",nc_next:"Next: upload files",up_title:"Upload your files",num_title:"Values for analysis (auto-filled, editable)",num_hours:"Hours (comma separated)",num_dep:"Deposits (per line 'date, amount')",num_ded:"Deductions (per line 'name, amount')",num_gps:"Include GPS",num_wp:"Workplace (lat,lng,radius m)",num_png:"GPS pings (ts,lat,lng,mocked)",num_arr:"Arrival msg times (ISO)",num_demo:"Fill demo data",up_extract:"📸 Extract with AI",up_run:"Start Evidence Pack analysis",up_hint:"Registered categories feed the missing-docs check.",an_h2:"Organizing your files<br/>into a case",an_p1:"Analyzing contract and payslip.",an_s1:"Document OCR & amount extraction",an_s2:"Compare pay vs deposit (rule-based)",an_s3:"Timeline & deductions",an_s4:"Evidence Pack generation",r_tag:"Evidence Pack ready",r_h2:"There is a gap<br/>to check at consultation",r_disc:"This is not a confirmed amount, but a gap to verify with the Labor Office or an expert.",r_cmp:"Amount comparison",r_ded:"Deductions",r_gps:"GPS context",r_tl:"Case timeline",r_miss:"Helpful documents to add",r_report:"Open report",r_chat:"Ask next steps",c_tag:"Guidance",c_q1:"What should I prepare before the Labor Office?",c_a1:"Your Evidence Pack has a pay comparison, deductions and a timeline. Adding the full contract photo and original chat helps the consultation.",c_a2:"BADA does not make legal judgments. Final judgment must be confirmed by the Labor Office or an expert.",c_home:"Back to start",nav_home:"Home",nav_up:"Upload",nav_pkg:"Pack",nav_chat:"Chat",cmp_expected:"Expected pay (wage×hrs)",cmp_received:"Received",cmp_suspected:"Suspected unpaid",need:"needs review",fs1:"Upload",fs2:"AI extract",fs3:"Review·edit",fs4:"Analyze"},
- vi:{badge:"✨ Chuẩn bị bằng chứng trước khi tố cáo",h1:"Biến tài liệu rời rạc<br/>thành hồ sơ tư vấn được",hp:"Tải hợp đồng, phiếu lương, lịch sử chuyển khoản, ảnh chụp tin nhắn — chúng tôi sắp xếp thành Evidence Pack.",hbtn:"Tạo Evidence Pack",qtitle:"Chúng tôi giúp gì?",qsub:"Bắt đầu 3 phút",q1t:"Kiểm tra chênh lệch lương",q1p:"So sánh phiếu lương với tiền vào.",q2t:"Sắp xếp khoản trừ",q2p:"Phân biệt ký túc xá, ăn, đồng phục.",q3t:"Liệt kê bằng chứng",q3p:"Gom hợp đồng, tin nhắn, tiền vào theo vụ.",q4t:"Chatbot hướng dẫn",q4p:"Chuẩn bị trước khi đến Sở Lao động.",notice:"BADA không đưa ra phán quyết pháp lý. Chỉ sắp xếp tài liệu để chuẩn bị tư vấn.",nc_title:"Thông tin vụ việc",f_wp:"Nơi làm việc",f_start:"Ngày bắt đầu",f_end:"Ngày kết thúc",f_wage:"Lương giờ (KRW)",f_weekly:"Giờ/tuần",f_issue:"Loại vấn đề",nc_next:"Tiếp: tải tài liệu",up_title:"Tải tài liệu của bạn",num_title:"Giá trị phân tích (tự điền, sửa được)",num_hours:"Giờ làm (cách dấu phẩy)",num_dep:"Tiền vào (mỗi dòng 'ngày, số tiền')",num_ded:"Khoản trừ (mỗi dòng 'tên, số tiền')",num_gps:"Kèm GPS",num_wp:"Nơi làm (lat,lng,bán kính m)",num_png:"GPS ping (ts,lat,lng,mocked)",num_arr:"Giờ tin nhắn đến (ISO)",num_demo:"Điền dữ liệu mẫu",up_extract:"📸 Trích xuất bằng AI",up_run:"Bắt đầu phân tích",up_hint:"Phân loại đã đăng ký sẽ vào mục thiếu tài liệu.",an_h2:"Đang sắp xếp tài liệu<br/>thành hồ sơ",an_p1:"Đang phân tích hợp đồng và phiếu lương.",an_s1:"OCR tài liệu & trích số tiền",an_s2:"So sánh lương với tiền vào",an_s3:"Dòng thời gian & khoản trừ",an_s4:"Tạo Evidence Pack",r_tag:"Đã tạo Evidence Pack",r_h2:"Có chênh lệch<br/>cần kiểm tra khi tư vấn",r_disc:"Đây không phải số tiền xác định, mà là chênh lệch cần kiểm tra với Sở Lao động hoặc chuyên gia.",r_cmp:"So sánh số tiền",r_ded:"Khoản trừ",r_gps:"GPS",r_tl:"Dòng thời gian",r_miss:"Tài liệu nên bổ sung",r_report:"Mở báo cáo",r_chat:"Hỏi bước tiếp theo",c_tag:"Hướng dẫn",c_q1:"Cần chuẩn bị gì trước khi đến Sở Lao động?",c_a1:"Evidence Pack của bạn có so sánh lương, khoản trừ và dòng thời gian. Thêm ảnh hợp đồng đầy đủ và tin nhắn gốc sẽ giúp buổi tư vấn.",c_a2:"BADA không phán quyết pháp lý. Quyết định cuối cùng phải xác nhận với Sở Lao động hoặc chuyên gia.",c_home:"Về đầu",nav_home:"Trang chủ",nav_up:"Tải lên",nav_pkg:"Hồ sơ",nav_chat:"Chat",cmp_expected:"Lương dự kiến (giờ×lương)",cmp_received:"Đã nhận",cmp_suspected:"Nghi chưa trả",need:"cần kiểm tra",fs1:"Tải lên",fs2:"AI trích",fs3:"Kiểm tra·sửa",fs4:"Phân tích"},
- id:{badge:"✨ Persiapan bukti sebelum lapor",h1:"Ubah dokumen tersebar<br/>jadi berkas kasus",hp:"Unggah kontrak, slip gaji, riwayat transfer, tangkapan chat — kami susun jadi Evidence Pack.",hbtn:"Buat Evidence Pack",qtitle:"Apa yang bisa kami bantu?",qsub:"Mulai 3 menit",q1t:"Cek selisih gaji",q1p:"Bandingkan slip gaji vs transfer aktual.",q2t:"Sortir potongan",q2p:"Pisahkan asrama, makan, seragam.",q3t:"Daftar bukti",q3p:"Kelompokkan kontrak, chat, transfer per kasus.",q4t:"Chatbot panduan",q4p:"Apa yang perlu disiapkan sebelum ke Dinas Tenaga Kerja.",notice:"BADA tidak membuat keputusan hukum. Hanya menyusun dokumen untuk persiapan konsultasi.",nc_title:"Info kasus",f_wp:"Tempat kerja",f_start:"Tanggal mulai",f_end:"Tanggal selesai",f_wage:"Upah per jam (KRW)",f_weekly:"Jam/minggu",f_issue:"Jenis masalah",nc_next:"Lanjut: unggah dokumen",up_title:"Unggah dokumen Anda",num_title:"Masukkan angka (sebelum OCR)",num_hours:"Jam kerja (pisah koma)",num_dep:"Transfer (per baris 'tanggal, jumlah')",num_ded:"Potongan (per baris 'nama, jumlah')",num_gps:"Sertakan GPS",num_wp:"Tempat kerja (lat,lng,radius m)",num_png:"GPS ping (ts,lat,lng,mocked)",num_arr:"Waktu pesan tiba (ISO)",num_demo:"Isi data demo",up_run:"Mulai analisis Evidence Pack",up_hint:"Kategori terdaftar masuk ke pemeriksaan dokumen kurang.",an_h2:"Menyusun dokumen Anda<br/>menjadi berkas kasus",an_p1:"Menganalisis kontrak dan slip gaji.",an_s1:"OCR dokumen & ekstraksi jumlah",an_s2:"Bandingkan gaji vs transfer",an_s3:"Timeline & potongan",an_s4:"Pembuatan Evidence Pack",r_tag:"Evidence Pack siap",r_h2:"Ada selisih<br/>yang perlu diperiksa saat konsultasi",r_disc:"Ini bukan jumlah yang dikonfirmasi, melainkan selisih yang perlu diverifikasi dengan Dinas Tenaga Kerja atau ahli.",r_cmp:"Perbandingan jumlah",r_ded:"Potongan",r_gps:"GPS",r_tl:"Timeline",r_miss:"Dokumen yang sebaiknya ditambahkan",r_report:"Buka laporan",r_chat:"Tanya langkah selanjutnya",c_tag:"Panduan",c_q1:"Apa yang harus disiapkan sebelum ke Dinas Tenaga Kerja?",c_a1:"Evidence Pack Anda berisi perbandingan gaji, potongan, dan timeline. Tambahkan foto kontrak lengkap dan chat asli untuk konsultasi yang lebih lancar.",c_a2:"BADA tidak membuat keputusan hukum. Keputusan akhir harus dikonfirmasi oleh Dinas Tenaga Kerja atau ahli.",c_home:"Kembali ke awal",nav_home:"Beranda",nav_up:"Unggah",nav_pkg:"Berkas",nav_chat:"Chat",cmp_expected:"Gaji diharapkan (jam×upah)",cmp_received:"Diterima",cmp_suspected:"Diduga belum dibayar",need:"perlu diperiksa"},
- km:{badge:"✨ រៀបចំភស្តុតាងមុនពេលរាយការណ៍",h1:"បម្លែងឯកសារត្រូវខ្ចាត់ខ្ចាយ<br/>ជាឯកសារពិគ្រោះបាន",hp:"បញ្ចូលកិច្ចសន្យា បង្កាន់ដៃប្រាក់ខែ ប្រវត្តិផ្ទេរប្រាក់ ការចាប់ផ្ទាំងជជែក — យើងរៀបចំជា Evidence Pack។",hbtn:"បង្កើត Evidence Pack",qtitle:"យើងអាចជួយអ្វីបាន?",qsub:"ចាប់ផ្តើម 3 នាទី",q1t:"ពិនិត្យភាពខុសគ្នានៃប្រាក់ខែ",q1p:"ប្រៀបធៀបបង្កាន់ដៃ vs ប្រាក់ផ្ទេរពិត។",q2t:"តម្រៀបការកាត់ប្រាក់",q2p:"បែងចែកផ្ទះសំណាក់ អាហារ ឯកសណ្ឋាន។",q3t:"រាយបញ្ជីភស្តុតាង",q3p:"ដាក់កិច្ចសន្យា ជជែក ផ្ទេរប្រាក់តាមករណី។",q4t:"Chatbot ណែនាំ",q4p:"រៀបចំអ្វីមុនពេលទៅការិយាល័យពលកម្ម។",notice:"BADA មិនធ្វើការវិនិច្ឆ័យផ្លូវច្បាប់ទេ។ គ្រាន់តែរៀបចំឯកសារសម្រាប់ការពិគ្រោះ។",nc_title:"ព័ត៌មានករណី",f_wp:"កន្លែងធ្វើការ",f_start:"ថ្ងៃចាប់ផ្តើម",f_end:"ថ្ងៃបញ្ចប់",f_wage:"ប្រាក់ខែក្នុងមួយម៉ោង (KRW)",f_weekly:"ម៉ោង/សប្តាហ៍",f_issue:"ប្រភេទបញ្ហា",nc_next:"បន្ទាប់: បញ្ចូលឯកសារ",up_title:"បញ្ចូលឯកសាររបស់អ្នក",num_title:"បញ្ចូលលេខ (មុន OCR)",num_hours:"ម៉ោងធ្វើការ (បំបែកដោយក្បៀស)",num_dep:"ប្រាក់ផ្ទេរ (ក្នុងមួយជួរ 'កាលបរិច្ឆេទ, ចំនួន')",num_ded:"ការកាត់ (ក្នុងមួយជួរ 'ឈ្មោះ, ចំនួន')",num_gps:"រួមបញ្ចូល GPS",num_wp:"កន្លែងធ្វើការ (lat,lng,រង្វង់ m)",num_png:"GPS ping (ts,lat,lng,mocked)",num_arr:"ពេលសារមកដល់ (ISO)",num_demo:"បំពេញទិន្នន័យសាកល្បង",up_run:"ចាប់ផ្តើមវិភាគ Evidence Pack",up_hint:"ប្រភេទដែលបានចុះឈ្មោះនឹងចូលទៅការពិនិត្យឯកសារដែលខ្វះ។",an_h2:"កំពុងរៀបចំឯកសារ<br/>ជាឯកសារករណី",an_p1:"កំពុងវិភាគកិច្ចសន្យា និងបង្កាន់ដៃប្រាក់ខែ។",an_s1:"OCR ឯកសារ & ការដកចេញចំនួន",an_s2:"ប្រៀបធៀបប្រាក់ខែ vs ផ្ទេរ",an_s3:"បន្ទាត់ពេលវេលា & ការកាត់",an_s4:"បង្កើត Evidence Pack",r_tag:"Evidence Pack រួចរាល់",r_h2:"មានភាពខុសគ្នា<br/>ដែលត្រូវពិនិត្យពេលពិគ្រោះ",r_disc:"នេះមិនមែនជាចំនួនដែលបញ្ជាក់ទេ ប៉ុន្តែជាភាពខុសគ្នាដែលត្រូវផ្ទៀងផ្ទាត់ជាមួយការិយាល័យពលកម្ម ឬអ្នកជំនាញ។",r_cmp:"ប្រៀបធៀបចំនួន",r_ded:"ការកាត់",r_gps:"GPS",r_tl:"បន្ទាត់ពេលវេលា",r_miss:"ឯកសារដែលគួរបន្ថែម",r_report:"បើកលិខិតរាយការណ៍",r_chat:"សួរជំហានបន្ទាប់",c_tag:"ណែនាំ",c_q1:"ត្រូវរៀបចំអ្វីមុនពេលទៅការិយាល័យពលកម្ម?",c_a1:"Evidence Pack របស់អ្នកមានការប្រៀបធៀបប្រាក់ខែ ការកាត់ និងបន្ទាត់ពេលវេលា។ បន្ថែមរូបកិច្ចសន្យាទាំងមូល និងជជែកដើមនឹងជួយការពិគ្រោះ។",c_a2:"BADA មិនធ្វើការវិនិច្ឆ័យផ្លូវច្បាប់ទេ។ ការវិនិច្ឆ័យចុងក្រោយត្រូវបញ្ជាក់ជាមួយការិយាល័យពលកម្ម ឬអ្នកជំនាញ។",c_home:"ត្រឡប់ទៅដើម",nav_home:"ទំព័រដើម",nav_up:"បញ្ចូល",nav_pkg:"ឯកសារ",nav_chat:"ជជែក",cmp_expected:"ប្រាក់ខែរំពឹង (ម៉ោង×អត្រា)",cmp_received:"បានទទួល",cmp_suspected:"សង្ស័យមិនទាន់បង់",need:"ត្រូវពិនិត្យ"},
- ne:{badge:"✨ रिपोर्ट अघि प्रमाण तयारी",h1:"छरिएका कागजातलाई<br/>परामर्शयोग्य केस फाइलमा",hp:"सम्झौता, तलब पर्चा, जम्मा इतिहास, च्याट क्याप्चर अपलोड गर्नुहोस् — हामी Evidence Pack मा मिलाउँछौं।",hbtn:"Evidence Pack बनाउनुहोस्",qtitle:"हामी कसरी मद्दत गर्न सक्छौं?",qsub:"३ मिनेटमा सुरु",q1t:"तलब अन्तर जाँच",q1p:"पर्चा vs वास्तविक जम्मा तुलना।",q2t:"कटौती क्रमबद्ध",q2p:"छात्रावास, खाना, वर्दी छुट्याउनुहोस्।",q3t:"प्रमाण सूचीकरण",q3p:"सम्झौता, च्याट, जम्मा केसअनुसार।",q4t:"मार्गदर्शन च्याटबोट",q4p:"श्रम कार्यालय जानु अघि के तयार गर्ने।",notice:"BADA ले कानूनी निर्णय गर्दैन। परामर्श तयारीको लागि कागजात मिलाउँछ।",nc_title:"केस जानकारी",f_wp:"कार्यस्थल",f_start:"सुरु मिति",f_end:"अन्त्य मिति",f_wage:"प्रति घण्टा ज्याला (KRW)",f_weekly:"साप्ताहिक घण्टा",f_issue:"समस्या प्रकार",nc_next:"अर्को: कागजात अपलोड",up_title:"कागजात अपलोड गर्नुहोस्",num_title:"संख्या प्रविष्ट (OCR अघि)",num_hours:"काम घण्टा (अल्पविरामले छुट्याउनुहोस्)",num_dep:"जम्मा (प्रति लाइन 'मिति, रकम')",num_ded:"कटौती (प्रति लाइन 'नाम, रकम')",num_gps:"GPS समावेश",num_wp:"कार्यस्थल (lat,lng,radius m)",num_png:"GPS ping (ts,lat,lng,mocked)",num_arr:"आगमन सन्देश समय (ISO)",num_demo:"डेमो डाटा भर्नुहोस्",up_run:"Evidence Pack विश्लेषण सुरु",up_hint:"दर्ता गरिएका कोटिहरू छुटेको कागजात जाँचमा जान्छन्।",an_h2:"कागजातलाई<br/>केस फाइलमा मिलाउँदै",an_p1:"सम्झौता र तलब पर्चा विश्लेषण गर्दै।",an_s1:"कागजात OCR र रकम निकासी",an_s2:"तलब vs जम्मा तुलना",an_s3:"समयरेखा र कटौती",an_s4:"Evidence Pack उत्पादन",r_tag:"Evidence Pack तयार",r_h2:"परामर्शमा जाँच गर्नुपर्ने<br/>अन्तर छ",r_disc:"यो पुष्टि गरिएको रकम होइन, श्रम कार्यालय वा विशेषज्ञसँग प्रमाणित गर्नुपर्ने अन्तर हो।",r_cmp:"रकम तुलना",r_ded:"कटौती",r_gps:"GPS",r_tl:"समयरेखा",r_miss:"थप्नु राम्रो कागजात",r_report:"रिपोर्ट खोल्नुहोस्",r_chat:"अर्को कदम सोध्नुहोस्",c_tag:"मार्गदर्शन",c_q1:"श्रम कार्यालय जानु अघि के तयार गर्नुपर्छ?",c_a1:"तपाईंको Evidence Pack मा तलब तुलना, कटौती र समयरेखा छ। पूर्ण सम्झौता फोटो र मूल च्याट थप्दा परामर्शमा मद्दत हुन्छ।",c_a2:"BADA ले कानूनी निर्णय गर्दैन। अन्तिम निर्णय श्रम कार्यालय वा विशेषज्ञबाट पुष्टि गर्नुपर्छ।",c_home:"सुरुमा फर्कनुहोस्",nav_home:"गृह",nav_up:"अपलोड",nav_pkg:"फाइल",nav_chat:"च्याट",cmp_expected:"अपेक्षित तलब (घण्टा×दर)",cmp_received:"प्राप्त",cmp_suspected:"बाँकी शंका",need:"जाँच आवश्यक"},
- th:{badge:"✨ เตรียมหลักฐานก่อนร้องเรียน",h1:"เปลี่ยนเอกสารกระจัดกระจาย<br/>เป็นแฟ้มคดีปรึกษาได้",hp:"อัปโหลดสัญญา สลิปเงินเดือน ประวัติโอนเงิน แชท — เราจัดเป็น Evidence Pack ให้",hbtn:"สร้าง Evidence Pack",qtitle:"ช่วยอะไรได้บ้าง?",qsub:"เริ่ม 3 นาที",q1t:"ตรวจส่วนต่างเงินเดือน",q1p:"เปรียบเทียบสลิปกับยอดโอนจริง",q2t:"จัดหมวดหักเงิน",q2p:"แยกหอพัก อาหาร ชุดทำงาน",q3t:"รวบรวมหลักฐาน",q3p:"จัดสัญญา แชท ยอดโอน ตามคดี",q4t:"แชทบอทแนะนำ",q4p:"เตรียมอะไรก่อนไปสำนักงานแรงงาน",notice:"BADA ไม่ตัดสินทางกฎหมาย เพียงจัดระเบียบเอกสารเพื่อเตรียมปรึกษา",nc_title:"ข้อมูลคดี",f_wp:"สถานที่ทำงาน",f_start:"วันเริ่มงาน",f_end:"วันสิ้นสุด",f_wage:"ค่าจ้างรายชั่วโมง (KRW)",f_weekly:"ชั่วโมง/สัปดาห์",f_issue:"ประเภทปัญหา",nc_next:"ถัดไป: อัปโหลดเอกสาร",up_title:"อัปโหลดเอกสารของคุณ",num_title:"ป้อนตัวเลข (ก่อน OCR)",num_hours:"ชั่วโมงทำงาน (คั่นด้วยจุลภาค)",num_dep:"ยอดโอน (แต่ละบรรทัด 'วันที่, จำนวน')",num_ded:"หักเงิน (แต่ละบรรทัด 'ชื่อ, จำนวน')",num_gps:"รวม GPS",num_wp:"ที่ทำงาน (lat,lng,รัศมี m)",num_png:"GPS ping (ts,lat,lng,mocked)",num_arr:"เวลาข้อความถึง (ISO)",num_demo:"ใส่ข้อมูลตัวอย่าง",up_run:"เริ่มวิเคราะห์ Evidence Pack",up_hint:"หมวดหมู่ที่ลงทะเบียนจะเข้าสู่การตรวจสอบเอกสารที่ขาด",an_h2:"กำลังจัดระเบียบเอกสาร<br/>เป็นแฟ้มคดี",an_p1:"กำลังวิเคราะห์สัญญาและสลิปเงินเดือน",an_s1:"OCR เอกสาร & ดึงจำนวนเงิน",an_s2:"เปรียบเทียบเงินเดือนกับยอดโอน",an_s3:"ลำดับเหตุการณ์ & หักเงิน",an_s4:"สร้าง Evidence Pack",r_tag:"สร้าง Evidence Pack เรียบร้อย",r_h2:"มีส่วนต่าง<br/>ที่ต้องตรวจสอบเมื่อปรึกษา",r_disc:"นี่ไม่ใช่ยอดเงินที่ยืนยัน แต่เป็นส่วนต่างที่ต้องตรวจสอบกับสำนักงานแรงงานหรือผู้เชี่ยวชาญ",r_cmp:"เปรียบเทียบจำนวนเงิน",r_ded:"หักเงิน",r_gps:"GPS",r_tl:"ลำดับเหตุการณ์",r_miss:"เอกสารที่ควรเตรียมเพิ่ม",r_report:"เปิดรายงาน",r_chat:"ถามขั้นตอนถัดไป",c_tag:"แนะนำ",c_q1:"ต้องเตรียมอะไรก่อนไปสำนักงานแรงงาน?",c_a1:"Evidence Pack มีการเปรียบเทียบเงินเดือน หักเงิน และลำดับเหตุการณ์ เพิ่มรูปสัญญาทั้งหมดและแชทต้นฉบับจะช่วยการปรึกษา",c_a2:"BADA ไม่ตัดสินทางกฎหมาย การตัดสินสุดท้ายต้องยืนยันกับสำนักงานแรงงานหรือผู้เชี่ยวชาญ",c_home:"กลับหน้าแรก",nav_home:"หน้าแรก",nav_up:"อัปโหลด",nav_pkg:"แฟ้ม",nav_chat:"แชท",cmp_expected:"ค่าจ้างที่คาดหวัง (ชม.×อัตรา)",cmp_received:"ได้รับจริง",cmp_suspected:"สงสัยค้างจ่าย",need:"ต้องตรวจสอบ"},
- ja:{badge:"✨ 申告前の証拠準備サービス",h1:"散らばった資料を<br/>相談可能な事件ファイルに",hp:"契約書、給与明細、入金履歴、チャットキャプチャをアップロードするとEvidence Packに整理します。",hbtn:"Evidence Packを作成",qtitle:"何をお手伝いしますか？",qsub:"3分で開始",q1t:"給与差額の確認",q1p:"明細金額と実際の入金額を比較します。",q2t:"控除項目の整理",q2p:"寮費、食費、作業服費を区分します。",q3t:"証拠のリスト化",q3p:"契約書、会話、入金を事件別にまとめます。",q4t:"手続き案内チャット",q4p:"労基署に行く前の準備を案内します。",notice:"BADAは法律判断を行いません。アップロードした資料を相談準備用に整理します。",nc_title:"事件情報",f_wp:"職場名",f_start:"勤務開始日",f_end:"勤務終了日",f_wage:"約束時給（ウォン）",f_weekly:"週間勤務時間",f_issue:"問題の種類",nc_next:"次へ：資料アップロード",up_title:"資料をアップロード",num_title:"数値入力（OCR接続前）",num_hours:"勤務時間（カンマ区切り）",num_dep:"入金履歴（1行に'日付, 金額'）",num_ded:"控除項目（1行に'名前, 金額'）",num_gps:"GPS状況を含む",num_wp:"職場 (lat,lng,半径m)",num_png:"GPSピング (ts,lat,lng,mocked)",num_arr:"到着メッセージ時刻 (ISO)",num_demo:"デモデータを入力",up_run:"Evidence Pack分析開始",up_hint:"カテゴリを登録すると不足書類の案内に反映されます。",an_h2:"資料を事件ファイルに<br/>整理しています",an_p1:"契約書と給与明細を分析中です。",an_s1:"文書OCR・金額抽出",an_s2:"給与と入金額の比較（ルールベース）",an_s3:"タイムライン・控除整理",an_s4:"Evidence Pack生成",r_tag:"Evidence Pack作成完了",r_h2:"相談時に確認すべき<br/>金額差額があります",r_disc:"これは確定額ではなく、労基署または専門家に確認が必要な差額です。",r_cmp:"金額比較",r_ded:"控除項目",r_gps:"GPS状況",r_tl:"タイムライン",r_miss:"追加で準備すべき資料",r_report:"提出用レポートを開く",r_chat:"次のステップを聞く",c_tag:"手続き案内",c_q1:"労基署に行く前に何を準備すべきですか？",c_a1:"Evidence Packには給与比較、控除項目、タイムラインが整理されています。契約書全体の写真と雇用主との会話原本を追加すると相談がスムーズです。",c_a2:"BADAは法律判断を行いません。最終判断は労基署または専門家に確認してください。",c_home:"最初に戻る",nav_home:"ホーム",nav_up:"アップロード",nav_pkg:"パック",nav_chat:"チャット",cmp_expected:"期待賃金（時給×時間）",cmp_received:"実受取額",cmp_suspected:"未払い疑い",need:"確認必要"}
-};
+
 const ISSUES={wage_unpaid:"임금체불",statement_mismatch:"명세서 불일치",deduction:"공제",overtime:"초과근무",no_contract:"계약서 미교부"};
 const ROWS=[
  {cat:"contract",icon:"📄",bg:"soft-blue",t:"근로계약서",s:"임금 조건, 공제 조건"},
@@ -335,11 +190,7 @@ const ROWS=[
  {cat:"chat",icon:"💬",bg:"soft-blue",t:"대화 캡처",s:"지급 약속, 공제 설명"},
  {cat:"other",icon:"🌏",bg:"soft-green",t:"모국어 메모",s:"상담용 문장 변환"}
 ];
-const CHAT_TEXT={
- ko:{pack:"패키지 요약",script:"상담 순서",docs:"누락 자료",risk:"주의 질문",placeholder:"질문을 입력하세요",empty:"Evidence Pack에서 중요한 내용, 상담 순서, 더 준비할 자료를 물어보세요. BADA는 법률 판단이 아니라 상담 전 자료 정리를 돕습니다.",loading:"답변을 준비하고 있습니다.",error:"챗봇 응답을 가져오지 못했습니다. 서버 상태를 확인한 뒤 다시 시도해 주세요."},
- en:{pack:"Pack summary",script:"Consult order",docs:"Missing files",risk:"Risk check",placeholder:"Type your question",empty:"Ask about key points, consultation order, or missing files in your Evidence Pack. BADA helps preparation, not legal judgment.",loading:"Preparing an answer.",error:"Could not get a chatbot response. Check the server and try again."},
- vi:{pack:"Tóm tắt hồ sơ",script:"Thứ tự tư vấn",docs:"Thiếu tài liệu",risk:"Câu hỏi cần chú ý",placeholder:"Nhập câu hỏi",empty:"Hỏi về điểm quan trọng, thứ tự trình bày, hoặc tài liệu còn thiếu trong Evidence Pack. BADA hỗ trợ chuẩn bị, không phán quyết pháp lý.",loading:"Đang chuẩn bị câu trả lời.",error:"Không nhận được phản hồi chatbot. Hãy kiểm tra máy chủ rồi thử lại."}
-};
+
 
 let S={lang:"ko",caseId:null,analysis:null,chat:[]};
 const t=k=>(T[S.lang][k]!=null?T[S.lang][k]:(T.ko[k]||k));
@@ -755,6 +606,13 @@ async function sendChatMessage(event){
 }
 
 applyLang();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
