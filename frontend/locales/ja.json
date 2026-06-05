@@ -1,0 +1,18 @@
+{
+  "app_name": "BADA",
+  "disclaimer": "本ツールは相談準備のための証拠整理ツールであり、法律相談ではありません。",
+  "nav": { "cases": "マイケース", "new_case": "新規ケース" },
+  "upload_btn": "証拠をアップロード",
+  "category": {
+    "contract": "契約書", "schedule": "勤務記録", "payment": "入金証明",
+    "chat": "メッセージ", "statement": "給与明細", "other": "その他"
+  },
+  "result": {
+    "suspected_unpaid": "未払い疑い金額",
+    "need_check": "確認必要",
+    "timeline": "タイムライン",
+    "missing": "追加で準備すべき資料"
+  },
+  "download_ko": "労働基準監督署用（韓国語）",
+  "download_native": "概要"
+}

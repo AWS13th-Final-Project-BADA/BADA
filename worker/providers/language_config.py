@@ -2,7 +2,7 @@
 
 SUPPORTED_LANGUAGES 딕셔너리로 각 언어의 번역 전략을 조회한다.
 - ko: none (번역 불필요)
-- vi, en, id: direct (Amazon Translate 단독)
+- vi, en, id, th, ja: direct (Amazon Translate 단독)
 - km, ne: pivot+refine (ko→en→target + Claude 보정)
 """
 from __future__ import annotations
@@ -82,6 +82,20 @@ SUPPORTED_LANGUAGES: dict[str, LanguageStrategy] = {
         strategy="pivot+refine",
         pivot_lang="en",
         needs_refinement=True,
+    ),
+    "th": LanguageStrategy(
+        bada_code="th",
+        translate_code="th",
+        strategy="direct",
+        pivot_lang=None,
+        needs_refinement=False,
+    ),
+    "ja": LanguageStrategy(
+        bada_code="ja",
+        translate_code="ja",
+        strategy="direct",
+        pivot_lang=None,
+        needs_refinement=False,
     ),
 }
 

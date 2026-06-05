@@ -49,7 +49,7 @@ graph TD
         S3[S3 - PDF]
     end
 
-    TP -->|vi, id, en| AT
+    TP -->|vi, id, en, th, ja| AT
     TP -->|km, ne pivot| AT
     TP -->|km, ne refinement| BR
     PIPE --> RDS
@@ -229,6 +229,8 @@ SUPPORTED_LANGUAGES: dict[str, LanguageStrategy] = {
     "id": LanguageStrategy("id", "id", "direct", None, False),
     "km": LanguageStrategy("km", "km", "pivot+refine", "en", True),
     "ne": LanguageStrategy("ne", "ne", "pivot+refine", "en", True),
+    "th": LanguageStrategy("th", "th", "direct", None, False),
+    "ja": LanguageStrategy("ja", "ja", "direct", None, False),
 }
 ```
 
@@ -276,7 +278,7 @@ class TimelineEvent(Base):
 
 ```python
 class User(Base):
-    preferred_lang: Mapped[str]  # "ko" | "vi" | "en" | "km" | "ne" | "id"
+    preferred_lang: Mapped[str]  # "ko" | "vi" | "en" | "km" | "ne" | "id" | "th" | "ja"
 ```
 
 **Validation Rules**:
@@ -401,7 +403,7 @@ def translate(self, text: str, target_lang: str) -> str:
 
 **Preconditions:**
 - `text` is a string (may be empty)
-- `target_lang` is one of: "ko", "vi", "en", "id", "km", "ne"
+- `target_lang` is one of: "ko", "vi", "en", "id", "km", "ne", "th", "ja"
 - AWS credentials are configured for Amazon Translate in ap-northeast-2
 
 **Postconditions:**

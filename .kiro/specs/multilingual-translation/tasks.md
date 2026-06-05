@@ -9,7 +9,7 @@ Implement the multilingual translation system for BADA's worker pipeline. This i
 - [x] 1. Create LanguageConfig module and UnsupportedLanguageError
   - [x] 1.1 Create `worker/providers/language_config.py` with LanguageStrategy dataclass and SUPPORTED_LANGUAGES dict
     - Define `LanguageStrategy` dataclass with fields: `bada_code`, `translate_code`, `strategy`, `pivot_lang`, `needs_refinement`
-    - Define `SUPPORTED_LANGUAGES` dict mapping six language codes (ko, vi, en, id, km, ne) to their strategies
+    - Define `SUPPORTED_LANGUAGES` dict mapping eight language codes (ko, vi, en, id, km, ne, th, ja) to their strategies
     - Implement `get_language_strategy(lang_code: str) -> LanguageStrategy` that raises `UnsupportedLanguageError` for unknown codes
     - Define `UnsupportedLanguageError` exception class
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
