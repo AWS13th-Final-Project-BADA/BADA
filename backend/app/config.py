@@ -13,11 +13,14 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
 
     aws_region: str = "ap-northeast-2"
+    aws_profile: str = ""
     s3_bucket: str = ""
     kms_key_id: str = ""
     sqs_queue_url: str = ""
     bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
     bedrock_vision_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+    ai_chat_mode: str = "mock"     # mock | bedrock
+    ai_chat_max_tokens: int = 700
     upstage_api_key: str = ""
     cognito_user_pool_id: str = ""
     cognito_client_id: str = ""
