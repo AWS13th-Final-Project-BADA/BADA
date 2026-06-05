@@ -61,7 +61,7 @@ function renderResult(){
   const lf=legal.findings||[], mw=legal.min_wage||{};
   document.getElementById("r_legal").innerHTML=lf.length?lf.map(f=>{
     const col=f.severity==="high"?"#b91c1c":"#b45309";
-    const ic=(f.type==="minimum_wage"||f.type==="minimum_wage_paid")?"💢":(f.type==="premium_pay"?"⏰":"🧾");
+    const ic=(f.type==="minimum_wage"||f.type==="minimum_wage_paid")?'<i class="ti ti-alert-triangle"></i>':(f.type==="premium_pay"?'<i class="ti ti-clock"></i>':'<i class="ti ti-receipt"></i>');
     return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-size:13px;font-weight:700;color:${col}">${ic} ${_esc(f.message)}</div></div>`;
   }).join(""):`<p class="small-muted" style="margin:0">최저임금 미달·가산수당·과다공제로 확인된 항목은 없어요. (${mw.year||""}년 최저임금 ${won(mw.hourly)} 기준)</p>`;
   document.getElementById("r_ded_tbl").innerHTML=(a.deductions||[]).map(d=>{

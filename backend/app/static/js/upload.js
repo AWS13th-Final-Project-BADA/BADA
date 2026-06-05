@@ -1,10 +1,10 @@
 // ===== 업로드·촬영·OCR 추출·편집 (OCR 담당 소유) =====
 const ROWS=[
- {cat:"contract",icon:"📄",bg:"soft-blue",t:"근로계약서",s:"임금 조건, 공제 조건"},
- {cat:"statement",icon:"🧾",bg:"soft-green",t:"급여명세서",s:"지급액, 공제 항목"},
- {cat:"payment",icon:"🏦",bg:"soft-orange",t:"입금내역",s:"실제 입금액 비교"},
- {cat:"chat",icon:"💬",bg:"soft-blue",t:"대화 캡처",s:"지급 약속, 공제 설명"},
- {cat:"other",icon:"🌏",bg:"soft-green",t:"모국어 메모",s:"상담용 문장 변환"}
+ {cat:"contract",icon:'<i class="ti ti-file-text"></i>',bg:"soft-blue",t:"근로계약서",s:"임금 조건, 공제 조건"},
+ {cat:"statement",icon:'<i class="ti ti-receipt"></i>',bg:"soft-green",t:"급여명세서",s:"지급액, 공제 항목"},
+ {cat:"payment",icon:'<i class="ti ti-building-bank"></i>',bg:"soft-orange",t:"입금내역",s:"실제 입금액 비교"},
+ {cat:"chat",icon:'<i class="ti ti-message"></i>',bg:"soft-blue",t:"대화 캡처",s:"지급 약속, 공제 설명"},
+ {cat:"other",icon:'<i class="ti ti-world"></i>',bg:"soft-green",t:"모국어 메모",s:"상담용 문장 변환"}
 ];
 
 
@@ -33,29 +33,24 @@ async function doUpload(cat, file, btn, warnEl){
   try{
     const res=await fetch("/cases/"+S.caseId+"/evidences/upload",{method:"POST",body:fd});
     if(!res.ok) throw new Error(await res.text());
-    btn.textContent="완료 ✓"; btn.classList.add("done");
+    btn.innerHTML='<i class="ti ti-check"></i>완료'; btn.classList.add("done");
   }catch(e){ btn.textContent="다시"; alert("업로드 실패: "+e.message); }
 }
 
 function buildUpload(){
-  const c=document.getElementById("uploadCard");c.innerHTML="";
+  const c=document.getElementById("uploadCard");
+  c.className="up-grid"; c.innerHTML="";
   ROWS.forEach(r=>{
-    const row=document.createElement("div");row.className="upload-row";
-    row.innerHTML=`<div class="upload-left"><div class="file-icon ${r.bg}">${r.icon}</div>
-      <div><strong>${r.t}</strong><span>${r.s}</span><span class="need" style="color:#b45309"></span></div></div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <button class="upload-chip cam" title="촬영">📷</button>
-        <button class="upload-chip gal">파일</button>
-      </div>
-      <input type="file" accept="image/*" capture="environment" class="i-cam" style="display:none">
-      <input type="file" accept="image/*,application/pdf" class="i-gal" style="display:none">`;
-    const camBtn=row.querySelector(".cam"), galBtn=row.querySelector(".gal");
-    const iCam=row.querySelector(".i-cam"), iGal=row.querySelector(".i-gal");
-    const warnEl=row.querySelector(".need");
-    camBtn.onclick=()=>iCam.click(); galBtn.onclick=()=>iGal.click();
-    iCam.onchange=()=>{ if(iCam.files.length) doUpload(r.cat,iCam.files[0],camBtn,warnEl); };
-    iGal.onchange=()=>{ if(iGal.files.length) doUpload(r.cat,iGal.files[0],galBtn,warnEl); };
-    c.appendChild(row);
+    const card=document.createElement("div"); card.className="up-card";
+    card.innerHTML=`<div class="file-icon ${r.bg}">${r.icon}</div>
+      <strong>${r.t}</strong>
+      <span class="up-state"><i class="ti ti-camera"></i> 촬영·파일</span>
+      <span class="need"></span>
+      <input type="file" accept="image/*,application/pdf" class="i-up" style="display:none">`;
+    const inp=card.querySelector(".i-up"), st=card.querySelector(".up-state"), warnEl=card.querySelector(".need");
+    card.onclick=(e)=>{ if(e.target.tagName!=="INPUT") inp.click(); };
+    inp.onchange=()=>{ if(inp.files.length) doUpload(r.cat, inp.files[0], st, warnEl); };
+    c.appendChild(card);
   });
 }
 
@@ -65,14 +60,14 @@ const _won=(n)=>Number(n).toLocaleString()+"원";
 
 function renderSanity(items){
   return items.map(s=>`<div style="margin-top:8px;padding:8px 10px;background:#fff7ed;border-radius:8px;border-left:3px solid #f59e0b">
-    <div style="font-size:12px;font-weight:700;color:#b45309">⚠ ${_esc(s.field)} 값 확인 필요</div>
+    <div style="font-size:12px;font-weight:700;color:#b45309"><i class="ti ti-alert-triangle"></i> ${_esc(s.field)} 값 확인 필요</div>
     <div class="small-muted">${_esc(s.note)}</div></div>`).join("");
 }
 function renderQuality(q){
   const color={high:"#047857",medium:"#b45309",low:"#b91c1c"}[q.level]||"#6b7280";
   const lvl={high:"증거력 높음",medium:"증거력 보통",low:"증거력 낮음"}[q.level]||q.level;
-  const chk=Object.entries(q.checklist||{}).map(([k,v])=>`<span class="tag" style="background:${v?'#e8fbf3':'#f3f4f6'};color:${v?'#047857':'#9ca3af'}">${v?'✓':'·'} ${k}</span>`).join(" ");
-  const warn=(q.warnings||[]).map(w=>`<div class="need" style="font-weight:600">⚠ ${_esc(w)}</div>`).join("");
+  const chk=Object.entries(q.checklist||{}).map(([k,v])=>`<span class="tag" style="background:${v?'#e8fbf3':'#f3f4f6'};color:${v?'#047857':'#9ca3af'}">${v?'<i class=\'ti ti-check\'></i>':'<i class=\'ti ti-point\'></i>'} ${k}</span>`).join(" ");
+  const warn=(q.warnings||[]).map(w=>`<div class="need" style="font-weight:600"><i class="ti ti-alert-triangle"></i> ${_esc(w)}</div>`).join("");
   return `<div style="margin-top:10px;padding:10px;background:#f8fafc;border-radius:10px">
     <div style="font-size:13px;font-weight:800;color:${color}">증거력 ${q.score}/${q.max_score} · ${lvl}</div>
     <div style="margin:6px 0">${chk}</div>${warn}</div>`;
@@ -107,7 +102,7 @@ function renderCardBody(e){
     return `<div class="amt-row" style="display:flex;gap:6px;margin-top:5px;align-items:center">
       <input class="amt-label" value="${_esc(a.label||"")}" placeholder="항목" style="flex:1.2;padding:8px 9px"/>
       <input class="amt-val" type="number" value="${a.value==null?"":a.value}" placeholder="금액" style="flex:1;padding:8px 9px;${_lowStyle(lv)}"/>
-      ${lv==="low"?'<span title="확인 필요" style="color:#b45309">⚠</span>':''}</div>`;
+      ${lv==="low"?'<span title="확인 필요" style="color:#9a6700"><i class="ti ti-alert-triangle"></i></span>':''}</div>`;
   }).join("");
   const deds=(en.deductions||[]).map((d)=>
     `<div class="ded-row" style="display:flex;gap:6px;margin-top:5px">
@@ -132,7 +127,7 @@ function renderCardBody(e){
     <label style="margin:8px 0 3px">금액 항목</label>${amts||'<span class="small-muted">없음</span>'}
     <label style="margin:10px 0 3px">공제 항목</label>${deds||'<span class="small-muted">없음</span>'}
     ${utt}
-    <button class="primary-btn" style="margin-top:12px;padding:11px" onclick="saveEntities('${eid}')">✏️ 수정 저장</button>
+    <button class="primary-btn" style="margin-top:12px;padding:11px" onclick="saveEntities('${eid}')"><i class="ti ti-edit"></i> 수정 저장</button>
     <span id="save_${eid}" class="small-muted" style="margin-left:8px"></span>
     ${e.evidence_quality?renderQuality(e.evidence_quality):""}
     ${e.sanity&&e.sanity.length?renderSanity(e.sanity):""}
@@ -155,7 +150,7 @@ function renderCard(e){
 function renderExtract(r){
   const ev=r.evidences||[];
   if(!ev.length) return "";
-  return "<h3 style='margin:14px 0 6px'>🔍 AI가 읽은 내용 <span class='small-muted' style='font-weight:400'>· 값을 직접 고칠 수 있어요</span></h3>"+ev.map(renderCard).join("");
+  return "<h3 style='margin:14px 0 6px'><i class='ti ti-eye'></i> AI가 읽은 내용 <span class='small-muted' style='font-weight:400'>· 값을 직접 고칠 수 있어요</span></h3>"+ev.map(renderCard).join("");
 }
 
 const _num=v=>{const s=String(v).replace(/[^0-9.\-]/g,"");return s===""?null:(s.indexOf(".")>=0?parseFloat(s):parseInt(s));};
