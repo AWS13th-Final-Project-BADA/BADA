@@ -20,9 +20,16 @@ node_modules/
 out/
 .turbo/
 
-# CDK
-infra/cdk.out/
-cdk.context.json
+# Terraform
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/*.tfstate
+infra/*.tfstate.*
+infra/crash.log
+infra/override.tf
+infra/override.tf.json
+infra/*_override.tf
+infra/*_override.tf.json
 
 # Databases (로컬 SQLite — 커밋 금지)
 *.db
