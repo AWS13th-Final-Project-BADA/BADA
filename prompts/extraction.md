@@ -19,10 +19,19 @@
    - 근무시간(hours), 공제항목(deductions: name+amount),
    - 사업장명(workplace_name), 사업주명(employer_name), 지급일(pay_date)
    - 대화면 발화(utterances: speaker, text, kind)
+   - **근무일수(work_days)**
+   - **연장근로 시간(overtime_hours)** = 1일 8시간/주 40시간 초과분
+   - **야간근로 시간(night_hours)** = 22시~06시 사이 근로
+   - **휴일근로 시간(holiday_hours)** = 휴일에 일한 시간
+   - **계약기간(contract_start, contract_end)** = "YYYY-MM-DD"
+   - **서명·날인 유무(signed)** = 보이면 true, 빈칸이면 false, 모르면 null
+   - 4대보험은 별도 필드가 아니라 deductions[]에 개별 항목으로 넣으세요
+     (국민연금/건강보험/장기요양/고용보험/소득세/지방소득세 각각 name+amount).
 3. 금액은 콤마·"원"을 제거한 **정수**로 반환하세요. (예: "1,795,680원" → 1795680)
 4. 발화 분류(kind): wage_promise(지급약속) / work_order(근무지시) /
    underpayment_admit(미지급 인정) / evasive(회피) / other
 5. 각 항목에 confidence(high/medium/low)를 붙이세요. 흐릿하거나 추정이면 low.
+6. 보이지 않는 항목은 지어내지 말고 null(또는 빈 배열)로 두세요.
 
 **반드시 유효한 JSON만 출력**하세요. 형식:
 ```json
@@ -38,6 +47,13 @@
     "workplace_name": "○○제조",
     "employer_name": null,
     "pay_date": "2026-02-10",
+    "work_days": 22,
+    "overtime_hours": 12.0,
+    "night_hours": 0,
+    "holiday_hours": 8.0,
+    "contract_start": "2026-01-01",
+    "contract_end": "2026-12-31",
+    "signed": true,
     "utterances": [
       {"speaker": "사업주", "text": "기숙사비 빼고 줄게", "kind": "wage_promise", "confidence": "high"}
     ]

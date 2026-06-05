@@ -34,8 +34,10 @@ def _instruction(category: str) -> str:
     except Exception:
         return (f"카테고리: {category}. 이미지/문서의 모든 텍스트(raw_text)와 엔티티"
                 "(dates, amounts[label,value], hourly_wage, monthly_wage, hours, "
-                "deductions[name,amount], workplace_name, employer_name, pay_date, "
-                "utterances[speaker,text,kind])를 JSON으로 추출하세요. 금액은 정수.")
+                "deductions[name,amount](4대보험은 개별 항목), workplace_name, employer_name, "
+                "pay_date, work_days, overtime_hours, night_hours, holiday_hours, "
+                "contract_start, contract_end, signed, utterances[speaker,text,kind])를 "
+                "JSON으로 추출하세요. 금액은 정수, 안 보이면 null.")
 
 
 class OcrProvider(ABC):
@@ -94,4 +96,13 @@ def _structured_provider() -> OcrProvider:
     # 기본(vision) 또는 키 없음 → Claude Vision. 명시적으로 upstage/parseur + 키 있을 때만 해당 엔진.
     if STRUCTURED_ENGINE == "upstage" and UPSTAGE_API_KEY:
         return UpstageOcr()
-    if STRUCTU
+    if STRUCTURED_ENGINE == "parseur" and PARSEUR_API_KEY:
+        return ParseurOcr()
+    return ClaudeVisionOcr()
+
+
+def get_ocr(category: str) -> OcrProvider:
+    if PROVIDER_MODE != "aws":
+        return MockOcr()
+    # 기본은 전부 Claude Vision. STRUCTURED_ENGINE 설정 시 정형문서만 해당 엔진으로.
+    return _structured_provider() if category in STRUCTURED else ClaudeVisionOcr()

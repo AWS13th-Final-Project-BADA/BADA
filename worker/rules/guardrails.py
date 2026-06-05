@@ -37,4 +37,11 @@ def sanitize(text: str) -> str:
     """단정 표현을 안전한 표현으로 치환한 문장을 반환."""
     if not text:
         return text
- 
+    for pat, repl in _RULES:
+        text = pat.sub(repl, text)
+    return text
+
+
+def has_forbidden(text: str) -> bool:
+    """치환 후에도 위험어가 남아있는지(검수·테스트용). '확정 아님' 등 부정형은 안전 처리."""
+    return bool(_FLAG.search(text or ""))

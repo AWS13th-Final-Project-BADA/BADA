@@ -46,4 +46,4 @@ os.environ.setdefault("BEDROCK_MODEL_ID", settings.bedrock_model_id)
 if settings.upstage_api_key:
     os.environ.setdefault("UPSTAGE_API_KEY", settings.upstage_api_key)
 if settings.parseur_api_key:
-    os.environ.setdefault("PARSEUR_API_KEY", settings.
+    os.environ.setdefault("PARSEUR_API_KEY", settings.parseur_api_key)

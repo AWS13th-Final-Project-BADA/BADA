@@ -8,8 +8,10 @@
 dataset/
   raw/        원본 증거 이미지/문서 (민감 — gitignore, 커밋 금지)
   labels/     정답 라벨 JSON (schema.json 형식)
-  samples/    데모/테스트용 합성 케이스 (커밋 가능, 비민감)
-harness.py    라벨 대비 정확도 측정
+  samples/    규칙엔진용 합성 케이스 (커밋 가능, 비민감)
+  ocr/        OCR 필드정확도용 라벨 (gold_entities + extracted_entities)
+harness.py    규칙엔진 정확도 측정(기대급여·차액·공제·누락)
+ocr_score.py  OCR 필드 단위 추출 정확도 측정(시급·금액·공제·확장필드)
 ```
 
 ## 라벨 형식 (schema.json)

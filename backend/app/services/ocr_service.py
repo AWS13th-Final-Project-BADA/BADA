@@ -57,15 +57,49 @@ def _sanity(ocr_status: str, entities: dict):
         return []
 
 
-def _row(ev: Evidence):
+def _confidence(ocr_status: str, entities: dict, cross: dict | None):
+    """근거 기반 필드별 신뢰도(LLM 자기보고 X). cross=증거 간 일치 신호."""
+    if ocr_status != "done":
+        return None
+    try:
+        from rules.confidence import assess  # worker
+        return assess(entities or {}, cross or {})
+    except Exception:
+        return None
+
+
+def _cross_for_case(evs: list[Evidence]) -> dict:
+    """증거 간 교차 일치 신호 — 같은 값이 2건 이상에서 일치/불일치하는지(근거 confidence용)."""
+    hw = [(e.extracted_entities or {}).get("hourly_wage") for e in evs]
+    hw = [x for x in hw if x]
+    cross: dict = {}
+    if len(hw) >= 2:
+        cross["hourly_wage"] = "agree" if len(set(hw)) == 1 else "disagree"
+    return cross
+
+
+def _row(ev: Evidence, cross: dict | None = None):
     ents = ev.extracted_entities or {}
     return {
         "evidence_id": ev.id, "file_name": ev.file_name, "category": ev.category,
         "ocr_status": ev.ocr_status, "ocr_text": (ev.ocr_text or "")[:600],
         "entities": ents, "evidence_quality": _quality(ev.category, ev.ocr_status, ents),
         "sanity": _sanity(ev.ocr_status, ents),
+        "confidence": _confidence(ev.ocr_status, ents, cross),
         "error": None,
     }
+
+
+def update_entities(db: Session, case_id: str, eid: str, entities: dict) -> dict | None:
+    """사용자가 OCR 값을 수정(HITL) → 저장. 수정본은 done으로 간주하고 행을 다시 계산."""
+    ev = db.get(Evidence, eid)
+    if not ev or ev.case_id != case_id:
+        return None
+    ev.extracted_entities = entities or {}
+    ev.ocr_status = "done"
+    db.commit()
+    evs = db.query(Evidence).filter(Evidence.case_id == case_id).all()
+    return _row(ev, _cross_for_case(evs))
 
 
 def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
@@ -80,11 +114,11 @@ def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
         if ev.file_type not in ("image", "pdf") or not ev.file_key:
             continue
         if not force and ev.ocr_status == "done":   # 캐싱
-            collected.append(_row(ev))
+            collected.append(ev)
             continue
 
         ev.ocr_status = "processing"
-        row = None
+        err = None
         try:
             data = storage.read(ev.file_key)
             out = get_ocr(ev.category).extract(data, ev.category)
@@ -92,3 +126,27 @@ def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
             ev.ocr_text = text
             ev.extracted_entities = ents
             ev.ocr_status = "done"
+        except Exception as e:
+            log.warning("OCR failed for evidence %s: %s", ev.id, e)
+            ev.ocr_status = "failed"
+            ev.extracted_entities = {}
+            err = str(e)[:300]
+        collected.append((ev, err))
+
+    db.commit()
+    # 모든 추출이 끝난 뒤 교차 신호 계산 → 행 생성(근거 confidence 반영)
+    cross = _cross_for_case(evs)
+    rows = []
+    for item in collected:
+        if isinstance(item, tuple):
+            ev, err = item
+            r = _row(ev, cross)
+            if err:
+                r["error"] = err
+            rows.append(r)
+        else:
+            rows.append(_row(item, cross))
+
+    agg = aggregate(rows)
+    agg["evidences"] = rows
+    return agg

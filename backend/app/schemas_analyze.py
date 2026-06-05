@@ -35,4 +35,5 @@ class AnalyzeRequest(BaseModel):
     deposits: list[DepositItem] = Field(default_factory=list)
     deductions: list[DeductionInput] = Field(default_factory=list)
     workplace: Optional[WorkplaceGeo] = None
-    gps_logs: list[GpsPing] = Field(
+    gps_logs: list[GpsPing] = Field(default_factory=list)
+    chat_arrivals: list[str] = Field(default_factory=list)   # ISO datetimes

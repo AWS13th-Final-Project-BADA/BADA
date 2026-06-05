@@ -68,4 +68,7 @@ def process_case(case_id: str, ctx: dict) -> dict:
     except Exception:
         summary = ""
     if not summary:
-        summary = " ".join(descs) or "업로드한 자료에서 분석�
+        summary = " ".join(descs) or "업로드한 자료에서 분석할 정보를 확인하지 못했습니다. 자료를 더 올려주세요."
+    result["timeline_summary"] = guardrails.sanitize(summary)
+
+    return result

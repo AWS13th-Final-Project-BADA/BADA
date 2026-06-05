@@ -10,4 +10,7 @@ import os
 
 PROVIDER_MODE = os.environ.get("PROVIDER_MODE", "local")
 AWS_REGION = os.environ.get("AWS_REGION", "ap-northeast-2")
-BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "global.anthro
+BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "global.anthropic.claude-sonnet-4-6")
+UPSTAGE_API_KEY = os.environ.get("UPSTAGE_API_KEY", "")
+PARSEUR_API_KEY = os.environ.get("PARSEUR_API_KEY", "")
+STRUCTURED_ENGINE = os.environ.get("STRUCTURED_ENGINE", "vision")  # vision | upstage | parseur

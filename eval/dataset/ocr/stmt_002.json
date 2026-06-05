@@ -1,0 +1,34 @@
+{
+  "case_id": "stmt_002_오류포함",
+  "category": "statement",
+  "gold_entities": {
+    "hourly_wage": 10030,
+    "work_days": 26,
+    "pay_date": "2026-04-10",
+    "dates": ["2026-04-10"],
+    "amounts": [
+      {"label": "기본급", "value": 2096900},
+      {"label": "연장수당", "value": 314535},
+      {"label": "실지급액", "value": 2200000}
+    ],
+    "deductions": [
+      {"name": "국민연금", "amount": 94360},
+      {"name": "기숙사비", "amount": 250000}
+    ]
+  },
+  "extracted_entities": {
+    "hourly_wage": 10030,
+    "work_days": 25,
+    "pay_date": "2026-04-10",
+    "dates": ["2026-04-10"],
+    "amounts": [
+      {"label": "기본급", "value": 2096900},
+      {"label": "연장수당", "value": 314535},
+      {"label": "실지급액", "value": 2700000}
+    ],
+    "deductions": [
+      {"name": "국민연금", "amount": 94360},
+      {"name": "기숙사비", "amount": 250000}
+    ]
+  }
+}

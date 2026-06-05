@@ -1,5 +1,5 @@
 """증거 — 메타데이터 등록(manual), 로컬 파일 업로드, AWS presign, OCR 추출."""
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -16,6 +16,10 @@ router = APIRouter(prefix="/cases/{case_id}/evidences", tags=["evidences"])
 class ManualEvidence(BaseModel):
     file_name: str
     category: str
+
+
+class EntitiesUpdate(BaseModel):
+    entities: dict
 
 
 def _guess_type(name: str) -> str:
@@ -56,6 +60,15 @@ def extract(case_id: str, db: Session = Depends(get_db)):
     결과는 사용자 검토(HITL) 후 분석에 사용.
     """
     return ocr_service.run_ocr_on_case(db, case_id)
+
+
+@router.patch("/{eid}/entities")
+def update_entities(case_id: str, eid: str, payload: EntitiesUpdate, db: Session = Depends(get_db)):
+    """사용자가 수정한 OCR 엔티티 저장(HITL). 수정본은 done으로 간주, 갱신된 행 반환."""
+    row = ocr_service.update_entities(db, case_id, eid, payload.entities)
+    if row is None:
+        raise HTTPException(status_code=404, detail="evidence not found")
+    return row
 
 
 @router.post("")

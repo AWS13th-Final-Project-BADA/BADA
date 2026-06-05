@@ -162,4 +162,5 @@ def report(case_id: str, db: Session = Depends(get_db)):
 <h2>5. 원문-번역 대조표</h2><table><tr><th>원문</th><th>번역</th><th>증거유형</th></tr>{rows_tr or '<tr><td colspan=3>-</td></tr>'}</table>
 <h2>6. GPS 정황</h2>{gps_html or '<p>(GPS 데이터 없음)</p>'}
 <h2>7. 더 준비하면 좋은 자료</h2><ul>{rows_miss or '<li>충분합니다.</li>'}</ul>
-</body></h
+</body></html>"""
+    return HTMLResponse(html)

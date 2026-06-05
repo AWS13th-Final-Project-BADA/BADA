@@ -76,4 +76,4 @@ def run_analysis(db: Session, case, req, target_lang: str = "ko") -> dict:
         "workplace_name": case.workplace_name or ocr.get("workplace_name"),
         "target_lang": target_lang,
     }
-    return p
+    return process_case(case.id, ctx)

@@ -52,4 +52,5 @@ def assess_chat(entities: dict) -> dict:
         "max_score": len(checklist),
         "level": level,
         "warnings": warnings,
-        "key_statements": 
+        "key_statements": key_statements,
+    }
