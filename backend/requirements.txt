@@ -5,6 +5,7 @@ sqlalchemy==2.0.35
 pydantic==2.9.2
 pydantic-settings==2.5.2
 python-multipart==0.0.12
+tzdata==2026.2          # GPS 라우터 ZoneInfo("Asia/Seoul") — Windows는 IANA tz DB 없어 필수
 
 # AWS mode (PROVIDER_MODE=aws): Bedrock / Translate / Upstage
 boto3==1.35.30          # Bedrock (Claude Vision/Text), Amazon Translate

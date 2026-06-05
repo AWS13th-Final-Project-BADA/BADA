@@ -16,6 +16,17 @@ from services import translation as tr
 
 
 def process_case(case_id: str, ctx: dict) -> dict:
+    """ctx 입력으로 분석 결과 dict 반환. (OCR이 채워졌다고 가정한 구조화 값 사용)
+
+    ctx 키: agreed_hourly_wage, worked_hours[], deposits[](int 합산용),
+            deposit_events[{date,amount}], raw_deductions[{name,amount}],
+            present_categories(set), gps_logs[{ts,lat,lng,is_mocked,is_delayed_upload}],
+            workplace{lat,lng,radius_m}, chat_arrivals[datetime],
+            work_start_date, workplace_name, target_lang,
+            evidences[{image_bytes,category}] (선택, OCR용)
+
+    gps_logs의 is_delayed_upload=True 핑은 geofence.tag_logs()에서 자동 배제된다.
+    """
     llm = get_llm()
     translator = get_translator()
     target_lang = ctx.get("target_lang", "ko")
