@@ -23,7 +23,7 @@ BADA 워커 파이프라인의 다국어 번역 시스템을 구현한다.
   - `strategy`: "none" / "direct" / "pivot+refine"
   - `pivot_lang`: 피벗할 때 거치는 중간 언어 (영어 또는 None)
   - `needs_refinement`: Claude 보정 필요 여부
-- `SUPPORTED_LANGUAGES` 딕셔너리 — 6개 언어의 전략을 정의
+- `SUPPORTED_LANGUAGES` 딕셔너리 — 8개 언어의 전략을 정의
 - `get_language_strategy()` 함수 — 언어 코드 넣으면 전략 반환, 없는 코드면 에러
 - `UnsupportedLanguageError` 에러 클래스
 
@@ -38,7 +38,7 @@ BADA 워커 파이프라인의 다국어 번역 시스템을 구현한다.
 - `worker/providers/translate.py`에 있던 `NotImplementedError` 스텁을 실제 코드로 교체
 - 빈 텍스트 → 빈 문자열 반환 (API 안 부름)
 - 대상이 한국어 → 원문 그대로 반환
-- "direct" 전략(vi/en/id): `boto3.translate_text()` 한 번 호출
+- "direct" 전략(vi/en/id/th/ja): `boto3.translate_text()` 한 번 호출
 - "pivot+refine" 전략(km/ne): 한국어→영어→대상어 (2번 호출) + Claude 보정
 - 모든 API 호출을 try/except로 감싸서, 실패하면 원문 반환 + 경고 로그
 - 지원 안 하는 언어면 `UnsupportedLanguageError` 발생
@@ -180,5 +180,13 @@ Wave 5: 선택적 테스트들 (property-based)
 
 ### ✅ 추가 작업 E: 대조표 증거유형 다국어 표시
 
-- report.html에서 evidence_type 컬럼도 언어별 매핑 (en/vi)
+- report.html에서 evidence_type 컬럼도 언어별 매핑 (en/vi/th/ja)
 - 한국어 모드에서는 한국어 그대로 표시
+
+### ✅ 추가 작업 F: 태국어(th) + 일본어(ja) 언어 추가
+
+- `language_config.py`에 th, ja를 "direct" 전략으로 추가 (8개 언어)
+- `backend/app/schemas.py`의 Lang Literal에 "th", "ja" 추가
+- `backend/app/routers/analysis.py`의 report.html UI 텍스트에 th/ja 추가
+- `frontend/locales/th.json`, `ja.json` 생성
+- Amazon Translate가 ko→th, ko→ja 직접 지원하므로 피벗 불필요

@@ -9,7 +9,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-Lang = Literal["ko", "vi", "km", "ne", "id", "en"]
+Lang = Literal["ko", "vi", "km", "ne", "id", "en", "th", "ja"]
 Category = Literal["contract", "schedule", "payment", "chat", "statement", "other"]
 Confidence = Literal["high", "medium", "low"]
 
