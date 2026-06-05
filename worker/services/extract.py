@@ -48,7 +48,8 @@ def aggregate(evidences: list[dict]) -> dict:
             amt = _int(d.get("amount"))
             if amt is None:
                 continue
-            deductions.append({"name": d.get("name") or "공제", "amount": amt})
+            # source(증거 카테고리) 보존 — 중복 제거·출처 라벨링에 사용
+            deductions.append({"name": d.get("name") or "공제", "amount": amt, "source": cat})
             if d.get("confidence") == "low":
                 low_conf = True
 

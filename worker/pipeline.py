@@ -66,12 +66,14 @@ def process_case(case_id: str, ctx: dict) -> dict:
 
     # 6단계: 요약 (LLM, 실패/빈값 시 폴백) → 가드레일로 단정 표현 차단
     descs = [e["description"] for e in result["timeline"]]
+    src = " ".join(descs)
     try:
         summary = (llm.summarize_case(descs) or "").strip()
     except Exception:
         summary = ""
-    if not summary:
-        summary = " ".join(descs) or "업로드한 자료에서 분석할 정보를 확인하지 못했습니다. 자료를 더 올려주세요."
+    # 숫자 환각 가드: 요약이 사실 목록에 없는 금액을 단정하면 결정론적 사실로 되돌림
+    if not summary or guardrails.has_foreign_number(summary, src):
+        summary = src or "업로드한 자료에서 분석할 정보를 확인하지 못했습니다. 자료를 더 올려주세요."
     result["timeline_summary"] = guardrails.sanitize(summary)
 
     return result

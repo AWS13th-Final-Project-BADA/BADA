@@ -12,6 +12,8 @@
 """
 from __future__ import annotations
 
+import re
+
 # 법정 최저시급(원) — 연도별. 매년 고시되면 추가/갱신.
 MIN_HOURLY_WAGE: dict[int, int] = {2024: 9860, 2025: 10030, 2026: 10320}
 LATEST_YEAR = 2026
@@ -142,6 +144,23 @@ def _first_monthly_wage(evidence_entities: list[dict]) -> int | None:
     return None
 
 
+def infer_year(ctx: dict) -> int:
+    """근무 시기의 연도를 추정 — 최저임금은 '그 해' 기준으로 봐야 한다(2026 고정 금지).
+
+    근무 시작일 → 증거의 지급일/날짜 순으로 4자리 연도를 찾는다. 없으면 최신.
+    """
+    cands = [ctx.get("work_start_date"), ctx.get("work_end_date")]
+    for ev in ctx.get("evidence_entities", []) or []:
+        e = ev.get("entities") or {}
+        cands.append(e.get("pay_date"))
+        cands.extend(e.get("dates") or [])
+    for c in cands:
+        m = re.search(r"(20\d{2})", str(c or ""))
+        if m:
+            return int(m.group(1))
+    return LATEST_YEAR
+
+
 def legal_review(ctx: dict, result: dict | None = None) -> dict:
     """ctx(분석 입력) + result(차액 등)에서 법정 기준 점검 결과를 모은다.
 
@@ -151,12 +170,25 @@ def legal_review(ctx: dict, result: dict | None = None) -> dict:
     result = result or {}
     findings: list[dict] = []
 
+    year = infer_year(ctx)
     hourly = ctx.get("agreed_hourly_wage")
     hours_sum = (result.get("calculation_detail") or {}).get("hours_sum") or sum(ctx.get("worked_hours", []) or [])
 
-    mw = check_minimum_wage(hourly, hours_sum)
+    # 약속(계약) 시급 최저임금 점검 — 근무 연도 기준
+    mw = check_minimum_wage(hourly, hours_sum, year=year)
     if mw:
         findings.append(mw)
+
+    # 실효 지급률 점검 — 실제 지급액 ÷ 근무시간 < 최저임금이면 명백한 미달(자료 있을 때만)
+    received = result.get("total_received_wage")
+    if received and hours_sum:
+        paid_rate = int(received / hours_sum)
+        pm = check_minimum_wage(paid_rate, hours_sum, year=year)
+        if pm:
+            pm["type"] = "minimum_wage_paid"
+            pm["note"] = (f"실제 지급 기준 시급(약 {paid_rate:,}원)이 {year}년 최저임금 "
+                          f"{min_hourly_wage(year):,}원보다 낮습니다 — 확인이 필요해요.")
+            findings.append(pm)
 
     ents = ctx.get("evidence_entities", [])
     prem = expected_premium_pay(
@@ -171,4 +203,4 @@ def legal_review(ctx: dict, result: dict | None = None) -> dict:
     base = _first_monthly_wage(ents) or (hourly * MONTHLY_STD_HOURS if hourly else None)
     findings.extend(check_insurance_over_deduction(ctx.get("raw_deductions", []), base))
 
-    return {"findings": findings, "min_wage_year": LATEST_YEAR, "min_wage": min_hourly_wage()}
+    return {"findings": findings, "min_wage_year": year, "min_wage": min_hourly_wage(year)}

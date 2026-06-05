@@ -62,9 +62,13 @@ def build_timeline(ctx: dict, result: dict, llm, translator, target_lang: str = 
 
     raw.sort(key=lambda e: (e["date"] is None, e["date"] or ""))
 
+    from rules import guardrails  # worker
+
     out = []
     for e in raw:
         desc = _ss(llm, e["fact"])
+        # 숫자 환각 가드: LLM이 사실에 없는 금액을 끼워 넣으면 결정론적 원문으로 되돌림
+        desc = guardrails.keep_grounded(desc, e["fact"])
         out.append({
             "date": e["date"], "type": e["type"], "description": desc,
             "description_translated": _st(translator, desc, target_lang),

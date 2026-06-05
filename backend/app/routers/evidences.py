@@ -7,7 +7,7 @@ from ..config import settings
 from ..db import get_db
 from ..models import Evidence
 from ..schemas import PresignedUploadRequest
-from ..services import ocr_service, s3
+from ..services import jobs, ocr_service, s3
 from ..services.storage import get_storage
 
 router = APIRouter(prefix="/cases/{case_id}/evidences", tags=["evidences"])
@@ -53,13 +53,26 @@ async def upload_file(case_id: str, category: str = Form(...), file: UploadFile 
 
 
 @router.post("/extract")
-def extract(case_id: str, db: Session = Depends(get_db)):
-    """업로드된 증거 파일에 OCR 실행 → 엔티티 추출·저장 + 분석 입력 추정값 반환.
+def extract(case_id: str, wait: bool = False, db: Session = Depends(get_db)):
+    """업로드된 증거 파일에 OCR 실행 → 엔티티 추출·저장.
 
-    로컬(목)에서는 빈 결과(키 필요). AWS 모드에서 실제 추출.
-    결과는 사용자 검토(HITL) 후 분석에 사용.
+    기본(비동기): 대상 증거를 'processing'으로 표시하고 백그라운드로 OCR을 돌린 뒤
+                 즉시 현재 상태 스냅샷을 반환한다(논블로킹). 프론트는 GET으로 폴링.
+    wait=true(동기): OCR을 끝까지 돌리고 결과를 반환(테스트·간단 케이스용).
+
+    로컬(목)에서는 빈 결과(키 필요). AWS 모드에서 실제 추출. 결과는 HITL 검토 후 분석에 사용.
     """
-    return ocr_service.run_ocr_on_case(db, case_id)
+    if wait:
+        return ocr_service.run_ocr_on_case(db, case_id)
+    ocr_service.mark_processing(db, case_id)
+    jobs.submit_ocr(case_id)
+    return ocr_service.collect(db, case_id)
+
+
+@router.get("/extract")
+def extract_status(case_id: str, db: Session = Depends(get_db)):
+    """현재 OCR 진행 상태 스냅샷(폴링용). status: processing | done."""
+    return ocr_service.collect(db, case_id)
 
 
 @router.patch("/{eid}/entities")

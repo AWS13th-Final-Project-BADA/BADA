@@ -26,21 +26,25 @@ def _seed(client):
 def test_analyze_uses_ocr_entities(client):
     cid = _seed(client)
     a = client.post(f"/cases/{cid}/analyze", json={}).json()  # 빈 body → OCR 자동 사용
+    assert a["schema_version"] == "1.0"
     # 검증포인트: 명세서 실지급 186300 vs 통장 150000 → 차이
-    cmp = {c["key"]: c for c in a["compare"]}
+    cmp = {c["key"]: c for c in a["comparisons"]}
     assert cmp["net_vs_deposit"]["status"] == "mismatch"
     assert cmp["net_vs_deposit"]["values"]["차액"] == 36300
     # 카톡 발화 → 타임라인(확인 필요 + 출처)
     chat = [e for e in a["timeline"] if e["type"] == "chat"]
     assert chat and chat[0]["confidence"] == "low" and chat[0]["source_evidence_id"]
-    # 요약 + 면책
-    assert a["timeline_summary"]
-    assert a["disclaimer"]
+    # 사람용 텍스트는 narrative로 격리
+    assert a["narrative"]["summary"]
+    assert a["narrative"]["disclaimer"]
 
 
 def test_analyze_persists_and_report(client):
     cid = _seed(client)
-    client.post(f"/cases/{cid}/analyze", json={})
+    posted = client.post(f"/cases/{cid}/analyze", json={}).json()
     got = client.get(f"/cases/{cid}/analysis").json()
-    assert got["compare"] and got["timeline_summary"]
+    # /analyze 와 /analysis 가 '완전히 동일한' 스키마를 반환
+    assert got["comparisons"] == posted["comparisons"]
+    assert got["narrative"]["summary"] == posted["narrative"]["summary"]
+    assert got["schema_version"] == posted["schema_version"]
     assert client.get(f"/cases/{cid}/report.html").status_code == 200

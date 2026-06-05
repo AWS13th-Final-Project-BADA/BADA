@@ -90,6 +90,39 @@ def _row(ev: Evidence, cross: dict | None = None):
     }
 
 
+def _eligible(ev: Evidence) -> bool:
+    return ev.file_type in ("image", "pdf") and bool(ev.file_key)
+
+
+def collect(db: Session, case_id: str) -> dict:
+    """OCR을 돌리지 않고 현재 DB 상태로 rows+aggregate를 만든다(폴링용 스냅샷).
+
+    status: 처리 대상 중 하나라도 pending/processing이면 'processing', 아니면 'done'.
+    """
+    evs = db.query(Evidence).filter(Evidence.case_id == case_id).all()
+    cross = _cross_for_case(evs)
+    targets = [e for e in evs if _eligible(e)]
+    rows = [_row(e, cross) for e in targets]
+    from services.extract import aggregate  # worker
+    agg = aggregate(rows)
+    agg["evidences"] = rows
+    pending = any(e.ocr_status in ("pending", "processing") for e in targets)
+    agg["status"] = "processing" if pending else "done"
+    return agg
+
+
+def mark_processing(db: Session, case_id: str) -> None:
+    """비동기 OCR 시작 전, 대상 중 아직 안 끝난(done 아님) 증거를 processing으로 표시(즉시 UI 피드백)."""
+    evs = db.query(Evidence).filter(Evidence.case_id == case_id).all()
+    changed = False
+    for ev in evs:
+        if _eligible(ev) and ev.ocr_status != "done":
+            ev.ocr_status = "processing"
+            changed = True
+    if changed:
+        db.commit()
+
+
 def update_entities(db: Session, case_id: str, eid: str, entities: dict) -> dict | None:
     """사용자가 OCR 값을 수정(HITL) → 저장. 수정본은 done으로 간주하고 행을 다시 계산."""
     ev = db.get(Evidence, eid)
@@ -131,6 +164,7 @@ def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
             ev.ocr_status = "failed"
             ev.extracted_entities = {}
             err = str(e)[:300]
+            ev.ocr_text = f"[OCR 실패] {err}"   # 폴링(GET) 때도 사유가 보이도록 저장
         collected.append((ev, err))
 
     db.commit()

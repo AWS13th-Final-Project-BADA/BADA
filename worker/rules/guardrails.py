@@ -33,15 +33,46 @@ _FLAG = re.compile(
 )
 
 
+# 흔한 OCR 오타 보정(인용 정확도). 필요 시 추가.
+_TYPO = [("아근수당", "야근수당")]
+
+# 금액·연도 등 '큰 수'(4자리 이상, 콤마 포함) 토큰 추출용.
+_AMOUNT = re.compile(r"\d[\d,]{3,}")
+
+
 def sanitize(text: str) -> str:
-    """단정 표현을 안전한 표현으로 치환한 문장을 반환."""
+    """단정 표현을 안전한 표현으로 치환 + 흔한 OCR 오타 보정한 문장을 반환."""
     if not text:
         return text
     for pat, repl in _RULES:
         text = pat.sub(repl, text)
+    for wrong, right in _TYPO:
+        text = text.replace(wrong, right)
     return text
 
 
 def has_forbidden(text: str) -> bool:
     """치환 후에도 위험어가 남아있는지(검수·테스트용). '확정 아님' 등 부정형은 안전 처리."""
     return bool(_FLAG.search(text or ""))
+
+
+def _amounts(text: str) -> set[str]:
+    """문장에서 4자리 이상 숫자(금액·연도)를 정규화(콤마 제거)해 집합으로."""
+    return {re.sub(r"[^\d]", "", m) for m in _AMOUNT.findall(text or "")}
+
+
+def has_foreign_number(candidate: str, source: str) -> bool:
+    """LLM 문장(candidate)에 출처(source)에 없는 '큰 수'가 있으면 True(숫자 환각 의심).
+
+    돈·법이 걸린 서비스라, 문장화 과정에서 없던 숫자(예: 9,030)가 생기면 폐기해야 한다.
+    날짜·소액(3자리 이하)은 오탐 방지를 위해 검사하지 않는다(4자리 이상만).
+    """
+    src = _amounts(source)
+    return any(a and a not in src for a in _amounts(candidate))
+
+
+def keep_grounded(candidate: str, source: str) -> str:
+    """candidate에 환각 숫자가 있으면 결정론적 원문(source)으로 되돌린다."""
+    if candidate and has_foreign_number(candidate, source):
+        return source
+    return candidate

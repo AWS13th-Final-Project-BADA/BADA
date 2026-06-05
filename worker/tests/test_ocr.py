@@ -51,5 +51,5 @@ def test_aggregate_merges_entities():
     agg = aggregate(evs)
     assert agg["agreed_hourly_wage"] == 10320
     assert agg["worked_hours"] == [174.0]
-    assert agg["deductions"] == [{"name": "기숙사비", "amount": 250000}]
+    assert agg["deductions"] == [{"name": "기숙사비", "amount": 250000, "source": "statement"}]
     assert agg["deposits"] == [{"date": "2026-05-01", "amount": 1900000}]

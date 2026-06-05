@@ -17,10 +17,13 @@ def build_translation_pairs(ctx: dict, result: dict, translator, target_lang: st
 
     for d in result.get("deduction_items", []):
         src = f"{d['name']} {int(d['amount']):,}원이 공제되었습니다. ({d['check']})"
+        # 출처는 실제 자료(계약서/대화 등). 없으면 '공제'로만 표기(없는 문서유형을 지어내지 않음)
+        srcs = d.get("sources") or []
+        etype = "/".join(srcs) + "·공제" if srcs else "공제"
         pairs.append({
             "source_text": src,
             "translated_text": _safe_translate(translator, src, target_lang),
-            "evidence_type": "급여명세서/공제",
+            "evidence_type": etype,
             "related_issue": "deduction",
         })
 
