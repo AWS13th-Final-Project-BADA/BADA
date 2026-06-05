@@ -116,6 +116,18 @@
   .chat-bubble{padding:13px 15px;border-radius:18px;font-size:14px;line-height:1.5;margin:10px 0;letter-spacing:-.2px}
   .chat-bubble.user{background:var(--blue);color:#fff;margin-left:40px;border-bottom-right-radius:6px}
   .chat-bubble.bot{background:#f3f6fb;color:#1f2937;margin-right:22px;border-bottom-left-radius:6px}
+  .chat-list{min-height:250px}
+  .chat-list.empty{min-height:0}
+  .chat-meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px}
+  .chat-meta span{background:#eef2ff;color:#3730a3;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:800}
+  .next-actions{margin:8px 0 2px;padding-left:18px;color:#374151;font-size:13px;line-height:1.45}
+  .chat-disclaimer{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);color:var(--sub);font-size:11px;line-height:1.45}
+  .quick-chat{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+  .quick-chat button{border:1px solid var(--line);background:#fff;color:#374151;border-radius:999px;padding:8px 10px;font-size:12px;font-weight:800;cursor:pointer}
+  .chat-form{display:flex;gap:8px;align-items:end;margin-top:12px}
+  .chat-form textarea{min-height:46px;max-height:120px;border-radius:16px;flex:1}
+  .chat-form button{width:56px;height:46px;border:0;border-radius:16px;background:var(--blue);color:#fff;font-size:18px;font-weight:900;cursor:pointer;flex:none}
+  .chat-form button:disabled{background:#cbd5e1;cursor:default}
   .bottom-nav{position:absolute;left:0;right:0;bottom:0;height:76px;background:rgba(255,255,255,.92);
     backdrop-filter:blur(18px);border-top:1px solid rgba(229,231,235,.8);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 14px 14px;z-index:10}
   .nav-item{border:0;background:transparent;color:#9ca3af;font-size:11px;font-weight:750;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;cursor:pointer}
@@ -277,9 +289,19 @@
     <section id="chat" class="page">
       <div class="section-title" style="margin-top:4px"><h2>BADA Connect</h2><span data-k="c_tag">절차 안내</span></div>
       <div class="chat-card">
-        <div class="chat-bubble user" data-k="c_q1">고용노동부에 가기 전에 무엇을 준비해야 하나요?</div>
-        <div class="chat-bubble bot" data-k="c_a1">현재 Evidence Pack에는 급여 비교, 공제 항목, 사건 타임라인이 정리되어 있습니다. 추가로 근로계약서 전체 사진과 사업주와의 대화 원본을 준비하면 상담이 더 원활합니다.</div>
-        <div class="chat-bubble bot" data-k="c_a2">BADA은 법률 판단을 하지 않습니다. 최종 판단은 고용노동부 또는 전문가 상담을 통해 확인해야 합니다.</div>
+        <div class="quick-chat">
+          <button type="button" id="chatQuickPack" onclick="askQuickChat('이 패키지에서 중요한 내용이 뭐예요?')">패키지 요약</button>
+          <button type="button" id="chatQuickScript" onclick="askQuickChat('상담하러 가면 뭐부터 말해야 해요?')">상담 순서</button>
+          <button type="button" id="chatQuickDocs" onclick="askQuickChat('더 준비해야 할 자료가 있나요?')">누락 자료</button>
+          <button type="button" id="chatQuickRisk" onclick="askQuickChat('이거 불법인가요?')">주의 질문</button>
+        </div>
+        <div class="chat-list empty" id="chatList">
+          <div class="chat-bubble bot" id="chatEmpty">상담 전에 무엇을 준비할지 물어보세요. BADA는 법률 판단이 아니라 자료 정리와 다음 준비 항목을 안내합니다.</div>
+        </div>
+        <form class="chat-form" onsubmit="sendChatMessage(event)">
+          <textarea id="chatInput" rows="1" placeholder="질문을 입력하세요"></textarea>
+          <button id="chatSendBtn" type="submit" aria-label="전송">↑</button>
+        </form>
       </div>
       <button class="primary-btn" data-k="c_home" onclick="goPage('home',0)">처음으로 돌아가기</button>
     </section>
@@ -313,14 +335,27 @@ const ROWS=[
  {cat:"chat",icon:"💬",bg:"soft-blue",t:"대화 캡처",s:"지급 약속, 공제 설명"},
  {cat:"other",icon:"🌏",bg:"soft-green",t:"모국어 메모",s:"상담용 문장 변환"}
 ];
+const CHAT_TEXT={
+ ko:{pack:"패키지 요약",script:"상담 순서",docs:"누락 자료",risk:"주의 질문",placeholder:"질문을 입력하세요",empty:"Evidence Pack에서 중요한 내용, 상담 순서, 더 준비할 자료를 물어보세요. BADA는 법률 판단이 아니라 상담 전 자료 정리를 돕습니다.",loading:"답변을 준비하고 있습니다.",error:"챗봇 응답을 가져오지 못했습니다. 서버 상태를 확인한 뒤 다시 시도해 주세요."},
+ en:{pack:"Pack summary",script:"Consult order",docs:"Missing files",risk:"Risk check",placeholder:"Type your question",empty:"Ask about key points, consultation order, or missing files in your Evidence Pack. BADA helps preparation, not legal judgment.",loading:"Preparing an answer.",error:"Could not get a chatbot response. Check the server and try again."},
+ vi:{pack:"Tóm tắt hồ sơ",script:"Thứ tự tư vấn",docs:"Thiếu tài liệu",risk:"Câu hỏi cần chú ý",placeholder:"Nhập câu hỏi",empty:"Hỏi về điểm quan trọng, thứ tự trình bày, hoặc tài liệu còn thiếu trong Evidence Pack. BADA hỗ trợ chuẩn bị, không phán quyết pháp lý.",loading:"Đang chuẩn bị câu trả lời.",error:"Không nhận được phản hồi chatbot. Hãy kiểm tra máy chủ rồi thử lại."}
+};
 
-let S={lang:"ko",caseId:null,analysis:null};
+let S={lang:"ko",caseId:null,analysis:null,chat:[]};
 const t=k=>(T[S.lang][k]!=null?T[S.lang][k]:(T.ko[k]||k));
+const ct=k=>(CHAT_TEXT[S.lang][k]!=null?CHAT_TEXT[S.lang][k]:CHAT_TEXT.ko[k]);
 const won=n=>(n===null||n===undefined)?"-":Number(n).toLocaleString()+"원";
 async function api(m,p,b){const r=await fetch(p,{method:m,headers:{"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined});if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json();}
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 function applyLang(){
   document.querySelectorAll("[data-k]").forEach(e=>{e.innerHTML=t(e.getAttribute("data-k"));});
+  document.getElementById("chatQuickPack").textContent=ct("pack");
+  document.getElementById("chatQuickScript").textContent=ct("script");
+  document.getElementById("chatQuickDocs").textContent=ct("docs");
+  document.getElementById("chatQuickRisk").textContent=ct("risk");
+  document.getElementById("chatInput").placeholder=ct("placeholder");
+  if(!S.chat.length)renderChat();
   const L=document.getElementById("lang");L.innerHTML="";
   const langs=[{code:"ko",label:"한국어"},{code:"vi",label:"Tiếng Việt"},{code:"en",label:"English"},{code:"id",label:"Indonesia"},{code:"km",label:"ខ្មែរ"},{code:"ne",label:"नेपाली"},{code:"th",label:"ไทย"},{code:"ja",label:"日本語"}];
   const sel=document.createElement("select");
@@ -666,6 +701,58 @@ function renderResult(){
   document.getElementById("r_miss").innerHTML=(a.missing||[]).map(m=>`<li>${_esc(m.reason)}</li>`).join("")||"<li>충분합니다.</li>";
 }
 function openReport(){ if(S.caseId)window.open("/cases/"+S.caseId+"/report.html","_blank"); }
+
+function renderChat(){
+  const list=document.getElementById("chatList");
+  if(!S.chat.length){
+    list.classList.add("empty");
+    list.innerHTML=`<div class="chat-bubble bot">${esc(ct("empty"))}</div>`;
+    return;
+  }
+  list.classList.remove("empty");
+  list.innerHTML=S.chat.map(m=>{
+    if(m.role==="user")return `<div class="chat-bubble user">${esc(m.text)}</div>`;
+    const meta=m.meta?`<div class="chat-meta">
+      <span>${esc(m.meta.ai_provider||"unknown")}</span><span>${esc(m.meta.intent)}</span><span>${esc(m.meta.risk_level)}</span><span>fallback ${m.meta.fallback_used?"on":"off"}</span>
+    </div>`:"";
+    const next=(m.next_actions||[]).length?`<ul class="next-actions">${m.next_actions.map(a=>`<li>${esc(a)}</li>`).join("")}</ul>`:"";
+    const disclaimer=m.disclaimer?`<div class="chat-disclaimer">${esc(m.disclaimer)}</div>`:"";
+    return `<div class="chat-bubble bot">${esc(m.text)}${meta}${next}${disclaimer}</div>`;
+  }).join("");
+  list.scrollIntoView({block:"end"});
+}
+
+function askQuickChat(message){
+  const input=document.getElementById("chatInput");
+  input.value=message;
+  sendChatMessage();
+}
+
+async function sendChatMessage(event){
+  if(event)event.preventDefault();
+  const input=document.getElementById("chatInput");
+  const btn=document.getElementById("chatSendBtn");
+  const message=input.value.trim();
+  if(!message||btn.disabled)return;
+  S.chat.push({role:"user",text:message});
+  input.value="";
+  renderChat();
+  btn.disabled=true;
+  S.chat.push({role:"bot",text:ct("loading")});
+  renderChat();
+  try{
+    const res=await api("POST","/chat/messages",{case_id:S.caseId||1,message,language:S.lang});
+    S.chat.pop();
+    S.chat.push({role:"bot",text:res.answer,meta:res,next_actions:res.next_actions||[],disclaimer:res.disclaimer});
+  }catch(e){
+    S.chat.pop();
+    S.chat.push({role:"bot",text:ct("error")});
+  }finally{
+    btn.disabled=false;
+    renderChat();
+    input.focus();
+  }
+}
 
 applyLang();
 </script>

@@ -22,12 +22,15 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
 
     aws_region: str = "ap-northeast-2"
+    aws_profile: str = ""
     s3_bucket: str = ""
     kms_key_id: str = ""
     sqs_queue_url: str = ""
     # Claude Sonnet 4.6 (Global 추론 프로파일, 비전 지원). 텍스트·비전 공용.
     bedrock_model_id: str = "global.anthropic.claude-sonnet-4-6"
     bedrock_vision_model_id: str = "global.anthropic.claude-sonnet-4-6"
+    ai_chat_mode: str = "mock"     # mock | bedrock
+    ai_chat_max_tokens: int = 700
     upstage_api_key: str = ""
     parseur_api_key: str = ""
     cognito_user_pool_id: str = ""

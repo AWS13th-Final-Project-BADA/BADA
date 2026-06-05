@@ -27,8 +27,40 @@ http://localhost:8000
 3. **분석 입력**에서 **[데모 데이터 채우기]** 버튼 → **분석 실행**
 4. 결과: 미지급 의심 금액, 공제표(확인 필요), 타임라인, GPS 교차검증, 누락 자료
 5. **제출용 리포트 열기** → 새 탭에서 인쇄/ PDF 저장
+6. **챗봇** → `/chat/messages` API를 통해 다음 준비 항목을 질문
 
 > 우측 상단 **KO / VI / EN** 으로 UI 언어 전환.
+
+## 4. AI 챗봇 모드
+
+기본값은 AWS 없이 동작하는 `mock`입니다. 실제 LLM을 붙일 때는 `.env`에서 모드를 바꿉니다.
+
+```bash
+cd /c/Users/DGSO23/BADA/BADA/backend
+cp ../.env.example .env
+```
+
+```dotenv
+AI_CHAT_MODE=mock
+```
+
+Bedrock Claude를 호출하려면 AWS 자격 증명이 설정된 환경에서:
+
+```dotenv
+AI_CHAT_MODE=bedrock
+BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+AI_CHAT_MAX_TOKENS=700
+```
+
+서버 실행:
+
+```bash
+cd /c/Users/DGSO23/BADA/BADA/backend
+source .venv/Scripts/activate
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+`bedrock` 모드에서 호출이 실패하면 서버는 데모가 끊기지 않도록 mock 답변으로 fallback합니다.
 
 ## 동작 범위 / 한계
 
@@ -36,6 +68,7 @@ http://localhost:8000
 - **OCR·AI 문장화·번역**: 기본은 Mock(키 불필요). `backend/.env`에 `PROVIDER_MODE=aws` +
   AWS 자격증명(`aws configure`)을 넣으면 실제 동작(Claude Vision/Bedrock/Translate). → `docs/enable-aws.md`
   - 위 `pip install -r backend/requirements.txt` 한 번이면 로컬·AWS 둘 다 커버(boto3·requests 포함).
+- **AI 챗봇**: 프론트 입력창 + `/chat/messages` + intent/risk/guardrail + mock/Bedrock 전환 구조.
 - **아직 스텁**: 인증(Cognito)·S3 업로드는 AWS 모드 연결 후 동작(다른 담당).
 - **DB 교체**: 나중에 Postgres로 바꾸려면 `backend/app/config.py`의 `database_url`만 변경
   (`postgresql+psycopg://...`) + `pip install "psycopg[binary]"`. 모델 코드는 그대로.
