@@ -246,6 +246,10 @@
         <div id="r_cmp_pts"></div>
       </div>
       <div class="card">
+        <div class="section-title" style="margin:0 0 6px"><h2>⚖️ 법정 기준 점검 <span class="muted" style="font-weight:400;font-size:12px">(확인 필요)</span></h2></div>
+        <div id="r_legal"></div>
+      </div>
+      <div class="card">
         <div class="section-title" style="margin:0 0 6px"><h2 data-k="r_ded">공제 항목</h2></div>
         <table class="mini-table" id="r_ded_tbl"></table>
       </div>
@@ -607,6 +611,13 @@ function renderResult(){
     const vals=Object.entries(c.values||{}).map(([k,v])=>k+" "+(typeof v==="number"?Number(v).toLocaleString():(v==null?"-":v))).join(" · ");
     return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-size:13px;font-weight:700">${_esc(c.label)} ${st}</div><div class="small-muted">${_esc(vals)}</div>${c.note?`<div class="need">${_esc(c.note)}</div>`:""}</div>`;
   }).join(""):'<p class="small-muted" style="margin:0">대조할 자료가 부족해요. 명세서·통장·계약서를 함께 올리면 자동으로 비교돼요.</p>';
+  // 법정 기준 점검
+  const lf=(a.legal&&a.legal.findings)||[];
+  document.getElementById("r_legal").innerHTML=lf.length?lf.map(f=>{
+    const col=f.level==="high"?"#b91c1c":"#b45309";
+    const ic=f.type==="minimum_wage"?"💢":(f.type==="premium_pay"?"⏰":"🧾");
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-size:13px;font-weight:700;color:${col}">${ic} ${_esc(f.note)}</div></div>`;
+  }).join(""):`<p class="small-muted" style="margin:0">최저임금 미달·가산수당·과다공제로 확인된 항목은 없어요. (${(a.legal&&a.legal.min_wage_year)||""}년 최저임금 ${won((a.legal&&a.legal.min_wage)||0)} 기준)</p>`;
   document.getElementById("r_ded_tbl").innerHTML=(a.deduction_items||[]).map(d=>
     `<tr><td>${_esc(d.name)} <span class="need">${d.category} · ${t("need")}</span></td><td>${won(d.amount)}</td></tr>`).join("")||`<tr><td>-</td><td>-</td></tr>`;
   const g=a.gps||{};

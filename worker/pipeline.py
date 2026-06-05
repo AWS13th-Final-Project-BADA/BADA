@@ -10,7 +10,7 @@ from providers.ocr import get_ocr
 from providers.translate import get_translator
 from rules import compare as cmp
 from rules import deductions as ded
-from rules import geofence, guardrails, missing, wage
+from rules import geofence, guardrails, legal, missing, wage
 from services import timeline as tl
 from services import translation as tr
 
@@ -54,6 +54,9 @@ def process_case(case_id: str, ctx: dict) -> dict:
 
     # 3단계: 증거 대조(검증포인트) — 계약↔명세서 시급, 명세서 실지급↔통장 입금
     result["compare"] = cmp.compare(ctx.get("evidence_entities", []))
+
+    # 3-1단계: 법정 기준 점검 — 최저임금 미달·가산수당 추정·과다공제(법령 산식 매핑)
+    result["legal"] = legal.legal_review(ctx, result)
 
     # 4단계: 번역 대조표
     result["translation_pairs"] = tr.build_translation_pairs(ctx, result, translator, target_lang)

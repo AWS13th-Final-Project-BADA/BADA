@@ -44,7 +44,8 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
         calculation_detail={"wage": result["calculation_detail"], "gps": result["gps"],
                             "timeline": result["timeline"], "notes": result["notes"],
                             "translation_pairs": result["translation_pairs"],
-                            "compare": result["compare"], "summary": result.get("timeline_summary", "")},
+                            "compare": result["compare"], "legal": result.get("legal", {}),
+                            "summary": result.get("timeline_summary", "")},
         missing_evidences=result["missing_evidences"],
         timeline_summary=result.get("timeline_summary", ""),
     ))
@@ -76,6 +77,7 @@ def get_analysis(case_id: str, db: Session = Depends(get_db)):
         "timeline": cd.get("timeline", []),
         "translation_pairs": cd.get("translation_pairs", []),
         "compare": cd.get("compare", []),
+        "legal": cd.get("legal", {}),
         "gps": cd.get("gps", {}),
         "notes": cd.get("notes", []),
         "timeline_summary": cd.get("summary", ""),
@@ -132,6 +134,8 @@ def report(case_id: str, db: Session = Depends(get_db)):
         f"<tr><td>{p['source_text']}</td><td>{p['translated_text']}</td><td>{p.get('evidence_type','')}</td></tr>"
         for p in cd.get("translation_pairs", []))
     rows_miss = "".join(f"<li>[{m['item']}] {m['reason']}</li>" for m in (ar.missing_evidences or []))
+    legal = cd.get("legal") or {}
+    rows_legal = "".join(f"<li>{f.get('note','')}</li>" for f in (legal.get("findings") or []))
     gps = cd.get("gps") or {}
     gps_html = (f"<p>GPS 핑 {gps.get('tagged_count', 0)}건 · 카톡-근무지 교차일치 {gps.get('cross_matches', 0)}건</p>"
                 if gps else "")
@@ -157,6 +161,7 @@ def report(case_id: str, db: Session = Depends(get_db)):
 <p class="big">미지급 의심 금액: {won(ar.suspected_unpaid)} (확인 필요)</p>
 <p>기대 급여 {won(ar.total_expected_wage)} / 실제 수령 {won(ar.total_received_wage)}</p>
 <h2>2. 증거 대조 (검증 포인트)</h2><table><tr><th>비교</th><th>값</th><th>판정</th><th>비고</th></tr>{rows_cmp or '<tr><td colspan=4>대조할 자료가 부족합니다.</td></tr>'}</table>
+<h2>2-1. 법정 기준 점검 (확인 필요)</h2><ul>{rows_legal or '<li>최저임금 미달·가산수당·과다공제로 확인된 항목이 없습니다.</li>'}</ul>
 <h2>3. 사건 타임라인</h2><ul>{rows_tl or '<li>(날짜 정보 부족)</li>'}</ul>
 <h2>4. 공제 항목 정리</h2><table><tr><th>항목</th><th>분류</th><th>금액</th><th>확인 필요</th></tr>{rows_ded}</table>
 <h2>5. 원문-번역 대조표</h2><table><tr><th>원문</th><th>번역</th><th>증거유형</th></tr>{rows_tr or '<tr><td colspan=3>-</td></tr>'}</table>
