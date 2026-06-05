@@ -366,7 +366,7 @@ function startAnalysis(){
   const steps=[1,2,3,4].map(i=>document.getElementById("step"+i));
   const msgs=[t("an_p1"),t("an_s2"),t("an_s3"),t("an_s4")];
   let v=0;fill.style.width="0%";pct.textContent="0%";steps.forEach((s,i)=>s.classList.toggle("active",i===0));
-  const apiP=api("POST","/cases/"+S.caseId+"/analyze",buildReq()).catch(e=>({__err:e.message}));
+  const apiP=api("POST","/cases/"+S.caseId+"/analyze?lang="+S.lang,buildReq()).catch(e=>({__err:e.message}));
   const timer=setInterval(async()=>{
     v+=8;fill.style.width=Math.min(v,100)+"%";pct.textContent=Math.min(v,100)+"%";
     if(v>=25&&v<50){steps.forEach((s,i)=>s.classList.toggle("active",i===1));txt.textContent=msgs[1];}
@@ -395,7 +395,7 @@ function renderResult(){
     `<div class="timeline-item"><strong>${e.date||"-"}</strong><p>${e.description}</p></div>`).join("")||`<div class="timeline-item"><p>날짜 정보 부족</p></div>`;
   document.getElementById("r_miss").innerHTML=(a.missing_evidences||[]).map(m=>`<li>${m.reason}</li>`).join("")||"<li>충분합니다.</li>";
 }
-function openReport(){ if(S.caseId)window.open("/cases/"+S.caseId+"/report.html","_blank"); }
+function openReport(){ if(S.caseId)window.open("/cases/"+S.caseId+"/report.html?lang="+S.lang,"_blank"); }
 
 applyLang();
 </script>

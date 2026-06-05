@@ -1,7 +1,8 @@
 """타임라인 조립 — 규칙 기반 정렬 + LLM 문장화 보조(architecture.md).
 
 정렬·이벤트 선택은 규칙. 문장 다듬기는 llm.summarize_event(mock=항등).
-번역 병기는 translator(mock=원문 유지).
+번역 병기는 translator.translate_batch()로 효율적 배치 번역.
+원문(description)은 절대 수정하지 않는다 (원문 보존 원칙).
 """
 from __future__ import annotations
 
@@ -31,11 +32,24 @@ def build_timeline(ctx: dict, result: dict, llm, translator, target_lang: str = 
     # 규칙 정렬: 날짜 있는 것 오름차순, 없는 것 뒤로
     events.sort(key=lambda e: (e["date"] is None, e["date"] or ""))
 
-    out = []
+    # LLM 문장화: 각 fact를 description으로 변환 (mock=항등)
+    descriptions: list[str] = []
     for e in events:
-        desc = llm.summarize_event(e["fact"])          # mock=항등
+        desc = llm.summarize_event(e["fact"])
+        descriptions.append(desc)
+
+    # 배치 번역: translate_batch로 한 번에 번역 (효율적, 순서·길이 보존)
+    # translate_batch는 target_lang=="ko"이면 입력 그대로 반환하고,
+    # 개별 항목 실패 시 해당 항목은 원문 반환 (graceful degradation).
+    translated_descriptions = translator.translate_batch(descriptions, target_lang)
+
+    # 결과 조립: description(원문)은 절대 수정하지 않음
+    out = []
+    for i, e in enumerate(events):
         out.append({
-            "date": e["date"], "type": e["type"], "description": desc,
-            "description_translated": translator.translate(desc, target_lang),
+            "date": e["date"],
+            "type": e["type"],
+            "description": descriptions[i],
+            "description_translated": translated_descriptions[i],
         })
     return out
