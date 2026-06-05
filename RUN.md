@@ -33,8 +33,10 @@ http://localhost:8000
 ## 동작 범위 / 한계
 
 - **지금 되는 것**: 사건 관리, 규칙 기반 분석(차액·공제·누락·GPS 교차검증), 타임라인, 리포트.
-- **아직 스텁**: 이미지 OCR(숫자는 직접 입력) = B2 bolt에서 Bedrock 연결.
-  인증(Cognito)·S3 업로드·실시간 번역(Translate)도 AWS 모드(W1) 연결 후 동작.
+- **OCR·AI 문장화·번역**: 기본은 Mock(키 불필요). `backend/.env`에 `PROVIDER_MODE=aws` +
+  AWS 자격증명(`aws configure`)을 넣으면 실제 동작(Claude Vision/Bedrock/Translate). → `docs/enable-aws.md`
+  - 위 `pip install -r backend/requirements.txt` 한 번이면 로컬·AWS 둘 다 커버(boto3·requests 포함).
+- **아직 스텁**: 인증(Cognito)·S3 업로드는 AWS 모드 연결 후 동작(다른 담당).
 - **DB 교체**: 나중에 Postgres로 바꾸려면 `backend/app/config.py`의 `database_url`만 변경
   (`postgresql+psycopg://...`) + `pip install "psycopg[binary]"`. 모델 코드는 그대로.
 

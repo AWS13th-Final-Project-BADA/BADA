@@ -102,7 +102,8 @@ class TestDeductionPairs:
         assert len(deduction_pairs) == 1
         assert "기숙사비" in deduction_pairs[0]["source_text"]
         assert "250,000원" in deduction_pairs[0]["source_text"]
-        assert deduction_pairs[0]["evidence_type"] == "급여명세서/공제"
+        # 출처(sources) 없으면 '공제'로만 표기 — 없는 '급여명세서' 출처를 지어내지 않음(QA E3 수정)
+        assert deduction_pairs[0]["evidence_type"] == "공제"
 
     def test_multiple_deductions(self):
         result = {

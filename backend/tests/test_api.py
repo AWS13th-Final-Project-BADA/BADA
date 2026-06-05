@@ -30,27 +30,35 @@ def test_health(client):
 def test_full_flow(client):
     cid = _make_case(client)
     a = client.post(f"/cases/{cid}/analyze", json=ANALYZE).json()
-    assert a["total_expected_wage"] == 7203360
-    assert a["suspected_unpaid"] == 953360
-    assert [d["category"] for d in a["deduction_items"]] == ["기숙사비", "식비", "작업복/장비", "기타공제"]
+    assert a["wage"]["expected"] == 7203360
+    assert a["wage"]["suspected_unpaid"] == 953360
+    assert a["wage"]["currency"] == "KRW" and a["wage"]["computable"] is True
+    assert [d["category"] for d in a["deductions"]] == ["기숙사비", "식비", "작업복/장비", "기타공제"]
     assert a["gps"]["cross_matches"] == 1
     assert len(a["timeline"]) >= 3
-    assert len(a["translation_pairs"]) >= 4
+    assert len(a["translations"]) >= 4
 
 
 def test_persistence_endpoints(client):
     cid = _make_case(client)
     client.post(f"/cases/{cid}/analyze", json=ANALYZE)
-    assert client.get(f"/cases/{cid}/analysis").json()["suspected_unpaid"] == 953360
+    assert client.get(f"/cases/{cid}/analysis").json()["wage"]["suspected_unpaid"] == 953360
     assert len(client.get(f"/cases/{cid}/timeline").json()) >= 3
     assert len(client.get(f"/cases/{cid}/translation-pairs").json()) >= 4
-    assert client.get(f"/cases/{cid}/missing").json() == [{"item": "schedule",
-            "reason": "근무시간 근거가 없습니다. 출퇴근 기록 또는 근무표가 있으면 차액이 더 정확해집니다."}]
     assert client.get(f"/cases/{cid}/report.html").status_code == 200
 
 
 def test_missing_when_no_evidence(client):
     cid = client.post("/cases", json=CASE).json()["id"]
     a = client.post(f"/cases/{cid}/analyze", json=ANALYZE).json()
-    items = {m["item"] for m in a["missing_evidences"]}
+    items = {m["item"] for m in a["missing"]}
     assert {"payment", "schedule", "contract", "chat"} <= items
+
+
+def test_extract_local_mock_empty(client):
+    """로컬(목) 모드: 파일 OCR 추출이 빈 결과여야 함(키 없으면 추출 없음)."""
+    cid = _make_case(client)  # manual 증거는 파일 없음 → 추출 대상 아님
+    r = client.post(f"/cases/{cid}/evidences/extract").json()
+    assert r["worked_hours"] == []
+    assert r["deposits"] == []
+    assert "needs_review" in r

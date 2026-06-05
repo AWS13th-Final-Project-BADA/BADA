@@ -1,0 +1,43 @@
+{
+  "_comment": "BADA 앱 런타임 권한 (Bedrock 호출 + Translate + 모델 최초 활성화). <ACCOUNT_ID>를 본인 계정 번호로.",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BedrockInvoke",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-*",
+        "arn:aws:bedrock:*:<ACCOUNT_ID>:inference-profile/*anthropic.claude-*"
+      ]
+    },
+    {
+      "Sid": "MarketplaceModelEnable",
+      "Effect": "Allow",
+      "Action": [
+        "aws-marketplace:Subscribe",
+        "aws-marketplace:ViewSubscriptions"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AmazonTranslate",
+      "Effect": "Allow",
+      "Action": ["translate:TranslateText"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DiscoverReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:ListInferenceProfiles",
+        "bedrock:ListFoundationModels",
+        "bedrock:GetInferenceProfile"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

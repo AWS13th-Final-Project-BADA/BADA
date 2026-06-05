@@ -1,0 +1,42 @@
+{
+  "case_id": "stmt_001_정확",
+  "category": "statement",
+  "gold_entities": {
+    "hourly_wage": 10030,
+    "monthly_wage": 2096900,
+    "work_days": 22,
+    "pay_date": "2026-05-10",
+    "signed": true,
+    "dates": ["2026-05-10"],
+    "amounts": [
+      {"label": "지급액 계", "value": 2096900},
+      {"label": "공제액 계", "value": 210600},
+      {"label": "실지급액", "value": 1886300}
+    ],
+    "deductions": [
+      {"name": "국민연금", "amount": 94360},
+      {"name": "건강보험", "amount": 74330},
+      {"name": "고용보험", "amount": 18870},
+      {"name": "소득세", "amount": 23040}
+    ]
+  },
+  "extracted_entities": {
+    "hourly_wage": 10030,
+    "monthly_wage": 2096900,
+    "work_days": 22,
+    "pay_date": "2026-05-10",
+    "signed": true,
+    "dates": ["2026-05-10"],
+    "amounts": [
+      {"label": "지급액 계", "value": 2096900},
+      {"label": "공제액 계", "value": 210600},
+      {"label": "실지급액", "value": 1886300}
+    ],
+    "deductions": [
+      {"name": "국민연금", "amount": 94360},
+      {"name": "건강보험", "amount": 74330},
+      {"name": "고용보험", "amount": 18870},
+      {"name": "소득세", "amount": 23040}
+    ]
+  }
+}
