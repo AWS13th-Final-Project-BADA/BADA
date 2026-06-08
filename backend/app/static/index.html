@@ -17,7 +17,7 @@
 <body>
 <main class="phone">
   <section class="screen" id="screen">
-    <div class="status"><span>9:41</span><div class="signal"><i class="ti ti-wifi" aria-hidden="true"></i><span>5G</span><i class="ti ti-battery-3" aria-hidden="true"></i></div></div>
+    <div class="status"><span id="clock">9:41</span><div class="signal"><i class="ti ti-wifi" id="netIcon" aria-hidden="true"></i><span id="netType">5G</span><span id="battPct"></span><i class="ti ti-battery-3" id="battIcon" aria-hidden="true"></i></div></div>
     <div class="topbar">
       <div class="brand"><img class="logo-img" src="/static/logo.svg" alt="BADA" width="30" height="30"/><strong>BADA</strong></div>
       <div class="lang" id="lang"></div>
@@ -71,6 +71,7 @@
       <div id="extractDetail"></div>
       <details class="numbox">
         <summary data-k="num_title">분석에 쓸 값 (AI 추출값 자동 채움 · 수정 가능)</summary>
+        <button type="button" class="upload-chip" id="demoBtn" onclick="fillDemo()" style="margin:6px 0 4px"><i class="ti ti-wand"></i> <span data-k="num_demo">데모 데이터 채우기</span></button>
         <label>약속 시급(원) · 손글씨면 꼭 확인</label><input id="n_hw" type="number" placeholder="10350"/>
         <label data-k="num_hours">근무시간 (콤마 구분)</label><input id="n_hrs" placeholder="174,168,180,176"/>
         <label data-k="num_dep">입금 내역 (한 줄에 '날짜, 금액')</label><textarea id="n_dep" placeholder="2026-01-15, 1500000"></textarea>

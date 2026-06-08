@@ -3,7 +3,7 @@
   "appName": "BADA",
   "webDir": "www",
   "server": {
-    "androidScheme": "https",
+    "androidScheme": "http",
     "cleartext": true
   },
   "plugins": {
