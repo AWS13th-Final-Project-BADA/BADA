@@ -15,5 +15,6 @@ requests==2.32.3        # Upstage Document Parse API
 pytest==8.3.3
 httpx==0.27.2
 
-# Postgres only (SQLite needs nothing):
-# psycopg[binary]==3.2.3
+# RDS Postgres + pgvector RAG.
+psycopg[binary]==3.2.3
+pgvector==0.3.6

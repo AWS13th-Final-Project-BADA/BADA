@@ -14,6 +14,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
 
+try:
+    from pgvector.sqlalchemy import Vector
+except Exception:  # pragma: no cover - local dev can run without pgvector installed.
+    Vector = None
+
 
 def _uuid() -> str:
     return str(uuid.uuid4())
@@ -153,3 +158,34 @@ class GpsLog(Base):
 
     # ── 데이터 출처 ──
     source: Mapped[str] = mapped_column(String(20), default="app")                     # app/web_geo/seed
+
+
+class RagDocument(Base):
+    __tablename__ = "rag_documents"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    title: Mapped[str] = mapped_column(String(300))
+    source_org: Mapped[str] = mapped_column(String(120))
+    source_url: Mapped[str | None] = mapped_column(String(1000))
+    language: Mapped[str] = mapped_column(String(10), default="ko")
+    document_type: Mapped[str] = mapped_column(String(80), default="official_guide")
+    version: Mapped[str | None] = mapped_column(String(80))
+    metadata_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    chunks: Mapped[list[RagChunk]] = relationship(back_populates="document", cascade="all, delete-orphan")
+
+
+class RagChunk(Base):
+    __tablename__ = "rag_chunks"
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    document_id: Mapped[str] = mapped_column(ForeignKey("rag_documents.id"))
+    chunk_index: Mapped[int] = mapped_column(Integer)
+    section: Mapped[str | None] = mapped_column(String(200))
+    text: Mapped[str] = mapped_column(Text)
+    token_count: Mapped[int | None] = mapped_column(Integer)
+    keywords: Mapped[list | None] = mapped_column(JSON)
+    embedding: Mapped[list | None] = mapped_column(Vector(1024) if Vector else JSON)
+    metadata_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    document: Mapped[RagDocument] = relationship(back_populates="chunks")

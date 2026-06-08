@@ -127,6 +127,7 @@ details.numbox summary::-webkit-details-marker{display:none}
 .chat-meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
 .chat-meta span{background:var(--blue-soft);color:var(--blue-ink);border-radius:999px;padding:4px 9px;font-size:10px;font-weight:500}
 .next-actions{margin:8px 0 2px;padding-left:18px;color:var(--sub);font-size:13px;line-height:1.5}
+.rag-sources{margin:8px 0 2px;padding-left:18px;color:var(--muted);font-size:11px;line-height:1.5}
 .chat-disclaimer{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.5}
 .quick-chat{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
 .quick-chat button{border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:999px;padding:8px 12px;font-size:12px;font-weight:500;cursor:pointer}

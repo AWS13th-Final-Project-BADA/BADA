@@ -1,7 +1,9 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
 
+from ..db import get_db
 from ..schemas_ai_chat import ChatMessageRequest, ChatMessageResponse
 from ..services.ai_chat_orchestrator import run_chat
 
@@ -9,9 +11,9 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 @router.post("/messages", response_model=ChatMessageResponse)
-async def chat_messages(request: Request):
+async def chat_messages(request: Request, db: Session = Depends(get_db)):
     payload = await _read_chat_payload(request)
-    return run_chat(payload)
+    return run_chat(payload, db)
 
 
 async def _read_chat_payload(request: Request) -> ChatMessageRequest:

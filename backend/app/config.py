@@ -12,6 +12,10 @@ class Settings(BaseSettings):
 
     # 로컬 기본: SQLite. Postgres로 바꾸려면 이 값만 교체.
     database_url: str = "sqlite:///./bada.db"
+    database_auto_create: bool = True
+    database_ssl_mode: str = ""     # RDS Postgres 권장: require
+    database_pool_size: int = 5
+    database_max_overflow: int = 10
 
     # 동작 모드 (기능 담당자가 전환)
     #   provider_mode: local=Mock / aws=실제 OCR·AI·번역(Bedrock/Upstage/Translate)
@@ -31,6 +35,13 @@ class Settings(BaseSettings):
     bedrock_vision_model_id: str = "global.anthropic.claude-sonnet-4-6"
     ai_chat_mode: str = "mock"     # mock | bedrock
     ai_chat_max_tokens: int = 700
+    rag_enabled: bool = True
+    rag_use_vector: bool = True
+    rag_top_k: int = 4
+    rag_min_keyword_score: int = 1
+    embedding_mode: str = "mock"    # mock | bedrock
+    embedding_model_id: str = "amazon.titan-embed-text-v2:0"
+    embedding_dimension: int = 1024
     upstage_api_key: str = ""
     parseur_api_key: str = ""
     cognito_user_pool_id: str = ""

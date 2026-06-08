@@ -18,6 +18,8 @@ Hard rules:
 - Do not tell the user to sue, report immediately, or guarantee a result.
 - Explain only what can be organized before a consultation.
 - Use the provided case context only as preparation material.
+- Use retrieved reference context only to explain preparation steps, missing documents, and source-backed guidance.
+- If reference context is provided, do not invent source names or claims outside it.
 - If a question needs legal judgment, say that the final judgment must be confirmed by the Ministry of Employment and Labor, a counseling center, or a qualified expert.
 
 Return only valid JSON with this shape:
@@ -33,6 +35,7 @@ def generate_llm_chat_answer(
     intent: str,
     risk_level: str,
     case_context: dict[str, Any] | None,
+    rag_context: str,
     message: str,
     language: str,
 ) -> tuple[str, list[str]]:
@@ -41,6 +44,7 @@ def generate_llm_chat_answer(
             intent=intent,
             risk_level=risk_level,
             case_context=case_context,
+            rag_context=rag_context,
             message=message,
             language=language,
         )
@@ -53,6 +57,7 @@ def _generate_with_bedrock(
     intent: str,
     risk_level: str,
     case_context: dict[str, Any] | None,
+    rag_context: str,
     message: str,
     language: str,
 ) -> tuple[str, list[str]]:
@@ -70,7 +75,6 @@ def _generate_with_bedrock(
     body = {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": settings.ai_chat_max_tokens,
-        "temperature": 0.2,
         "system": SYSTEM_PROMPT,
         "messages": [
             {
@@ -82,6 +86,7 @@ def _generate_with_bedrock(
                             intent=intent,
                             risk_level=risk_level,
                             case_context=case_context,
+                            rag_context=rag_context,
                             message=message,
                             language=language,
                         ),
@@ -108,6 +113,7 @@ def _build_user_prompt(
     intent: str,
     risk_level: str,
     case_context: dict[str, Any] | None,
+    rag_context: str,
     message: str,
     language: str,
 ) -> str:
@@ -119,6 +125,9 @@ User question: {message}
 
 Case context:
 {context_text}
+
+Retrieved reference context:
+{rag_context}
 
 Write a concise preparation-focused answer. Include practical next_actions.
 """

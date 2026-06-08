@@ -1,0 +1,60 @@
+[
+  {
+    "id": "molab-wage-statement-prep",
+    "title": "임금명세서와 입금내역 상담 준비",
+    "source_org": "고용노동부",
+    "source_url": "https://www.moel.go.kr",
+    "language": "ko",
+    "document_type": "official_guide_summary",
+    "version": "mvp-2026-06",
+    "chunks": [
+      {
+        "section": "임금명세서 확인",
+        "text": "상담 전에는 급여명세서, 실제 입금내역, 근로계약서의 임금 조건을 함께 정리해 두는 것이 좋다. 명세서 금액과 실제 입금액 사이에 차이가 있으면 차이 금액, 지급일, 공제 항목을 나란히 보여줄 수 있게 준비한다.",
+        "keywords": ["임금명세서", "입금내역", "급여", "차이", "공제", "상담", "준비"]
+      },
+      {
+        "section": "공제 항목 확인",
+        "text": "기숙사비, 식비, 작업복비처럼 임금에서 빠진 항목은 항목명, 금액, 설명받은 내용, 동의 자료가 있는지 정리한다. 공제의 최종 판단은 상담기관에서 확인해야 하며, BADA는 공제 항목을 보기 쉽게 묶는 역할을 한다.",
+        "keywords": ["공제", "기숙사비", "식비", "작업복비", "동의", "자료", "확인"]
+      }
+    ]
+  },
+  {
+    "id": "molab-labor-office-consultation-prep",
+    "title": "고용노동부 상담 전 준비자료",
+    "source_org": "고용노동부",
+    "source_url": "https://www.moel.go.kr",
+    "language": "ko",
+    "document_type": "official_guide_summary",
+    "version": "mvp-2026-06",
+    "chunks": [
+      {
+        "section": "상담 순서",
+        "text": "상담할 때는 근무한 사업장, 근무기간, 약속한 임금, 실제 받은 금액, 차이가 발생한 기간, 가지고 있는 증거 순서로 설명하면 상담자가 사실관계를 파악하기 쉽다.",
+        "keywords": ["상담", "순서", "사업장", "근무기간", "임금", "증거", "설명"]
+      },
+      {
+        "section": "누락 자료",
+        "text": "자료가 부족한 경우에도 현재 가진 자료를 먼저 정리해 상담할 수 있다. 다만 근무시간 기록, 계약서 첫 페이지, 사업장 정보, 공제 설명 자료, 대화 캡처 원본이 있으면 상담 전 확인에 도움이 된다.",
+        "keywords": ["누락", "자료", "근무시간", "계약서", "사업장", "대화", "캡처"]
+      }
+    ]
+  },
+  {
+    "id": "bada-safety-legal-judgment-policy",
+    "title": "BADA 법률 판단 제한 정책",
+    "source_org": "BADA",
+    "source_url": null,
+    "language": "ko",
+    "document_type": "product_policy",
+    "version": "mvp-2026-06",
+    "chunks": [
+      {
+        "section": "표현 제한",
+        "text": "BADA는 법률 판단을 제공하지 않는다. 위법 여부, 체불 확정, 받을 금액 확정, 소송 또는 즉시 신고 지시는 답변하지 않고 상담기관 또는 전문가 확인이 필요하다고 안내한다.",
+        "keywords": ["법률", "판단", "위법", "체불", "확정", "신고", "소송", "상담기관"]
+      }
+    ]
+  }
+]

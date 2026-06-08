@@ -78,3 +78,59 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 - `ModuleNotFoundError` → venv 활성화 확인, `pip install -r backend/requirements.txt` 다시.
 - 포트 충돌 → `uvicorn app.main:app --reload --port 8001`.
 - DB 초기화 → `backend/bada.db` 파일 삭제 후 재실행.
+
+## RDS Postgres + RAG 연결
+
+RDS를 만든 뒤 `backend/.env`에 아래 값을 넣습니다.
+
+```dotenv
+DATABASE_URL=postgresql+psycopg://bada:PASSWORD@RDS_ENDPOINT:5432/bada
+DATABASE_AUTO_CREATE=true
+DATABASE_SSL_MODE=require
+DATABASE_POOL_SIZE=5
+DATABASE_MAX_OVERFLOW=10
+
+RAG_ENABLED=true
+RAG_USE_VECTOR=true
+EMBEDDING_MODE=bedrock
+EMBEDDING_MODEL_ID=amazon.titan-embed-text-v2:0
+EMBEDDING_DIMENSION=1024
+```
+
+로컬에서 RDS에 붙으려면 RDS 보안 그룹 inbound에 현재 PC IP의 `5432` 접근이 열려 있어야 합니다.
+
+DB 연결과 테이블 생성을 먼저 확인합니다.
+
+```bash
+cd /c/Users/DGSO23/BADA/BADA/backend
+source .venv/Scripts/activate
+pip install -r requirements.txt
+python scripts/check_db.py
+```
+
+정상 예:
+
+```text
+connection=ok dialect=postgresql
+create_all=ok
+tables=analysis_results, cases, evidences, rag_chunks, rag_documents, ...
+```
+
+RAG seed를 적재합니다.
+
+```bash
+python scripts/ingest_rag_seed.py
+```
+
+정상 예:
+
+```text
+rag_ingest=ok documents=3 chunks=5
+```
+
+서버 실행 후 DB 헬스체크:
+
+```bash
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+curl http://127.0.0.1:8000/health/db
+```
