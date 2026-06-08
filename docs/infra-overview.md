@@ -14,7 +14,7 @@
 
 ## 1. 인프라 한 줄 요약
 
-> BADA는 `ALB + ECS Fargate + RDS PostgreSQL + PostGIS + S3 + KMS + SQS + DLQ + Cognito + Secrets Manager + SSM + CloudWatch + Terraform` 구조를 기준으로 설계된 AWS 관리형 서비스 중심 아키텍처를 사용한다.
+> BADA는 `ALB + ECS Fargate + RDS PostgreSQL + PostGIS + S3 + KMS + SQS + DLQ + Cognito + Secrets Manager + SSM + CloudWatch Logs + Terraform` 구조를 기준으로 설계된 AWS 관리형 서비스 중심 아키텍처를 사용한다.
 
 ---
 
@@ -42,7 +42,7 @@ BADA는 외국인 근로자가 계약서, 급여명세서, 대화 캡처, 통장
 | --- | --- | --- |
 | `Terraform` | AWS 인프라를 코드로 관리 | 재현성, 변경 이력 관리, 협업 용이성 |
 | `ALB` | 외부 요청 진입점 | ECS backend와 자연스럽게 연결 가능 |
-| `ECS Fargate` | backend / worker 실행 | 서버 관리 없이 컨테이너 운영 가능 |
+| `ECS Fargate` | backend / worker 실행 환경 | 서버 관리 없이 컨테이너 운영 가능 |
 | `ECR` | 컨테이너 이미지 저장 | backend / worker 이미지 배포용 |
 | `RDS PostgreSQL` | 사건/사용자/분석 결과 저장 | 관계형 데이터 구조에 적합 |
 | `PostGIS` | 위치 데이터 계산 | GPS 저장 및 지오펜스 처리 |
@@ -54,7 +54,7 @@ BADA는 외국인 근로자가 계약서, 급여명세서, 대화 캡처, 통장
 | `Secrets Manager` | 민감한 값 저장 | DB 비밀번호, API 키 보관 |
 | `SSM Parameter Store` | 비민감 설정 저장 | bucket, queue url, region 등 관리 |
 | `CloudWatch Logs` | 로그 수집 | backend / worker 로그 확인 |
-| `CloudWatch Alarms` | 모니터링 확장 기준 | 이후 CPU, 메모리, 큐 적체 알림 가능 |
+| `CloudWatch Alarms` | 모니터링 확장 예정 | 이후 CPU, 메모리, 큐 적체 알림 가능 |
 
 ---
 
@@ -95,7 +95,7 @@ BADA 인프라는 아래 네트워크 기준을 따른다.
 
 현재 `infra/` 디렉토리의 Terraform 코드에는 아래 리소스가 반영되어 있다.
 
-### 반영 완료
+### Terraform 골격 반영 완료
 
 - VPC
 - public subnet / private subnet
@@ -114,7 +114,7 @@ BADA 인프라는 아래 네트워크 기준을 따른다.
 - SSM Parameter Store
 - CloudWatch log groups
 
-### 다음 단계
+### 아직 미반영
 
 - ECS task definition
 - ECS service
@@ -123,9 +123,34 @@ BADA 인프라는 아래 네트워크 기준을 따른다.
 - CloudWatch alarms 세부화
 - GitHub Actions 기반 배포 자동화
 
+즉, 현재 상태는 **네트워크·스토리지·DB·큐·인증·로그 기반은 준비되었고**,  
+애플리케이션 컨테이너를 실제로 띄우는 배포 연결 단계가 남아 있는 상태다.
+
 ---
 
-## 7. 현재 구현 상태를 어떻게 이해하면 되는가
+## 7. 앱이 AWS 인프라를 실제로 쓰기 위한 전환 지점
+
+Terraform으로 인프라가 준비되더라도, 애플리케이션이 바로 AWS 리소스를 쓰는 것은 아니다.
+아래 설정과 seam 코드가 함께 전환되어야 한다.
+
+- `backend/app/config.py`
+- `worker/config.py`
+- `backend/app/services/storage.py`
+- `backend/app/services/queue.py`
+- `.env`
+
+핵심 전환 항목은 아래와 같다.
+
+- `DATABASE_URL`을 PostgreSQL로 전환
+- `STORAGE_MODE=s3`
+- `AUTH_MODE=cognito`
+- `SQS_QUEUE_URL` 주입
+- `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID` 주입
+- `Secrets Manager / SSM` 값을 런타임에 연결
+
+---
+
+## 8. 현재 구현 상태를 어떻게 이해하면 되는가
 
 현재 상태는 “문서만 있는 설계”가 아니라,  
 **Terraform 기준으로 핵심 인프라 리소스 골격이 실제 코드에 반영된 상태**다.
@@ -138,7 +163,7 @@ BADA 인프라는 아래 네트워크 기준을 따른다.
 
 ---
 
-## 8. 관련 파일
+## 9. 관련 파일
 
 - `infra/providers.tf`
 - `infra/variables.tf`
@@ -149,6 +174,6 @@ BADA 인프라는 아래 네트워크 기준을 따른다.
 
 ---
 
-## 9. 한 줄 정리
+## 10. 한 줄 정리
 
 > BADA 인프라는 AWS 관리형 서비스 중심으로 설계되었으며, 현재는 Terraform 기준의 핵심 인프라 골격이 준비된 상태이고, 다음 단계는 ECS 서비스와 배포 자동화를 실제 서비스 흐름에 연결하는 것이다.

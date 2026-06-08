@@ -51,6 +51,9 @@
 - **구현할 것**: `backend/app/services/storage.py:S3Storage` (이미 골격), `infra/*.tf` (RDS+PostGIS·S3·SQS(+DLQ)·Cognito·ECR·ALB·Fargate)
 - **참고**: `docs/aws-setup-checklist.md`
 - **전환**: `STORAGE_MODE=s3`, `DATABASE_URL`을 Postgres로.
+- **현재 상태**:
+  - Terraform 골격에 `VPC`, `subnet`, `S3`, `KMS`, `SQS + DLQ`, `RDS`, `ALB`, `ECR`, `Cognito`, `Secrets Manager`, `SSM`, `CloudWatch log group` 반영 완료
+  - 아직 `ECS task definition`, `ECS service`, `ALB와 ECS 실제 연결`, `Secrets/SSM 런타임 주입`, `CloudWatch Alarm`은 다음 단계
 - **운영 기준**:
   - `ALB/ECS public subnet`, `RDS private subnet`
   - `NAT Gateway 미사용`
