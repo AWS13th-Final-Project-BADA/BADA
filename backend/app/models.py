@@ -114,11 +114,42 @@ class Workplace(Base):
 
 class GpsLog(Base):
     __tablename__ = "gps_logs"
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    case_id: Mapped[str] = mapped_column(ForeignKey("cases.id"))
-    ts: Mapped[datetime] = mapped_column(DateTime)
-    lat: Mapped[float] = mapped_column(Numeric(10, 7))
-    lng: Mapped[float] = mapped_column(Numeric(10, 7))
-    status: Mapped[str | None] = mapped_column(String(20))  # IN_WORKPLACE/OUTSIDE
+    case_id: Mapped[str] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
+
+    # ── 타임스탬프 (이중 검증) ──
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)       # 기기 시각
+    server_ts: Mapped[datetime] = mapped_column(                                         # 서버 수신 시각
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    is_delayed_upload: Mapped[bool] = mapped_column(Boolean, default=False)             # |server_ts - ts| > 임계값
+
+    # ── 좌표 ──
+    lat: Mapped[float] = mapped_column(Numeric(10, 7), nullable=False)
+    lng: Mapped[float] = mapped_column(Numeric(10, 7), nullable=False)
+    altitude_m: Mapped[float | None] = mapped_column(Numeric(8, 2))
+    speed_mps: Mapped[float | None] = mapped_column(Numeric(6, 3))                     # 이동 속도 이상 탐지
+
+    # ── 측위 품질 ──
+    accuracy_m: Mapped[float | None] = mapped_column(Numeric(7, 2))                    # GPS 오차 반경
+    provider: Mapped[str | None] = mapped_column(String(20))                           # gps/network/fused
+
+    # ── 모킹 탐지 ──
     is_mocked: Mapped[bool] = mapped_column(Boolean, default=False)
-    source: Mapped[str] = mapped_column(String(20), default="seed")  # web_geo/seed/app
+    mock_reason: Mapped[str | None] = mapped_column(String(50))                        # 판정 근거
+
+    # ── 판정 결과 ──
+    status: Mapped[str | None] = mapped_column(String(20))                             # IN_WORKPLACE/OUTSIDE
+
+    # ── 무결성 체인 ──
+    prev_chain_hash: Mapped[str | None] = mapped_column(String(64))                    # 직전 행 해시
+    chain_hash: Mapped[str] = mapped_column(String(64), nullable=False)                # 현재 행 해시
+
+    # ── 기기 식별 ──
+    device_id: Mapped[str | None] = mapped_column(String(100))                         # 해시된 기기 ID
+    device_os: Mapped[str | None] = mapped_column(String(30))
+    app_version: Mapped[str | None] = mapped_column(String(20))
+
+    # ── 데이터 출처 ──
+    source: Mapped[str] = mapped_column(String(20), default="app")                     # app/web_geo/seed

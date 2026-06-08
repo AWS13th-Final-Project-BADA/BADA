@@ -24,11 +24,17 @@ def tag_ping(lat: float, lng: float, center_lat: float, center_lng: float, radiu
 
 
 def tag_logs(logs: list[dict], center_lat: float, center_lng: float, radius_m: float = 50) -> list[dict]:
-    """logs: [{"ts": datetime, "lat","lng","is_mocked"(opt)}]. is_mocked는 status=None으로 배제."""
+    """logs: [{"ts": datetime, "lat","lng","is_mocked"(opt),"is_delayed_upload"(opt)}].
+    is_mocked=True 또는 is_delayed_upload=True 핑은 excluded=True로 배제한다.
+    is_delayed_upload 핑은 타임라인·교차검증에서 제외하되 기록은 보존한다.
+    """
     out = []
     for lg in logs:
         if lg.get("is_mocked"):
-            out.append({**lg, "status": None, "excluded": True})
+            out.append({**lg, "status": None, "excluded": True, "exclude_reason": "mocked"})
+            continue
+        if lg.get("is_delayed_upload"):
+            out.append({**lg, "status": None, "excluded": True, "exclude_reason": "delayed_upload"})
             continue
         status = tag_ping(lg["lat"], lg["lng"], center_lat, center_lng, radius_m)
         out.append({**lg, "status": status, "excluded": False})
