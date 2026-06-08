@@ -1,0 +1,7 @@
+# Capacitor / Node 생성물 (커밋 제외)
+node_modules/
+www/
+android/
+ios/
+.gradle/
+*.keystore

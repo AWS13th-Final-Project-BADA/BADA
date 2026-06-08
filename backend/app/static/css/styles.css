@@ -178,3 +178,16 @@ details.numbox summary::-webkit-details-marker{display:none}
 .up-state i{font-size:13px}
 .up-state.done{color:var(--green-ink);font-weight:500}
 .up-card .need{display:block;margin-top:3px;font-size:11px}
+.toast{position:absolute;left:16px;right:16px;bottom:84px;background:#11151f;color:#fff;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.4;text-align:center;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;z-index:50;pointer-events:none}
+.toast.show{opacity:.96;transform:translateY(0)}
+
+/* === 실기기(모바일): 폰 프레임 대신 풀스크린 + 노치/상태바 safe-area === */
+@media (max-width:480px){
+  body{display:block;background:#f6f8fb}
+  .phone{width:100%;height:100vh;height:100dvh;border:0;border-radius:0;box-shadow:none;background:#f6f8fb}
+  .status{display:none}
+  .topbar{margin-top:6px}
+  .screen{padding-top:max(14px,env(safe-area-inset-top));padding-bottom:calc(94px + env(safe-area-inset-bottom))}
+  .bottom-nav{height:auto;min-height:72px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(90px + env(safe-area-inset-bottom))}
+}

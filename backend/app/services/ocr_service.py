@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -143,29 +144,50 @@ def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
     evs = db.query(Evidence).filter(Evidence.case_id == case_id).all()
     collected: list[dict] = []
 
+    # OCR 대상만 선별(이미지/PDF · 캐시된 done 제외) → 즉시 processing 표시
+    targets = [ev for ev in evs
+               if ev.file_type in ("image", "pdf") and ev.file_key
+               and (force or ev.ocr_status != "done")]
+    for ev in targets:
+        ev.ocr_status = "processing"
+
+    # 느린 부분(파일읽기 + Bedrock 호출)만 스레드로 동시 실행 — ORM/DB는 손대지 않는다.
+    def _extract_one(args):
+        eid, category, file_key = args
+        try:
+            data = storage.read(file_key)
+            out = get_ocr(category).extract(data, category)
+            text, ents = _mask_chat(category, out.get("raw_text", ""), out.get("entities", {}))
+            return eid, {"text": text, "ents": ents, "err": None}
+        except Exception as e:  # noqa: BLE001 (사유는 아래 메인스레드에서 기록)
+            return eid, {"text": None, "ents": None, "err": str(e)[:300]}
+
+    results: dict = {}
+    job_args = [(ev.id, ev.category, ev.file_key) for ev in targets]
+    if job_args:
+        with ThreadPoolExecutor(max_workers=min(len(job_args), 4), thread_name_prefix="ocr-ex") as ex:
+            for eid, res in ex.map(_extract_one, job_args):
+                results[eid] = res
+
+    # DB 반영은 메인 스레드에서만 (SQLAlchemy 세션 thread-safe 보장)
     for ev in evs:
         if ev.file_type not in ("image", "pdf") or not ev.file_key:
             continue
-        if not force and ev.ocr_status == "done":   # 캐싱
+        if ev.id not in results:   # 캐시된 done
             collected.append(ev)
             continue
-
-        ev.ocr_status = "processing"
-        err = None
-        try:
-            data = storage.read(ev.file_key)
-            out = get_ocr(ev.category).extract(data, ev.category)
-            text, ents = _mask_chat(ev.category, out.get("raw_text", ""), out.get("entities", {}))
-            ev.ocr_text = text
-            ev.extracted_entities = ents
+        res = results[ev.id]
+        if res["err"] is None:
+            ev.ocr_text = res["text"]
+            ev.extracted_entities = res["ents"]
             ev.ocr_status = "done"
-        except Exception as e:
-            log.warning("OCR failed for evidence %s: %s", ev.id, e)
+            collected.append((ev, None))
+        else:
+            log.warning("OCR failed for evidence %s: %s", ev.id, res["err"])
             ev.ocr_status = "failed"
             ev.extracted_entities = {}
-            err = str(e)[:300]
-            ev.ocr_text = f"[OCR 실패] {err}"   # 폴링(GET) 때도 사유가 보이도록 저장
-        collected.append((ev, err))
+            ev.ocr_text = f"[OCR 실패] {res['err']}"   # 폴링(GET) 때도 사유 노출
+            collected.append((ev, res["err"]))
 
     db.commit()
     # 모든 추출이 끝난 뒤 교차 신호 계산 → 행 생성(근거 confidence 반영)

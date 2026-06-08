@@ -12,7 +12,7 @@ async function preprocessImage(file){
   if(!file.type.startsWith("image/")) return {blob:file,name:file.name,warn:null};
   try{
     const bmp=await createImageBitmap(file,{imageOrientation:"from-image"});
-    const MAX=2200, scale=Math.min(1,MAX/Math.max(bmp.width,bmp.height));
+    const MAX=1568, scale=Math.min(1,MAX/Math.max(bmp.width,bmp.height));  // Claude 비전 권장 긴변(>1568은 내부 축소 → 이득無)
     const w=Math.round(bmp.width*scale), h=Math.round(bmp.height*scale);
     const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
     cv.getContext("2d").drawImage(bmp,0,0,w,h);
@@ -31,7 +31,7 @@ async function doUpload(cat, file, btn, warnEl){
   const fd=new FormData(); fd.append("category",cat); fd.append("file",blob,name);
   btn.textContent="업로드 중...";
   try{
-    const res=await fetch("/cases/"+S.caseId+"/evidences/upload",{method:"POST",body:fd});
+    const res=await fetch(apiUrl("/cases/"+S.caseId+"/evidences/upload"),{method:"POST",body:fd});
     if(!res.ok) throw new Error(await res.text());
     btn.innerHTML='<i class="ti ti-check"></i>완료'; btn.classList.add("done");
   }catch(e){ btn.textContent="다시"; alert("업로드 실패: "+e.message); }

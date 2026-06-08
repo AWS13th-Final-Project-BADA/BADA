@@ -22,17 +22,29 @@ function startAnalysis(){
   const fill=document.getElementById("barFill"),pct=document.getElementById("percentText"),txt=document.getElementById("progressText");
   const steps=[1,2,3,4].map(i=>document.getElementById("step"+i));
   const msgs=[t("an_p1"),t("an_s2"),t("an_s3"),t("an_s4")];
-  let v=0;fill.style.width="0%";pct.textContent="0%";steps.forEach((s,i)=>s.classList.toggle("active",i===0));
-  const apiP=api("POST","/cases/"+S.caseId+"/analyze?lang="+S.lang,buildReq()).catch(e=>({__err:e.message}));
+  const setStep=k=>steps.forEach((s,i)=>s.classList.toggle("active",i===k));
+  let v=0,done=false;
+  fill.style.width="0%";pct.textContent="0%";setStep(0);
+  // 실제 분석 요청 — 응답이 오면 done 플래그(진행바 완료는 이 시점에 종속)
+  const apiP=api("POST","/cases/"+S.caseId+"/analyze?lang="+S.lang,buildReq())
+    .then(a=>{done=true;return a;})
+    .catch(e=>{done=true;return {__err:e.message};});
   const timer=setInterval(async()=>{
-    v+=8;fill.style.width=Math.min(v,100)+"%";pct.textContent=Math.min(v,100)+"%";
-    if(v>=25&&v<50){steps.forEach((s,i)=>s.classList.toggle("active",i===1));txt.textContent=msgs[1];}
-    else if(v>=50&&v<75){steps.forEach((s,i)=>s.classList.toggle("active",i===2));txt.textContent=msgs[2];}
-    else if(v>=75){steps.forEach((s,i)=>s.classList.toggle("active",i===3));txt.textContent=msgs[3];}
-    if(v>=100){clearInterval(timer);const a=await apiP;
+    // 응답 전엔 90%까지만 점점 느리게(=실제 진행 중 표시), 응답 오면 빠르게 100%로
+    v += done ? (100-v)*0.5 : Math.max(0.6,(90-v)*0.12);
+    if(!done&&v>90)v=90;
+    const shown=Math.min(Math.round(v),100);
+    fill.style.width=shown+"%";pct.textContent=shown+"%";
+    if(shown>=25&&shown<50){setStep(1);txt.textContent=msgs[1];}
+    else if(shown>=50&&shown<75){setStep(2);txt.textContent=msgs[2];}
+    else if(shown>=75){setStep(3);txt.textContent=msgs[3];}
+    if(done&&shown>=100){
+      clearInterval(timer);
+      const a=await apiP;
       if(a&&a.__err){alert("분석 실패: "+a.__err);goPage("upload",1);return;}
-      S.analysis=a;renderResult();goPage("result",2);}
-  },200);
+      S.analysis=a;renderResult();goPage("result",2);
+    }
+  },120);
 }
 
 function renderResult(){
@@ -79,4 +91,4 @@ function renderResult(){
     +`</p></div>`).join("")||`<div class="timeline-item"><p>날짜 정보 부족</p></div>`;
   document.getElementById("r_miss").innerHTML=(a.missing||[]).map(m=>`<li>${_esc(m.reason)}</li>`).join("")||"<li>충분합니다.</li>";
 }
-function openReport(){ if(S.caseId)window.open("/cases/"+S.caseId+"/report.html","_blank"); }
+function openReport(){ if(S.caseId)window.open(apiUrl("/cases/"+S.caseId+"/report.html"),"_blank"); }
