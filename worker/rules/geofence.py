@@ -48,11 +48,13 @@ def cross_check(
 ) -> list[dict]:
     """같은 시간대(±window_min)에 '도착' 카톡 발화와 IN_WORKPLACE 핑이 함께 있으면 정황 일치.
 
-    반환: [{"chat_ts": datetime, "gps_ts": datetime, "match": True}]
+    반환: [{"chat_ts": datetime, "gps_ts": datetime|None, "match": bool}]
+    - match=True : 창 안에 IN_WORKPLACE 핑이 존재 → 정황 일치
+    - match=False: 창 안에 IN_WORKPLACE 핑 없음 → 정황 불일치 (도착 발화만 존재)
     교차검증은 시간 매칭 규칙이며 위법을 판단하지 않는다.
     """
     in_pings = [lg for lg in tagged_logs if not lg.get("excluded") and lg.get("status") == "IN_WORKPLACE"]
-    matches: list[dict] = []
+    results: list[dict] = []
     win = timedelta(minutes=window_min)
     for chat_ts in chat_arrivals:
         nearest = None
@@ -61,5 +63,8 @@ def cross_check(
                 if nearest is None or abs(p["ts"] - chat_ts) < abs(nearest["ts"] - chat_ts):
                     nearest = p
         if nearest is not None:
-            matches.append({"chat_ts": chat_ts, "gps_ts": nearest["ts"], "match": True})
-    return matches
+            results.append({"chat_ts": chat_ts, "gps_ts": nearest["ts"], "match": True})
+        else:
+            # 버그#6 수정: 매칭 실패 케이스도 반환해 "정황 불일치" 추적 가능하게 함
+            results.append({"chat_ts": chat_ts, "gps_ts": None, "match": False})
+    return results

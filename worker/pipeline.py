@@ -48,8 +48,13 @@ def process_case(case_id: str, ctx: dict) -> dict:
     wp = ctx.get("workplace")
     if wp and ctx.get("gps_logs"):
         tagged = geofence.tag_logs(ctx["gps_logs"], wp["lat"], wp["lng"], wp.get("radius_m", 50))
-        matches = geofence.cross_check(tagged, ctx.get("chat_arrivals", []))
-        gps_result = {"tagged_count": len(tagged), "cross_matches": len(matches)}
+        results = geofence.cross_check(tagged, ctx.get("chat_arrivals", []))
+        # 버그#6 수정 반영: cross_check는 match=False도 반환하므로 match=True만 카운트
+        gps_result = {
+            "tagged_count": len(tagged),
+            "cross_matches": sum(1 for r in results if r["match"]),
+            "cross_mismatches": sum(1 for r in results if not r["match"]),
+        }
 
     result = {
         "total_expected_wage": w.total_expected_wage,

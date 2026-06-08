@@ -5,8 +5,6 @@
 - GPS 핑 수신:    POST /cases/{case_id}/gps/ping  (지오펜스 즉시 판정)
 - 로그 조회:      GET  /cases/{case_id}/gps/logs
 - 일별 요약:      GET  /cases/{case_id}/gps/summary  (Evidence Pack용)
-
-
 """
 from __future__ import annotations
 
@@ -47,7 +45,7 @@ def _haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 
 
 # ── 헬퍼: 무결성 체인 해시 계산 ───────────────────────
-# [수정 1] SHA-256(prev_hash | ts_iso | lat | lng | status)
+# SHA-256(prev_hash | ts_iso | lat | lng | status)
 # prev_chain_hash가 없는 첫 번째 핑은 prev를 "" 으로 처리.
 # 체인이 연결되어 있으면 DB 직접 수정 시 이후 행의 해시가 전부 깨져 탐지 가능.
 
@@ -149,27 +147,27 @@ def receive_ping(
 ):
     _get_case_or_404(case_id, user, db)
 
-    # [수정 2] 서버 수신 시각과 기기 시각의 차이로 지연 업로드 탐지
+    # 서버 수신 시각과 기기 시각의 차이로 지연 업로드 탐지
     server_now = datetime.now(timezone.utc)
     # ping.ts가 timezone-naive이면 UTC로 간주
     ping_ts = ping.ts if ping.ts.tzinfo else ping.ts.replace(tzinfo=timezone.utc)
     delay_sec = abs((server_now - ping_ts).total_seconds())
     is_delayed = delay_sec > DELAYED_THRESHOLD_SEC
 
-    # Fake GPS → INVALID 기록 후 반환
+    # 버그#2 수정: mocked ping은 status=None으로 저장 (geofence.tag_logs와 일치, domain.md 준수)
     if ping.is_mocked:
         prev_hash = _get_last_chain_hash(case_id, db)
-        chain_hash = _compute_chain_hash(prev_hash, ping_ts, ping.lat, ping.lng, "INVALID")
+        chain_hash = _compute_chain_hash(prev_hash, ping_ts, ping.lat, ping.lng, None)
         log = GpsLog(
             case_id=case_id, ts=ping_ts, lat=ping.lat, lng=ping.lng,
-            is_mocked=True, status="INVALID", source=ping.source,
+            is_mocked=True, status=None, source=ping.source,
             is_delayed_upload=is_delayed,
             prev_chain_hash=prev_hash,
             chain_hash=chain_hash,
         )
         db.add(log)
         db.commit()
-        return {"stored": True, "id": log.id, "status": "INVALID",
+        return {"stored": True, "id": log.id, "status": None,
                 "reason": "mock_location_detected"}
 
     # 지오펜스 판정
@@ -182,7 +180,7 @@ def receive_ping(
         ), 1)
         status = "IN_WORKPLACE" if distance_m <= wp.radius_m else "OUTSIDE"
 
-    # [수정 1] 무결성 체인 계산 (이전 행의 hash를 이어받아 연결)
+    # 무결성 체인 계산 (이전 행의 hash를 이어받아 연결)
     prev_hash = _get_last_chain_hash(case_id, db)
     chain_hash = _compute_chain_hash(prev_hash, ping_ts, ping.lat, ping.lng, status)
 
@@ -245,9 +243,9 @@ def get_summary(
     if not logs:
         raise HTTPException(status_code=404, detail="GPS 데이터가 없습니다.")
 
-    # 날짜별 그룹핑 — [수정 3] UTC → KST(UTC+9) 변환 후 날짜 추출
+    # 날짜별 그룹핑 — UTC → KST(UTC+9) 변환 후 날짜 추출
     # 미보정 시 자정(00:00~08:59) 핑이 전날 날짜로 기록되어
-    # 급여명세서·카톡 등 타 증거와 날짜 불일치 발생.
+    # 급여명세서·카톡 등 타 증거와 날짜 불일치 발생 (버그#1 수정).
     by_date: dict[str, list] = {}
     for l in logs:
         ts_utc = l.ts if l.ts.tzinfo else l.ts.replace(tzinfo=timezone.utc)
@@ -257,12 +255,13 @@ def get_summary(
     summary = []
     for date_key in sorted(by_date.keys(), reverse=True):
         day = by_date[date_key]
+        # 버그#3 수정: IN_WORKPLACE만 명시적으로 필터 — UNKNOWN/None 핑이 세그먼트를 끊지 않음
         in_logs = [l for l in day if l.status == "IN_WORKPLACE"]
         delayed_count = sum(1 for l in day if l.is_delayed_upload)
-        # [수정 4] 체류시간: 고정 12.5분 추정 → 실제 핑 간격 합산으로 교체
-        # 방식: IN_WORKPLACE 상태인 연속 핑 쌍의 실제 시간 간격을 누적.
-        # 단, 핑 간격이 MAX_GAP_MIN(30분) 초과이면 연속으로 보지 않음
-        # (중간에 앱 종료·터널 등으로 핑이 끊긴 구간은 체류로 산입하지 않음).
+
+        # 체류시간: 실제 핑 간격 합산
+        # 핑 간격이 MAX_GAP_MIN(30분) 초과이면 연속으로 보지 않음
+        # (중간에 앱 종료·터널 등으로 핑이 끊긴 구간은 체류로 산입하지 않음)
         MAX_GAP_MIN = 30
         total_in_sec = 0.0
         for i in range(1, len(in_logs)):
@@ -274,14 +273,14 @@ def get_summary(
         estimated_hours = round(total_in_sec / 3600, 1)
 
         entry: dict = {
-            "work_date":        date_key,
-            "in_count":         len(in_logs),
-            "out_count":        len([l for l in day if l.status == "OUTSIDE"]),
-            "first_in":         in_logs[0].ts.astimezone(KST).isoformat() if in_logs else None,
-            "last_in":          in_logs[-1].ts.astimezone(KST).isoformat() if in_logs else None,
-            # 실제 핑 간격 합산 (MAX_GAP_MIN 초과 구간 제외)
-            "estimated_hours":  estimated_hours,
-            "hours_method":     "actual_intervals" if len(in_logs) > 1 else "insufficient_pings",
+            "work_date":       date_key,
+            "in_count":        len(in_logs),
+            "out_count":       len([l for l in day if l.status == "OUTSIDE"]),
+            "first_in":        in_logs[0].ts.astimezone(KST).isoformat() if in_logs else None,
+            # 버그#5 수정: last_in → last_out으로 명칭 변경 (마지막 체류 핑 = 퇴근 근사 시각)
+            "last_out":        in_logs[-1].ts.astimezone(KST).isoformat() if in_logs else None,
+            "estimated_hours": estimated_hours,
+            "hours_method":    "actual_intervals" if len(in_logs) > 1 else "insufficient_pings",
         }
         # 지연 업로드 핑이 있으면 Evidence Pack에 경고 플래그 포함
         if delayed_count:

@@ -33,6 +33,8 @@ def test_cross_check_matches_chat_arrival():
     matches = cross_check(tagged, [datetime(2026, 1, 15, 9, 0)], window_min=30)
     assert len(matches) == 1 and matches[0]["match"] is True
 
-    # 시간대가 멀면 매칭 안 됨
-    none = cross_check(tagged, [datetime(2026, 1, 15, 12, 0)], window_min=30)
-    assert none == []
+    # 버그#6 수정 반영: 시간대가 멀면 match=False로 반환됨 (빈 리스트가 아님)
+    no_match = cross_check(tagged, [datetime(2026, 1, 15, 12, 0)], window_min=30)
+    assert len(no_match) == 1
+    assert no_match[0]["match"] is False
+    assert no_match[0]["gps_ts"] is None
