@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
-from datetime import datetime, timezone
+import sys
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -21,20 +22,13 @@ from ..db import get_db
 from ..deps import get_current_user
 from ..models import Case, GpsLog, User, Workplace
 
+# 버그#4 수정: worker의 haversine_m을 직접 import해 중복 구현 제거
+_WORKER = Path(__file__).resolve().parents[3] / "worker"
+if str(_WORKER) not in sys.path:
+    sys.path.insert(0, str(_WORKER))
+from rules.geofence import haversine_m as _haversine_m  # noqa: E402
+
 router = APIRouter(prefix="/cases/{case_id}/gps", tags=["gps"])
-
-
-# ── 헬퍼: Haversine 거리 계산 ─────────────────────────
-# PostGIS ST_Distance의 임시 대체. PostgreSQL+PostGIS 전환 시 제거.
-
-def _haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-    """두 WGS-84 좌표 간 거리(미터)."""
-    R = 6_371_000
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    dp = math.radians(lat2 - lat1)
-    dl = math.radians(lng2 - lng1)
-    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 def _get_case_or_404(case_id: str, user: User, db: Session) -> Case:
@@ -107,13 +101,13 @@ def receive_ping(
 ):
     _get_case_or_404(case_id, user, db)
 
-    # Fake GPS → INVALID 기록 후 반환
+    # 버그#2 수정: mocked ping은 status=None으로 저장 (geofence.tag_logs와 일치, domain.md 준수)
     if ping.is_mocked:
         log = GpsLog(case_id=case_id, ts=ping.ts, lat=ping.lat, lng=ping.lng,
-                     is_mocked=True, status="INVALID", source=ping.source)
+                     is_mocked=True, status=None, source=ping.source)
         db.add(log)
         db.commit()
-        return {"stored": True, "id": log.id, "status": "INVALID",
+        return {"stored": True, "id": log.id, "status": None,
                 "reason": "mock_location_detected"}
 
     # 지오펜스 판정
@@ -155,12 +149,11 @@ def get_logs(
         ],
     }
 
-
-@router.get("/summary", summary="일별 GPS 요약 — Evidence Pack 생성용")
+@router.get("/summary", summary="일별 GPS 요약 — Evidence Pack 생성용 (법적 효력 강화판)")
 def get_summary(
-    case_id: str,
-    db:      Session = Depends(get_db),
-    user:    User    = Depends(get_current_user),
+        case_id: str,
+        db: Session = Depends(get_db),
+        user: User = Depends(get_current_user),
 ):
     _get_case_or_404(case_id, user, db)
 
@@ -173,27 +166,74 @@ def get_summary(
     if not logs:
         raise HTTPException(status_code=404, detail="GPS 데이터가 없습니다.")
 
-    # 날짜별 그룹핑 (KST UTC+9)
+    # 1. 타임존 보정 (UTC → KST 기준 날짜 분리)
+    # 버그#1 수정: DB에 저장된 ts가 timezone-naive인 경우 UTC로 간주하고 KST 변환
+    # timezone-aware인 경우 utcoffset을 먼저 제거한 뒤 동일하게 처리
     by_date: dict[str, list] = {}
     for l in logs:
-        kst_date = l.ts.strftime("%Y-%m-%d")  # DB가 UTC면 +9 보정 필요
-        by_date.setdefault(kst_date, []).append(l)
+        ts = l.ts
+        if ts.tzinfo is not None:
+            # aware → UTC 기준으로 normalize 후 naive로 변환
+            ts = ts.astimezone(timezone.utc).replace(tzinfo=None)
+        kst_dt = ts + timedelta(hours=9)
+        date_key = kst_dt.strftime("%Y-%m-%d")
+        by_date.setdefault(date_key, []).append(l)
 
     summary = []
     for date_key in sorted(by_date.keys(), reverse=True):
-        day = by_date[date_key]
-        in_logs = [l for l in day if l.status == "IN_WORKPLACE"]
-        summary.append({
-            "work_date":        date_key,
-            "in_count":         len(in_logs),
-            "out_count":        len([l for l in day if l.status == "OUTSIDE"]),
-            "first_in":         in_logs[0].ts.isoformat()  if in_logs else None,
-            "last_in":          in_logs[-1].ts.isoformat() if in_logs else None,
-            # 핑 간격 12.5분 기준 체류시간 추정 (참고용)
-            "estimated_hours":  round(len(in_logs) * 12.5 / 60, 1),
-        })
+        day_logs = by_date[date_key]
 
-    # SHA-256 무결성 해시
+        # 2. IN_WORKPLACE 세션(블록) 분리 알고리즘
+        # 버그#3 수정: status가 IN_WORKPLACE가 아닌 모든 값(OUTSIDE, None, UNKNOWN 등)을
+        # 명시적으로 구분해 mocked/UNKNOWN 핑이 세그먼트를 잘못 끊지 않도록 처리
+        segments = []
+        current_segment = []
+
+        for log in day_logs:
+            if log.status == "IN_WORKPLACE":
+                current_segment.append(log)
+            elif log.status == "OUTSIDE":
+                # 명확한 이탈 신호 → 현재 블록 저장 후 초기화
+                if current_segment:
+                    segments.append(current_segment)
+                    current_segment = []
+            # status가 None(mocked) 또는 UNKNOWN(근무지 미등록)인 경우:
+            # 신호로 쓰지 않고 무시 — 세그먼트를 끊지 않음
+        if current_segment:
+            segments.append(current_segment)
+
+        # 3. 유효 세션 검증 (노이즈 필터링) 및 시간 계산
+        valid_blocks = []
+        total_minutes = 0
+
+        for seg in segments:
+            # 방어 로직: 핑이 딱 1개(연속되지 않음)라면 우연히 지나간 것으로 간주해 폐기
+            if len(seg) < 2:
+                continue
+
+            seg_start = seg[0].ts
+            seg_end = seg[-1].ts
+            duration_min = (seg_end - seg_start).total_seconds() / 60
+
+            total_minutes += duration_min
+            valid_blocks.append({
+                "from_time": seg_start.isoformat(),
+                "to_time": seg_end.isoformat(),
+                "duration_hours": round(duration_min / 60, 2)
+            })
+
+        # 방어 로직: 해당 날짜에 유효한 근무 블록이 하나라도 있을 때만 요약에 추가
+        if valid_blocks:
+            summary.append({
+                "work_date": date_key,
+                "first_in": valid_blocks[0]["from_time"],
+                # 버그#5 수정: last_in → last_out으로 명칭 변경 (마지막 체류 블록의 마지막 핑 = 퇴근 근사 시각)
+                "last_out": valid_blocks[-1]["to_time"],
+                "estimated_hours": round(total_minutes / 60, 1),
+                "detailed_blocks": valid_blocks  # 점심/외출 시간이 제외된 순수 체류 구간들
+            })
+
+    # SHA-256 무결성 해시 (수집 원본 기반)
     raw = [{"id": l.id, "ts": l.ts.isoformat(), "lat": str(l.lat),
             "lng": str(l.lng), "status": l.status} for l in logs]
     data_hash = hashlib.sha256(
@@ -201,11 +241,11 @@ def get_summary(
     ).hexdigest()
 
     return {
-        "case_id":    case_id,
+        "case_id": case_id,
         "total_days": len(summary),
-        "summary":    summary,
-        "integrity":  {
-            "sha256":       data_hash,
+        "summary": summary,
+        "integrity": {
+            "sha256": data_hash,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         },
     }
