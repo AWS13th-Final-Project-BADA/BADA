@@ -1,0 +1,4 @@
+{
+  "_comment": "앱이 통신할 백엔드 주소. 같은 Wi-Fi의 PC IP로 설정하세요 (ipconfig 로 확인). 백엔드는 uvicorn app.main:app --host 0.0.0.0 --port 8000 으로 띄워야 폰에서 접속됨. 배포 후엔 https URL 로 교체.",
+  "apiBase": "http://192.168.0.10:8000"
+}

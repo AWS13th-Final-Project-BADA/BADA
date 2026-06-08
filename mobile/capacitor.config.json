@@ -1,0 +1,16 @@
+{
+  "appId": "com.bada.app",
+  "appName": "BADA",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#2563eb",
+      "showSpinner": false
+    }
+  }
+}

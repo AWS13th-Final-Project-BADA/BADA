@@ -31,7 +31,7 @@ async function doUpload(cat, file, btn, warnEl){
   const fd=new FormData(); fd.append("category",cat); fd.append("file",blob,name);
   btn.textContent="업로드 중...";
   try{
-    const res=await fetch("/cases/"+S.caseId+"/evidences/upload",{method:"POST",body:fd});
+    const res=await fetch(apiUrl("/cases/"+S.caseId+"/evidences/upload"),{method:"POST",body:fd});
     if(!res.ok) throw new Error(await res.text());
     btn.innerHTML='<i class="ti ti-check"></i>완료'; btn.classList.add("done");
   }catch(e){ btn.textContent="다시"; alert("업로드 실패: "+e.message); }

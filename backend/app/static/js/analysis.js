@@ -79,4 +79,4 @@ function renderResult(){
     +`</p></div>`).join("")||`<div class="timeline-item"><p>날짜 정보 부족</p></div>`;
   document.getElementById("r_miss").innerHTML=(a.missing||[]).map(m=>`<li>${_esc(m.reason)}</li>`).join("")||"<li>충분합니다.</li>";
 }
-function openReport(){ if(S.caseId)window.open("/cases/"+S.caseId+"/report.html","_blank"); }
+function openReport(){ if(S.caseId)window.open(apiUrl("/cases/"+S.caseId+"/report.html"),"_blank"); }

@@ -1,0 +1,24 @@
+{
+  "name": "bada-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BADA 모바일 앱 (Capacitor 래퍼) — 웹 프론트를 그대로 네이티브 앱으로",
+  "scripts": {
+    "build": "node sync-web.mjs",
+    "assets": "capacitor-assets generate --android",
+    "sync": "node sync-web.mjs && cap sync",
+    "android": "node sync-web.mjs && cap sync android && cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/geolocation": "^6.0.1",
+    "@capacitor/splash-screen": "^6.0.2",
+    "@capacitor/status-bar": "^6.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.1.2"
+  }
+}
