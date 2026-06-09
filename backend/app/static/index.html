@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" />
 <link rel="stylesheet" href="/static/css/styles.css" />
 <!-- 카카오맵 SDK: YOUR_KAKAO_JS_KEY 자리에 JavaScript 앱키 입력 -->
-<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_JS_KEY&libraries=services"></script>
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=a3adf732dc1e98415d27492c2b95b428&libraries=services"></script>
 </head>
 <body>
 <main class="phone">
@@ -27,6 +27,22 @@
 
     <!-- HOME -->
     <section id="home" class="page active">
+      <!-- GPS 온오프 토글 카드 -->
+      <div class="gps-toggle-card" id="gpsToggleCard">
+        <div class="gps-toggle-left">
+          <div class="gps-toggle-icon" id="gpsToggleIcon">
+            <i class="ti ti-map-pin"></i>
+          </div>
+          <div style="min-width:0">
+            <div class="gps-toggle-title" id="gpsToggleTitle">근무지 GPS 기록</div>
+            <div class="gps-toggle-sub" id="gpsToggleSub">사건을 먼저 만들어주세요</div>
+          </div>
+        </div>
+        <button class="gps-toggle-btn" id="gpsToggleBtn" onclick="toggleGpsTracking()" disabled>
+          <span id="gpsToggleBtnText">시작</span>
+        </button>
+      </div>
+
       <h1 class="home-title" data-k="h1">흩어진 자료를<br/>상담 가능한 사건 파일로</h1>
       <p class="home-sub" data-k="hp">계약서, 급여명세서, 입금내역, 대화 캡처를 올리면 Evidence Pack으로 정리해드려요.</p>
       <div class="steps3">

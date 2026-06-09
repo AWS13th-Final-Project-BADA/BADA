@@ -192,3 +192,28 @@ details.numbox summary::-webkit-details-marker{display:none}
   .bottom-nav{height:auto;min-height:72px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
   .toast{bottom:calc(90px + env(safe-area-inset-bottom))}
 }
+
+/* ===== GPS 온오프 토글 카드 ===== */
+.gps-toggle-card{display:flex;align-items:center;justify-content:space-between;
+  background:#fff;border:1px solid var(--line);border-radius:var(--r-md);
+  padding:14px 16px;margin-bottom:18px;gap:12px;transition:border-color .2s,background .2s}
+.gps-toggle-card.on{border-color:#10b981;background:#f0fdf7}
+.gps-toggle-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.gps-toggle-icon{width:40px;height:40px;border-radius:12px;background:var(--blue-soft);
+  display:grid;place-items:center;flex:none;transition:background .2s}
+.gps-toggle-icon i{font-size:20px;color:var(--blue);transition:color .2s}
+.gps-toggle-card.on .gps-toggle-icon{background:#dcfce7}
+.gps-toggle-card.on .gps-toggle-icon i{color:#10b981}
+.gps-toggle-title{font-size:14px;font-weight:600;letter-spacing:-.2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gps-toggle-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.gps-toggle-btn{flex:none;border:0;border-radius:999px;padding:9px 16px;
+  font-size:13px;font-weight:600;cursor:pointer;background:#11151f;color:#fff;
+  transition:background .2s,opacity .2s,transform .12s;white-space:nowrap}
+.gps-toggle-btn:active{transform:scale(.96)}
+.gps-toggle-btn:disabled{opacity:.35;cursor:default}
+.gps-toggle-btn.on{background:#10b981}
+.gps-ping-dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:#10b981;margin-right:5px;vertical-align:middle;
+  animation:gpsBlink 1.4s ease-in-out infinite}
+@keyframes gpsBlink{0%,100%{opacity:1}50%{opacity:.25}}
