@@ -25,6 +25,8 @@ infra/.terraform/
 infra/.terraform.lock.hcl
 infra/*.tfstate
 infra/*.tfstate.*
+infra/terraform.tfvars
+infra/*.auto.tfvars
 infra/crash.log
 infra/override.tf
 infra/override.tf.json
