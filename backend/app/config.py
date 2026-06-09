@@ -57,6 +57,14 @@ class Settings(BaseSettings):
     kakao_rest_api_key: str = ""
     kakao_client_secret: str = ""   # 선택(보안 강화 시)
     kakao_redirect_uri: str = "http://localhost:8000/auth/kakao/callback"
+    # 구글
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
+    # 네이버
+    naver_client_id: str = ""
+    naver_client_secret: str = ""
+    naver_redirect_uri: str = "http://localhost:8000/auth/naver/callback"
 
 
 settings = Settings()
