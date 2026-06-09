@@ -21,6 +21,7 @@
     <div class="topbar">
       <div class="brand"><img class="logo-img" src="/static/logo.svg" alt="BADA" width="30" height="30"/><strong>BADA</strong></div>
       <div class="lang" id="lang"></div>
+      <div class="auth" id="auth"></div>
     </div>
 
     <!-- HOME -->
@@ -36,6 +37,27 @@
       </div>
       <button class="primary-btn" data-k="hbtn" onclick="startNewCase()">내 증거 패키지 만들기</button>
       <p class="trust-line"><i class="ti ti-shield-check" aria-hidden="true"></i> <span data-k="notice">BADA은 법률 판단을 하지 않습니다. 업로드한 자료를 상담 준비용으로 정리합니다.</span></p>
+    </section>
+
+    <!-- LOGIN -->
+    <section id="login" class="page">
+      <div class="login-wrap">
+        <div class="login-brand">
+          <div class="login-logo"><i class="ti ti-folders" aria-hidden="true"></i></div>
+          <div class="login-brand-name">BADA</div>
+        </div>
+        <h1 class="login-title">로그인하고<br/>내 사건을 안전하게 관리하세요</h1>
+        <p class="login-sub">업로드한 자료와 분석 결과를<br/>내 계정에 안전하게 보관해요</p>
+
+        <button class="social-btn social-kakao" onclick="kakaoLogin()"><i class="ti ti-message-circle-2" aria-hidden="true"></i> 카카오로 시작하기</button>
+        <button class="social-btn social-naver" onclick="naverLogin()"><span class="naver-n">N</span> 네이버로 시작하기</button>
+        <button class="social-btn social-google" onclick="googleLogin()"><i class="ti ti-brand-google" aria-hidden="true"></i> 구글로 시작하기</button>
+
+        <div class="login-guest"><span onclick="goPage('home',0)">비회원으로 둘러보기</span></div>
+
+        <p class="login-terms">처음 로그인하면 자동으로 가입돼요.<br/>시작하면 이용약관·개인정보처리방침에 동의하게 됩니다.</p>
+        <div class="login-disclaimer"><i class="ti ti-shield-check" aria-hidden="true"></i> <span>BADA는 법률 판단을 하지 않습니다</span></div>
+      </div>
     </section>
 
     <!-- NEW CASE -->
@@ -179,6 +201,7 @@
 </main>
 
 <script src="/static/js/config.js"></script>
+<script src="/static/js/auth.js"></script>
 <script src="/static/js/i18n.js"></script>
 <script src="/static/js/core.js"></script>
 <script src="/static/js/case.js"></script>
