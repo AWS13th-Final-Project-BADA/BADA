@@ -98,12 +98,21 @@ def decode_token(token: str) -> dict[str, Any] | None:
 
 
 # ── 소셜 OAuth (공통) ──
+# 로그인 시 항상 '계정 선택/재인증'을 띄워 다른 계정으로도 로그인 가능하게.
+_FORCE_SELECT = {
+    "google": {"prompt": "select_account"},   # 구글 계정 선택 화면
+    "kakao": {"prompt": "login"},              # 카카오 재로그인(다른 계정 입력 가능)
+    "naver": {"auth_type": "reauthenticate"},  # 네이버 재인증
+}
+
+
 def authorize_url(provider: str, state: str) -> str:
     ep, c = PROVIDERS[provider], _conf(provider)
     params = {"client_id": c["client_id"], "redirect_uri": c["redirect_uri"],
               "response_type": "code", "state": state}
     if ep["scope"]:
         params["scope"] = ep["scope"]
+    params.update(_FORCE_SELECT.get(provider, {}))
     return f"{ep['authorize']}?{urlencode(params)}"
 
 
