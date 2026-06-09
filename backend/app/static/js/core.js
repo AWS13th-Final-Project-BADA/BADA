@@ -4,7 +4,7 @@ const t=k=>(T[S.lang][k]!=null?T[S.lang][k]:(T.ko[k]||k));
 const ct=k=>((CHAT_TEXT[S.lang]&&CHAT_TEXT[S.lang][k]!=null)?CHAT_TEXT[S.lang][k]:CHAT_TEXT.ko[k]);
 const won=n=>(n===null||n===undefined)?"-":Number(n).toLocaleString()+"원";
 function toast(msg){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";t.className="toast";(document.querySelector(".phone")||document.body).appendChild(t);}t.textContent=msg;t.classList.add("show");clearTimeout(window.__tT);window.__tT=setTimeout(()=>t.classList.remove("show"),3200);}
-async function api(m,p,b){let r;try{r=await fetch(apiUrl(p),{method:m,headers:{"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined});}catch(e){toast("서버에 연결할 수 없어요. 네트워크·주소를 확인하세요.");throw e;}if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json();}
+async function api(m,p,b){let r;try{const _h={"Content-Type":"application/json"};const _tk=(typeof getToken==="function")?getToken():"";if(_tk)_h["Authorization"]="Bearer "+_tk;r=await fetch(apiUrl(p),{method:m,headers:_h,body:b?JSON.stringify(b):undefined});}catch(e){toast("서버에 연결할 수 없어요. 네트워크·주소를 확인하세요.");throw e;}if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json();}
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 function applyLang(){

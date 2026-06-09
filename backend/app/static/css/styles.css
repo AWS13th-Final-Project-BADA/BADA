@@ -192,3 +192,33 @@ details.numbox summary::-webkit-details-marker{display:none}
   .bottom-nav{height:auto;min-height:72px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
   .toast{bottom:calc(90px + env(safe-area-inset-bottom))}
 }
+
+
+/* 소셜 로그인 */
+.topbar .auth{display:flex;align-items:center;gap:6px;margin-left:auto}
+.auth-btn{border:0;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.auth-kakao{background:#FEE500;color:#191600}
+.auth-out{background:#eef0f3;color:#444}
+.auth-name{font-size:12px;font-weight:600;color:#222;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+/* 로그인 페이지 */
+.auth-login{background:var(--bada-primary,#1b3bdb);color:#fff}
+.auth-avatar{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#e6efff;color:#1b3bdb;font-size:11px;margin-right:5px}
+.login-wrap{display:flex;flex-direction:column;align-items:center;padding:18px 8px 24px;text-align:center}
+.login-brand{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:22px}
+.login-logo{width:60px;height:60px;border-radius:16px;background:#e6efff;display:flex;align-items:center;justify-content:center}
+.login-logo i{font-size:30px;color:#1b3bdb}
+.login-brand-name{font-size:19px;font-weight:700;letter-spacing:.5px}
+.login-title{font-size:20px;font-weight:700;line-height:1.4;margin:0 0 8px}
+.login-sub{font-size:13px;color:#666;line-height:1.6;margin:0 0 22px}
+.social-btn{width:100%;max-width:300px;height:48px;border:0;border-radius:12px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;cursor:pointer}
+.social-btn i{font-size:20px}
+.social-kakao{background:#FEE500;color:#191600}
+.social-naver{background:#03C75A;color:#fff}
+.naver-n{font-weight:800;font-size:17px}
+.social-google{background:#fff;color:#222;border:1px solid #dadce0}
+.login-guest{margin:12px 0 20px}
+.login-guest span{font-size:13px;color:#666;text-decoration:underline;cursor:pointer}
+.login-terms{font-size:11px;color:#999;line-height:1.6;margin:0 0 14px}
+.login-disclaimer{display:flex;align-items:center;gap:5px;font-size:11px;color:#999;padding-top:12px;border-top:1px solid #eee}

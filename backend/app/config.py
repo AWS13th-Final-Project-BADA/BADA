@@ -48,6 +48,24 @@ class Settings(BaseSettings):
     cognito_client_id: str = ""
     retention_days: int = 90
 
+    # ── 소셜 로그인(JWT) ──
+    auth_jwt_enabled: bool = True   # Authorization: Bearer JWT 허용. 토큰 없으면 데모 유저 폴백.
+    jwt_secret: str = "dev-insecure-change-me"   # 운영 시 .env로 반드시 교체
+    jwt_expire_minutes: int = 60 * 24 * 7        # 7일
+    app_base_url: str = "http://localhost:8000"  # 로그인 후 프론트 리다이렉트 대상
+    # 카카오
+    kakao_rest_api_key: str = ""
+    kakao_client_secret: str = ""   # 선택(보안 강화 시)
+    kakao_redirect_uri: str = "http://localhost:8000/auth/kakao/callback"
+    # 구글
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
+    # 네이버
+    naver_client_id: str = ""
+    naver_client_secret: str = ""
+    naver_redirect_uri: str = "http://localhost:8000/auth/naver/callback"
+
 
 settings = Settings()
 
