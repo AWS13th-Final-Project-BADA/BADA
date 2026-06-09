@@ -84,6 +84,23 @@ function renderResult(){
   document.getElementById("r_gps").innerHTML=g
     ?`<p style="margin:0;font-size:14px">핑 ${g.tagged_count}건 · 카톡-근무지 교차일치 <b>${g.cross_matches}건</b> <span class="need">조작 핑 자동 배제</span></p>`
     :`<p class="small-muted" style="margin:0">GPS 데이터 없음</p>`;
+
+  // 카카오맵 GPS 핑 시각화
+  if (g && typeof renderGpsMap === 'function') {
+    const req = buildReq();
+    const wp = req.workplace;
+    const pings = (req.gps_logs || []).map(function(p) {
+      return { lat: p.lat, lng: p.lng, ts: p.ts,
+               status: p.is_mocked ? null : null }; // status는 서버 응답에서 오면 더 정확
+    });
+    if (wp && pings.length > 0) {
+      // 분석 결과에 tagged_logs가 있으면 status 사용, 없으면 입력값 그대로
+      const taggedLogs = a.tagged_gps_logs || pings;
+      setTimeout(function() {
+        renderGpsMap(wp.lat, wp.lng, wp.radius_m || 50, taggedLogs);
+      }, 200);
+    }
+  }
   document.getElementById("r_tl").innerHTML=(a.timeline||[]).map(e=>
     `<div class="timeline-item"><strong>${e.date||"-"}</strong><p>${_esc(e.text)}`
     +(e.confidence==="low"?' <span class="need">확인 필요</span>':"")
