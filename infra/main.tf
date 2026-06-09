@@ -12,6 +12,26 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+data "aws_ami" "amazon_linux_2023" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023.*-x86_64"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
 resource "aws_kms_key" "evidence" {
   description         = "${local.name_prefix} evidence encryption key"
   enable_key_rotation = true
@@ -218,6 +238,22 @@ resource "aws_security_group" "ecs" {
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-ecs-sg" })
 }
 
+resource "aws_security_group" "ssm_db_access" {
+  name        = "${local.name_prefix}-ssm-db-access-sg"
+  description = "SSM port forwarding access to private RDS"
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    description = "Outbound to VPC resources and AWS APIs"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-ssm-db-access-sg" })
+}
+
 resource "aws_security_group" "rds" {
   name        = "${local.name_prefix}-rds-sg"
   description = "RDS security group"
@@ -229,6 +265,14 @@ resource "aws_security_group" "rds" {
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.ecs.id]
+  }
+
+  ingress {
+    description     = "Postgres from SSM DB access instance"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ssm_db_access.id]
   }
 
   egress {
@@ -257,6 +301,56 @@ resource "aws_db_instance" "postgres" {
   multi_az               = false
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-postgres" })
+}
+
+resource "aws_iam_role" "ssm_db_access" {
+  name = "${local.name_prefix}-ssm-db-access-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_db_access_core" {
+  role       = aws_iam_role.ssm_db_access.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ssm_db_access" {
+  name = "${local.name_prefix}-ssm-db-access-profile"
+  role = aws_iam_role.ssm_db_access.name
+
+  tags = local.common_tags
+}
+
+resource "aws_instance" "ssm_db_access" {
+  ami                         = data.aws_ami.amazon_linux_2023.id
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.public[0].id
+  vpc_security_group_ids      = [aws_security_group.ssm_db_access.id]
+  iam_instance_profile        = aws_iam_instance_profile.ssm_db_access.name
+  associate_public_ip_address = true
+
+  metadata_options {
+    http_endpoint = "enabled"
+    http_tokens   = "required"
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-ssm-db-access"
+    Role = "ssm-db-port-forwarding"
+  })
 }
 
 resource "aws_cognito_user_pool" "main" {
