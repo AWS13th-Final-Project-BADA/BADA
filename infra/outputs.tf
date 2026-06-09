@@ -22,6 +22,14 @@ output "rds_endpoint" {
   value = aws_db_instance.postgres.address
 }
 
+output "ssm_db_access_instance_id" {
+  value = aws_instance.ssm_db_access.id
+}
+
+output "ssm_db_port_forward_command" {
+  value = "aws ssm start-session --target ${aws_instance.ssm_db_access.id} --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters '{\"host\":[\"${aws_db_instance.postgres.address}\"],\"portNumber\":[\"5432\"],\"localPortNumber\":[\"15432\"]}'"
+}
+
 output "cognito_user_pool_id" {
   value = aws_cognito_user_pool.main.id
 }
