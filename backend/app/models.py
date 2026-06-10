@@ -27,9 +27,12 @@ def _uuid() -> str:
 class User(Base):
     __tablename__ = "users"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    email: Mapped[str] = mapped_column(String(255), unique=True)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True)  # 소셜은 이메일 미동의 가능 → nullable
     name: Mapped[str | None] = mapped_column(String(100))
     preferred_lang: Mapped[str] = mapped_column(String(10), default="ko")  # ko/vi/km/ne/id/en
+    # 소셜 로그인 식별자 (kakao/google/naver + 공급자측 고유 ID)
+    provider: Mapped[str | None] = mapped_column(String(20))
+    provider_id: Mapped[str | None] = mapped_column(String(100), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
