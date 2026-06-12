@@ -54,8 +54,13 @@ function renderResult(){
   // 차이가 없으면 헤드라인을 상황에 맞게(과장 금지)
   const gap=Number(wage.suspected_unpaid||0);
   const h2=document.querySelector('#result .result-hero h2');
-  if(h2) h2.innerHTML = gap>0 ? t("r_h2") : (wage.computable ? "확인된 금액 차이는<br>없었어요" : "차액 계산에<br>자료가 더 필요해요");
-  document.getElementById("r_summary").textContent=narr.summary||"(요약을 생성하지 못했습니다)";
+  if(h2) h2.innerHTML = gap>0 ? t("r_h2") : (wage.computable ? t("r_h2_none") : t("r_h2_nodata"));
+  document.getElementById("r_summary").textContent=narr.summary||t("no_summary");
+  // summary가 면책 고지(한국어)를 포함하면 translations의 번역된 disclaimer로 교체
+  const _discTr=(a.translations||[]).find(p=>p.related_issue==="disclaimer");
+  if(_discTr && narr.summary && narr.summary.includes("법률자문")){
+    document.getElementById("r_summary").textContent=_discTr.translated_text;
+  }
   document.getElementById("r_cmp_tbl").innerHTML=
     `<tr><td>${t("cmp_expected")}</td><td>${won(wage.expected)}</td></tr>`+
     `<tr><td>${t("cmp_received")}</td><td>${won(wage.received)}</td></tr>`+
@@ -63,27 +68,27 @@ function renderResult(){
   // 검증 포인트
   const cmp=a.comparisons||[];
   document.getElementById("r_cmp_pts").innerHTML=cmp.length?cmp.map(c=>{
-    const st=c.status==="match"?'<span class="tag" style="background:#e8fbf3;color:#047857">일치</span>'
-      :c.status==="mismatch"?'<span class="tag" style="background:#fef2f2;color:#b91c1c">차이</span>'
-      :'<span class="tag">자료 부족</span>';
+    const st=c.status==="match"?`<span class="tag" style="background:#e8fbf3;color:#047857">${t("cmp_match")}</span>`
+      :c.status==="mismatch"?`<span class="tag" style="background:#fef2f2;color:#b91c1c">${t("cmp_mismatch")}</span>`
+      :`<span class="tag">${t("cmp_nodata")}</span>`;
     const vals=Object.entries(c.values||{}).map(([k,v])=>k+" "+(typeof v==="number"?Number(v).toLocaleString():(v==null?"-":v))).join(" · ");
     return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-size:13px;font-weight:700">${_esc(c.label)} ${st}</div><div class="small-muted">${_esc(vals)}</div>${c.note?`<div class="need">${_esc(c.note)}</div>`:""}</div>`;
-  }).join(""):'<p class="small-muted" style="margin:0">대조할 자료가 부족해요. 명세서·통장·계약서를 함께 올리면 자동으로 비교돼요.</p>';
+  }).join(""):`<p class="small-muted" style="margin:0">${t("cmp_empty")}</p>`;
   // 법정 기준 점검
   const lf=legal.findings||[], mw=legal.min_wage||{};
   document.getElementById("r_legal").innerHTML=lf.length?lf.map(f=>{
     const col=f.severity==="high"?"#b91c1c":"#b45309";
     const ic=(f.type==="minimum_wage"||f.type==="minimum_wage_paid")?'<i class="ti ti-alert-triangle"></i>':(f.type==="premium_pay"?'<i class="ti ti-clock"></i>':'<i class="ti ti-receipt"></i>');
     return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-size:13px;font-weight:700;color:${col}">${ic} ${_esc(f.message)}</div></div>`;
-  }).join(""):`<p class="small-muted" style="margin:0">최저임금 미달·가산수당·과다공제로 확인된 항목은 없어요. (${mw.year||""}년 최저임금 ${won(mw.hourly)} 기준)</p>`;
+  }).join(""):`<p class="small-muted" style="margin:0">${t("legal_ok")} (${mw.year||""} ${won(mw.hourly)})</p>`;
   document.getElementById("r_ded_tbl").innerHTML=(a.deductions||[]).map(d=>{
     const srcs=(d.sources||[]).length?` · ${(d.sources||[]).join("/")}`:"";
     return `<tr><td>${_esc(d.name)} <span class="need">${_esc(d.category)}${srcs} · ${t("need")}</span></td><td>${won(d.amount)}</td></tr>`;
   }).join("")||`<tr><td>-</td><td>-</td></tr>`;
   const g=a.gps;
   document.getElementById("r_gps").innerHTML=g
-    ?`<p style="margin:0;font-size:14px">핑 ${g.tagged_count}건 · 카톡-근무지 교차일치 <b>${g.cross_matches}건</b> <span class="need">조작 핑 자동 배제</span></p>`
-    :`<p class="small-muted" style="margin:0">GPS 데이터 없음</p>`;
+    ?`<p style="margin:0;font-size:14px">${t("gps_pings")} ${g.tagged_count} · ${t("gps_cross")} <b>${g.cross_matches}</b> <span class="need">${t("gps_mocked_excluded")}</span></p>`
+    :`<p class="small-muted" style="margin:0">${t("gps_none")}</p>`;
 
   // 카카오맵 GPS 핑 시각화
   if (g && typeof renderGpsMap === 'function') {
@@ -103,9 +108,17 @@ function renderResult(){
   }
   document.getElementById("r_tl").innerHTML=(a.timeline||[]).map(e=>
     `<div class="timeline-item"><strong>${e.date||"-"}</strong><p>${_esc(e.text)}`
-    +(e.confidence==="low"?' <span class="need">확인 필요</span>':"")
-    +(e.source_evidence_id?' <span class="small-muted">· 출처 첨부</span>':"")
-    +`</p></div>`).join("")||`<div class="timeline-item"><p>날짜 정보 부족</p></div>`;
-  document.getElementById("r_miss").innerHTML=(a.missing||[]).map(m=>`<li>${_esc(m.reason)}</li>`).join("")||"<li>충분합니다.</li>";
+    +(e.confidence==="low"?` <span class="need">${t("need")}</span>`:"")
+    +(e.source_evidence_id?` <span class="small-muted">· ${t("src_attached")}</span>`:"")
+    +`</p></div>`).join("")||`<div class="timeline-item"><p>${t("no_date_info")}</p></div>`;
+  document.getElementById("r_miss").innerHTML=(a.missing||[]).map(m=>{
+    // translations에서 번역된 누락 안내 찾기
+    const tp=(a.translations||[]).find(p=>p.related_issue==="missing_evidence"&&p.source_text&&p.source_text.includes(m.item));
+    const text=tp?tp.translated_text:_esc(m.reason);
+    return `<li>${text}</li>`;
+  }).join("")||`<li>${t("enough")}</li>`;
+  // 면책 고지: translations의 disclaimer 번역으로 갱신 (applyLang 이후에도 유지)
+  const _dp=(a.translations||[]).find(p=>p.related_issue==="disclaimer");
+  if(_dp){const _el=document.querySelector('[data-k="r_disc"]');if(_el)_el.textContent=_dp.translated_text;}
 }
-function openReport(){ if(S.caseId)window.open(apiUrl("/cases/"+S.caseId+"/report.html"),"_blank"); }
+function openReport(){ if(S.caseId)window.open(apiUrl("/cases/"+S.caseId+"/report.html?lang="+S.lang),"_blank"); }

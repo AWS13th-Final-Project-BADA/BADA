@@ -66,13 +66,13 @@
     <section id="newcase" class="page">
       <div class="section-title" style="margin-top:4px"><h2 data-k="nc_title">사건 정보</h2><span>Step 0</span></div>
       <div class="card">
-        <label data-k="f_wp">사업장명</label><input id="f_wn" placeholder="○○제조"/>
+        <label data-k="f_wp">사업장명</label><input id="f_wn" data-ph="ph_workplace"/>
         <div class="frow">
           <div><label data-k="f_start">근무 시작일</label><input id="f_ws" type="date"/></div>
           <div><label data-k="f_end">근무 종료일</label><input id="f_we" type="date"/></div>
         </div>
         <div class="frow">
-          <div><label data-k="f_wage">약속 시급(원)</label><input id="f_hw" type="number" placeholder="계약 시급 (모르면 비워두세요)"/></div>
+          <div><label data-k="f_wage">약속 시급(원)</label><input id="f_hw" type="number" data-ph="ph_hourly_wage"/></div>
           <div><label data-k="f_weekly">주당 근무시간</label><input id="f_wh" type="number" value="40"/></div>
         </div>
         <label data-k="f_issue">문제 유형</label><div class="chips" id="f_iss"></div>
@@ -96,15 +96,15 @@
       <details class="numbox">
         <summary data-k="num_title">분석에 쓸 값 (AI 추출값 자동 채움 · 수정 가능)</summary>
         <button type="button" class="upload-chip" id="demoBtn" onclick="fillDemo()" style="margin:6px 0 4px"><i class="ti ti-wand"></i> <span data-k="num_demo">데모 데이터 채우기</span></button>
-        <label>약속 시급(원) · 손글씨면 꼭 확인</label><input id="n_hw" type="number" placeholder="10350"/>
-        <label data-k="num_hours">근무시간 (콤마 구분)</label><input id="n_hrs" placeholder="174,168,180,176"/>
-        <label data-k="num_dep">입금 내역 (한 줄에 '날짜, 금액')</label><textarea id="n_dep" placeholder="2026-01-15, 1500000"></textarea>
-        <label data-k="num_ded">공제 항목 (한 줄에 '이름, 금액')</label><textarea id="n_ded" placeholder="기숙사비, 250000"></textarea>
+        <label data-k="num_hw_label">약속 시급(원) · 손글씨면 꼭 확인</label><input id="n_hw" type="number" data-ph="ph_hourly_num"/>
+        <label data-k="num_hours">근무시간 (콤마 구분)</label><input id="n_hrs" data-ph="ph_hours"/>
+        <label data-k="num_dep">입금 내역 (한 줄에 '날짜, 금액')</label><textarea id="n_dep" data-ph="ph_deposits"></textarea>
+        <label data-k="num_ded">공제 항목 (한 줄에 '이름, 금액')</label><textarea id="n_ded" data-ph="ph_deductions"></textarea>
         <label style="margin-top:8px"><input type="checkbox" id="n_gchk" style="width:auto"/> <span data-k="num_gps">GPS 정황 포함</span></label>
         <div id="gbox" style="display:none">
           <label data-k="num_wp">근무지 (lat,lng,반경m)</label>
           <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
-            <input id="n_wp" placeholder="37.5000,127.0000,50" style="flex:1"/>
+            <input id="n_wp" data-ph="ph_workplace_coord" style="flex:1"/>
             <button type="button" class="upload-chip" id="btnMyLoc" onclick="setWorkplaceByGeo()" title="현재 위치 사용">
               <i class="ti ti-current-location"></i>
             </button>
@@ -114,8 +114,8 @@
             <span style="color:var(--muted);font-size:12px">지도를 클릭하면 근무지로 설정됩니다</span>
           </div>
           <p class="small-muted" style="margin-top:4px">📍 지도를 클릭하거나 현재 위치 버튼을 누르면 좌표가 자동 입력됩니다.</p>
-          <label data-k="num_png">GPS 핑 (ts,lat,lng,mocked)</label><textarea id="n_png" placeholder="2026-01-15T09:05:00, 37.50003, 127.00003, false"></textarea>
-          <label data-k="num_arr">도착 카톡 시각 (ISO)</label><textarea id="n_arr" placeholder="2026-01-15T09:00:00"></textarea>
+          <label data-k="num_png">GPS 핑 (ts,lat,lng,mocked)</label><textarea id="n_png" data-ph="ph_gps_pings"></textarea>
+          <label data-k="num_arr">도착 카톡 시각 (ISO)</label><textarea id="n_arr" data-ph="ph_arrivals"></textarea>
         </div>
       </details>
       <button class="primary-btn" data-k="up_run" onclick="startAnalysis()">Evidence Pack 분석 시작</button>
@@ -148,7 +148,7 @@
         <p data-k="r_disc">이 금액은 체불 확정액이 아니라, 고용노동부 또는 전문가 상담에서 확인이 필요한 차이입니다.</p>
       </div>
       <div class="card">
-        <div class="section-title" style="margin:0 0 6px"><h2><i class="ti ti-clipboard-text" aria-hidden="true"></i> 사건 요약 <span class="muted" style="font-weight:400;font-size:12px">(AI 정리 · 확인 필요)</span></h2></div>
+        <div class="section-title" style="margin:0 0 6px"><h2><i class="ti ti-clipboard-text" aria-hidden="true"></i> <span data-k="r_summary_title">사건 요약</span> <span class="muted" style="font-weight:400;font-size:12px">(<span data-k="r_ai_note">AI 정리 · 확인 필요</span>)</span></h2></div>
         <p id="r_summary" style="font-size:14px;line-height:1.65;margin:0"></p>
       </div>
       <div class="card">
@@ -156,11 +156,11 @@
         <table class="mini-table" id="r_cmp_tbl"></table>
       </div>
       <div class="card">
-        <div class="section-title" style="margin:0 0 6px"><h2><i class="ti ti-search" aria-hidden="true"></i> 증거 대조 (검증 포인트)</h2></div>
+        <div class="section-title" style="margin:0 0 6px"><h2><i class="ti ti-search" aria-hidden="true"></i> <span data-k="r_compare">증거 대조 (검증 포인트)</span></h2></div>
         <div id="r_cmp_pts"></div>
       </div>
       <div class="card">
-        <div class="section-title" style="margin:0 0 6px"><h2><i class="ti ti-scale" aria-hidden="true"></i> 법정 기준 점검 <span class="muted" style="font-weight:400;font-size:12px">(확인 필요)</span></h2></div>
+        <div class="section-title" style="margin:0 0 6px"><h2><i class="ti ti-scale" aria-hidden="true"></i> <span data-k="r_legal">법정 기준 점검</span> <span class="muted" style="font-weight:400;font-size:12px">(<span data-k="r_ai_note">AI 정리 · 확인 필요</span>)</span></h2></div>
         <div id="r_legal"></div>
       </div>
       <div class="card">

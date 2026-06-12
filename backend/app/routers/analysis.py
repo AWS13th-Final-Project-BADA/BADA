@@ -186,9 +186,20 @@ def report(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_db))
                 if gps else "<p class='muted'>GPS 데이터 없음</p>")
 
     computable = wage.get("computable")
-    gap_line = (f"<p class='big'>미지급 의심 금액: {_won(wage.get('suspected_unpaid'))} <span class='muted'>(확정 아님 · 확인 필요)</span></p>"
+
+    # 리포트 UI 텍스트 다국어 dict
+    ui = {
+        "ko": {"title":"임금체불 상담 준비 — Evidence Pack","sub_suffix":"상담 준비용(법률자문 아님)","h1":"사건 개요","h2":"핵심 쟁점 요약","h3":"금액 분석","h4":"증거 대조 (검증 포인트)","h5":"법정 기준 점검","h6":"공제 항목","h7":"사건 타임라인","h8":"원문 — 번역 대조","h9":"GPS 정황","h10":"보강하면 좋은 자료","workplace":"사업장","employer":"사업주","period":"근무 기간","hourly":"약속 시급","issues":"문제 유형","ongoing":"진행중/미상","expected":"기대 급여","received":"실수령(입금)","gap":"미지급 의심 금액","gap_none":"입금·근무시간 자료가 부족하여 미지급 금액은 계산하지 않았습니다(확인 필요).","not_confirmed":"확정 아님 · 확인 필요","cmp_th":["비교 항목","값","판정","비고"],"cmp_empty":"대조할 자료가 부족합니다.","ded_th":["항목","분류","금액","출처","확인 필요"],"ded_total":"공제 합계","tl_empty":"날짜 정보 부족","tr_th":["원문(한국어)","번역","증거 유형"],"gps_none":"GPS 데이터 없음","miss_ok":"현재 자료로 충분합니다.","legal_ok":"최저임금 미달·가산수당·과다공제로 확인된 항목이 없습니다.","print":"PDF로 저장 / 인쇄","sum_empty":"(요약 없음)","need":"확인 필요","src":"출처 첨부","sev":{"high":"중요","medium":"확인","low":"참고"},"cmp_st":{"match":"일치","mismatch":"차이","missing":"자료 부족"}},
+        "en": {"title":"Wage Consultation Prep — Evidence Pack","sub_suffix":"For consultation prep (not legal advice)","h1":"Case Overview","h2":"Key Issues Summary","h3":"Wage Analysis","h4":"Evidence Comparison (Checkpoints)","h5":"Legal Standards Check","h6":"Deductions","h7":"Case Timeline","h8":"Source — Translation Table","h9":"GPS Context","h10":"Recommended Additional Documents","workplace":"Workplace","employer":"Employer","period":"Work Period","hourly":"Agreed Hourly Wage","issues":"Issue Types","ongoing":"ongoing/unknown","expected":"Expected Pay","received":"Actual Received","gap":"Suspected Unpaid Amount","gap_none":"Insufficient deposit/hours data to calculate unpaid amount (needs review).","not_confirmed":"Not confirmed · needs review","cmp_th":["Item","Values","Status","Note"],"cmp_empty":"Not enough data to compare.","ded_th":["Item","Category","Amount","Source","Review Needed"],"ded_total":"Deduction Total","tl_empty":"Date info insufficient","tr_th":["Original (Korean)","Translation","Evidence Type"],"gps_none":"No GPS data","miss_ok":"Current documents are sufficient.","legal_ok":"No issues found for minimum wage, premium pay, or excessive deductions.","print":"Save as PDF / Print","sum_empty":"(No summary)","need":"needs review","src":"source attached","sev":{"high":"Critical","medium":"Review","low":"Note"},"cmp_st":{"match":"Match","mismatch":"Mismatch","missing":"Insufficient"}},
+        "vi": {"title":"Chuẩn bị tư vấn lương — Evidence Pack","sub_suffix":"Chuẩn bị tư vấn (không phải tư vấn pháp lý)","h1":"Tổng quan vụ việc","h2":"Tóm tắt vấn đề chính","h3":"Phân tích lương","h4":"Đối chiếu bằng chứng","h5":"Kiểm tra tiêu chuẩn pháp lý","h6":"Khoản trừ","h7":"Dòng thời gian","h8":"Bảng đối chiếu nguyên bản — dịch","h9":"GPS","h10":"Tài liệu nên bổ sung","workplace":"Nơi làm việc","employer":"Chủ lao động","period":"Thời gian làm việc","hourly":"Lương giờ thỏa thuận","issues":"Loại vấn đề","ongoing":"đang làm/không rõ","expected":"Lương dự kiến","received":"Thực nhận","gap":"Số tiền nghi chưa trả","gap_none":"Thiếu dữ liệu để tính số tiền chưa trả (cần kiểm tra).","not_confirmed":"Chưa xác nhận · cần kiểm tra","cmp_th":["Hạng mục","Giá trị","Trạng thái","Ghi chú"],"cmp_empty":"Không đủ dữ liệu để so sánh.","ded_th":["Khoản","Phân loại","Số tiền","Nguồn","Cần kiểm tra"],"ded_total":"Tổng trừ","tl_empty":"Thiếu thông tin ngày","tr_th":["Nguyên bản","Dịch","Loại bằng chứng"],"gps_none":"Không có dữ liệu GPS","miss_ok":"Tài liệu hiện tại đủ.","legal_ok":"Không phát hiện vấn đề.","print":"Lưu PDF / In","sum_empty":"(Không có tóm tắt)","need":"cần kiểm tra","src":"có nguồn","sev":{"high":"Quan trọng","medium":"Kiểm tra","low":"Tham khảo"},"cmp_st":{"match":"Khớp","mismatch":"Chênh lệch","missing":"Thiếu"}},
+        "ja": {"title":"賃金相談準備 — Evidence Pack","sub_suffix":"相談準備用（法律相談ではありません）","h1":"事件概要","h2":"主要争点まとめ","h3":"金額分析","h4":"証拠対照（検証ポイント）","h5":"法定基準チェック","h6":"控除項目","h7":"タイムライン","h8":"原文 — 翻訳対照","h9":"GPS状況","h10":"追加で準備すべき資料","workplace":"職場","employer":"雇用主","period":"勤務期間","hourly":"約束時給","issues":"問題の種類","ongoing":"勤務中/不明","expected":"期待賃金","received":"実受取額","gap":"未払い疑い金額","gap_none":"入金・勤務時間の資料不足で未払い額を計算できませんでした。","not_confirmed":"確定ではない・確認必要","cmp_th":["比較項目","値","判定","備考"],"cmp_empty":"比較する資料が不足しています。","ded_th":["項目","分類","金額","出典","確認必要"],"ded_total":"控除合計","tl_empty":"日付情報不足","tr_th":["原文","翻訳","証拠種類"],"gps_none":"GPSデータなし","miss_ok":"現在の資料で十分です。","legal_ok":"確認された項目はありません。","print":"PDF保存 / 印刷","sum_empty":"(要約なし)","need":"確認必要","src":"出典添付","sev":{"high":"重要","medium":"確認","low":"参考"},"cmp_st":{"match":"一致","mismatch":"差異","missing":"不足"}},
+        "th": {"title":"เตรียมปรึกษาเรื่องค่าจ้าง — Evidence Pack","sub_suffix":"เตรียมปรึกษา (ไม่ใช่คำปรึกษาทางกฎหมาย)","h1":"ภาพรวมคดี","h2":"สรุปประเด็นสำคัญ","h3":"วิเคราะห์ค่าจ้าง","h4":"เปรียบเทียบหลักฐาน","h5":"ตรวจสอบมาตรฐานกฎหมาย","h6":"รายการหักเงิน","h7":"ลำดับเหตุการณ์","h8":"ตารางต้นฉบับ — แปล","h9":"GPS","h10":"เอกสารที่ควรเตรียมเพิ่ม","workplace":"สถานที่ทำงาน","employer":"นายจ้าง","period":"ระยะเวลาทำงาน","hourly":"ค่าจ้าง/ชม.","issues":"ประเภทปัญหา","ongoing":"ดำเนินการ/ไม่ทราบ","expected":"ค่าจ้างที่คาดหวัง","received":"ได้รับจริง","gap":"จำนวนเงินที่สงสัยค้างจ่าย","gap_none":"ข้อมูลไม่เพียงพอในการคำนวณ","not_confirmed":"ยังไม่ยืนยัน · ต้องตรวจสอบ","cmp_th":["รายการ","ค่า","สถานะ","หมายเหตุ"],"cmp_empty":"ข้อมูลไม่เพียงพอ","ded_th":["รายการ","ประเภท","จำนวน","แหล่งที่มา","ต้องตรวจสอบ"],"ded_total":"รวมหัก","tl_empty":"ข้อมูลวันที่ไม่เพียงพอ","tr_th":["ต้นฉบับ","แปล","ประเภท"],"gps_none":"ไม่มีข้อมูล GPS","miss_ok":"เอกสารปัจจุบันเพียงพอ","legal_ok":"ไม่พบปัญหา","print":"บันทึก PDF / พิมพ์","sum_empty":"(ไม่มีสรุป)","need":"ต้องตรวจสอบ","src":"แนบแหล่งที่มา","sev":{"high":"สำคัญ","medium":"ตรวจสอบ","low":"หมายเหตุ"},"cmp_st":{"match":"ตรงกัน","mismatch":"ไม่ตรง","missing":"ข้อมูลไม่พอ"}},
+    }
+    t = ui.get(lang, ui.get("en", ui["ko"]))
+
+    gap_line = (f"<p class='big'>{t['gap']}: {_won(wage.get('suspected_unpaid'))} <span class='muted'>({t['not_confirmed']})</span></p>"
                 if computable else
-                "<p class='muted'>입금·근무시간 자료가 부족하여 미지급 금액은 계산하지 않았습니다(확인 필요).</p>")
+                f"<p class='muted'>{t['gap_none']}</p>")
 
     html = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
 <title>BADA Evidence Pack — {c.get('workplace') or ''}</title>
@@ -209,55 +220,55 @@ def report(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_db))
  .foot{{margin-top:30px;color:#9ca3af;font-size:11px;border-top:1px solid #e5e7eb;padding-top:10px}}
  @media print{{button{{display:none}}}}
 </style></head><body>
-<button onclick="window.print()" style="float:right;padding:8px 14px;cursor:pointer">PDF로 저장 / 인쇄</button>
-<h1>임금체불 상담 준비 — Evidence Pack</h1>
-<div class="sub">{c.get('workplace') or '사업장 미상'} · 작성일 {meta.get('generated_at','')[:10]} · 상담 준비용(법률자문 아님)</div>
+<button onclick="window.print()" style="float:right;padding:8px 14px;cursor:pointer">{t['print']}</button>
+<h1>{t['title']}</h1>
+<div class="sub">{c.get('workplace') or '-'} · {meta.get('generated_at','')[:10]} · {t['sub_suffix']}</div>
 <div class="disc">{tr(narrative.get('disclaimer',''))}</div>
 
-<h2>1. 사건 개요</h2>
+<h2>1. {t['h1']}</h2>
 <dl class="kv">
- <dt>사업장</dt><dd>{c.get('workplace') or '-'}</dd>
- <dt>사업주</dt><dd>{c.get('employer') or '-'}</dd>
- <dt>근무 기간</dt><dd>{period.get('start') or '-'} ~ {period.get('end') or '진행중/미상'}</dd>
- <dt>약속 시급</dt><dd>{_won(wage.get('agreed_hourly'))}</dd>
- <dt>문제 유형</dt><dd>{', '.join(c.get('issue_types') or []) or '-'}</dd>
+ <dt>{t['workplace']}</dt><dd>{c.get('workplace') or '-'}</dd>
+ <dt>{t['employer']}</dt><dd>{c.get('employer') or '-'}</dd>
+ <dt>{t['period']}</dt><dd>{period.get('start') or '-'} ~ {period.get('end') or t['ongoing']}</dd>
+ <dt>{t['hourly']}</dt><dd>{_won(wage.get('agreed_hourly'))}</dd>
+ <dt>{t['issues']}</dt><dd>{', '.join(c.get('issue_types') or []) or '-'}</dd>
 </dl>
 
-<h2>2. 핵심 쟁점 요약 <span class="muted" style="font-weight:400;font-size:12px">(자동 정리 · 확인 필요)</span></h2>
-<div class="sum">{tr(narrative.get('summary') or '(요약 없음)')}</div>
+<h2>2. {t['h2']} <span class="muted" style="font-weight:400;font-size:12px">({t['need']})</span></h2>
+<div class="sum">{tr(narrative.get('summary') or t['sum_empty'])}</div>
 
-<h2>3. 금액 분석</h2>
+<h2>3. {t['h3']}</h2>
 {gap_line}
 <dl class="kv">
- <dt>기대 급여</dt><dd>{_won(wage.get('expected'))} <span class="muted">({wage.get('basis','')})</span></dd>
- <dt>실수령(입금)</dt><dd>{_won(wage.get('received'))}</dd>
+ <dt>{t['expected']}</dt><dd>{_won(wage.get('expected'))} <span class="muted">({wage.get('basis','')})</span></dd>
+ <dt>{t['received']}</dt><dd>{_won(wage.get('received'))}</dd>
 </dl>
 {"".join(f'<p class="muted" style="font-size:12px">· {tr(n)}</p>' for n in wage.get('notes', []))}
 
-<h2>4. 증거 대조 (검증 포인트)</h2>
-<table><tr><th>비교 항목</th><th>값</th><th>판정</th><th>비고</th></tr>
-{issues or '<tr><td colspan=4 class="muted">대조할 자료가 부족합니다.</td></tr>'}</table>
+<h2>4. {t['h4']}</h2>
+<table><tr><th>{t['cmp_th'][0]}</th><th>{t['cmp_th'][1]}</th><th>{t['cmp_th'][2]}</th><th>{t['cmp_th'][3]}</th></tr>
+{issues or f'<tr><td colspan=4 class="muted">{t["cmp_empty"]}</td></tr>'}</table>
 
-<h2>5. 법정 기준 점검 ({mw.get('year','')}년 최저임금 {_won(mw.get('hourly'))} 기준)</h2>
-<ul>{findings or '<li class="muted">최저임금 미달·가산수당·과다공제로 확인된 항목이 없습니다.</li>'}</ul>
+<h2>5. {t['h5']} ({mw.get('year','')} {_won(mw.get('hourly'))})</h2>
+<ul>{findings or f'<li class="muted">{t["legal_ok"]}</li>'}</ul>
 
-<h2>6. 공제 항목</h2>
-<table><tr><th>항목</th><th>분류</th><th>금액</th><th>출처</th><th>확인 필요</th></tr>
+<h2>6. {t['h6']}</h2>
+<table><tr><th>{t['ded_th'][0]}</th><th>{t['ded_th'][1]}</th><th>{t['ded_th'][2]}</th><th>{t['ded_th'][3]}</th><th>{t['ded_th'][4]}</th></tr>
 {deds or '<tr><td colspan=5 class="muted">-</td></tr>'}</table>
-<p style="text-align:right;font-size:13px">공제 합계: <b>{ded_total:,}원</b></p>
+<p style="text-align:right;font-size:13px">{t['ded_total']}: <b>{ded_total:,}원</b></p>
 
-<h2>7. 사건 타임라인</h2>
-<ul>{tl or '<li class="muted">날짜 정보 부족</li>'}</ul>
+<h2>7. {t['h7']}</h2>
+<ul>{tl or f'<li class="muted">{t["tl_empty"]}</li>'}</ul>
 
-<h2>8. 원문 — 번역 대조</h2>
-<table><tr><th>원문(한국어)</th><th>번역</th><th>증거 유형</th></tr>
+<h2>8. {t['h8']}</h2>
+<table><tr><th>{t['tr_th'][0]}</th><th>{t['tr_th'][1]}</th><th>{t['tr_th'][2]}</th></tr>
 {trs or '<tr><td colspan=3 class="muted">-</td></tr>'}</table>
 
-<h2>9. GPS 정황</h2>
+<h2>9. {t['h9']}</h2>
 {gps_html}
 
-<h2>10. 보강하면 좋은 자료</h2>
-<ul>{miss or '<li>현재 자료로 충분합니다.</li>'}</ul>
+<h2>10. {t['h10']}</h2>
+<ul>{miss or f'<li>{t["miss_ok"]}</li>'}</ul>
 
 <div class="foot">BADA · schema {meta.get('schema_version','')} · 언어 {meta.get('lang','')} · 본 문서는 상담 준비용이며 법적 효력을 갖지 않습니다.</div>
 </body></html>"""
