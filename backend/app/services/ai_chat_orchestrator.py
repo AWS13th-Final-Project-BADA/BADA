@@ -9,15 +9,18 @@ from ..config import settings
 from .case_context_service import load_case_context
 from .guardrail_service import apply_output_guardrail, build_disclaimer
 from .intent_classifier import classify_intent
+from .language_service import resolve_chat_language
 from .legal_risk_classifier import classify_legal_risk
 from .llm_service import generate_llm_chat_answer
 from .mock_llm_service import generate_chat_answer, generate_legal_judgment_fallback
 from .rag_retriever import RetrievedChunk, format_rag_context, retrieve_rag_context
+from .terminology_service import annotate_terms_for_language
 
 logger = logging.getLogger(__name__)
 
 
 def run_chat(payload: Any, db: Session | None = None) -> dict[str, Any]:
+    response_language = resolve_chat_language(getattr(payload, "language", None), payload.message)
     intent = classify_intent(payload.message)
     risk_level, _ = classify_legal_risk(payload.message)
     case_context = load_case_context(payload.case_id)
@@ -25,7 +28,7 @@ def run_chat(payload: Any, db: Session | None = None) -> dict[str, Any]:
     rag_chunks: list[RetrievedChunk] = []
 
     if risk_level == "blocked":
-        answer, next_actions = generate_legal_judgment_fallback(case_context)
+        answer, next_actions = generate_legal_judgment_fallback(case_context, response_language)
         guardrail_result = "passed"
         fallback_used = True
         ai_provider = "blocked_fallback"
@@ -34,7 +37,7 @@ def run_chat(payload: Any, db: Session | None = None) -> dict[str, Any]:
             db=db,
             question=payload.message,
             intent=intent,
-            language=payload.language,
+            language=response_language,
         )
         answer, next_actions, ai_provider = _generate_answer(
             intent=intent,
@@ -42,14 +45,20 @@ def run_chat(payload: Any, db: Session | None = None) -> dict[str, Any]:
             case_context=case_context,
             rag_chunks=rag_chunks,
             message=payload.message,
-            language=payload.language,
+            language=response_language,
         )
-        answer, guardrail_result, fallback_used = apply_output_guardrail(answer)
+        answer, guardrail_result, fallback_used = apply_output_guardrail(answer, response_language)
 
         if guardrail_result == "failed":
-            answer, next_actions = generate_legal_judgment_fallback(case_context)
+            answer, next_actions = generate_legal_judgment_fallback(case_context, response_language)
             fallback_used = True
             ai_provider = f"{ai_provider}_guardrail_fallback"
+
+    answer = annotate_terms_for_language(answer, response_language)
+    next_actions = [
+        annotate_terms_for_language(action, response_language)
+        for action in next_actions
+    ]
 
     return {
         "answer": answer,
@@ -60,9 +69,9 @@ def run_chat(payload: Any, db: Session | None = None) -> dict[str, Any]:
         "used_rag": bool(rag_chunks),
         "guardrail_result": guardrail_result,
         "fallback_used": fallback_used,
-        "sources": _dedupe_sources(rag_chunks),
+        "sources": _dedupe_sources(rag_chunks, response_language),
         "next_actions": next_actions,
-        "disclaimer": build_disclaimer(),
+        "disclaimer": build_disclaimer(response_language),
     }
 
 
@@ -92,7 +101,7 @@ def _generate_answer(
             )
             return answer, next_actions, "bedrock"
         except Exception as exc:
-            logger.warning("AI chat LLM generation failed; falling back to mock: %s", exc)
+            logger.exception("AI chat LLM generation failed; falling back to mock: %s", exc)
             answer, next_actions = generate_chat_answer(intent, case_context, message, language)
             return answer, next_actions, "bedrock_fallback"
 
@@ -101,7 +110,7 @@ def _generate_answer(
     return answer, next_actions, "mock"
 
 
-def _dedupe_sources(chunks: list[RetrievedChunk]) -> list[dict[str, str | None]]:
+def _dedupe_sources(chunks: list[RetrievedChunk], language: str = "ko") -> list[dict[str, str | None]]:
     sources: list[dict[str, str | None]] = []
     seen: set[tuple[str, str | None]] = set()
     for chunk in chunks:
@@ -109,5 +118,9 @@ def _dedupe_sources(chunks: list[RetrievedChunk]) -> list[dict[str, str | None]]
         if key in seen:
             continue
         seen.add(key)
-        sources.append(chunk.to_source())
+        source = chunk.to_source()
+        source["title"] = annotate_terms_for_language(source["title"], language)
+        source["source_org"] = annotate_terms_for_language(source["source_org"], language)
+        source["section"] = annotate_terms_for_language(source["section"], language)
+        sources.append(source)
     return sources

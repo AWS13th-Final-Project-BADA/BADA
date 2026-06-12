@@ -15,6 +15,21 @@ from app.services.embedding_service import embed_text  # noqa: E402
 SEED_DIR = ROOT / "app" / "data" / "rag_seed"
 
 
+def _load_documents(path: Path) -> list[dict]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict):
+        return payload.get("documents", [])
+    return payload
+
+
+def _doc_id(doc: dict) -> str:
+    return doc.get("id") or doc["document_id"]
+
+
+def _chunk_text(chunk: dict) -> str:
+    return (chunk.get("text") or chunk.get("content") or "").strip()
+
+
 def main() -> None:
     init_db()
     db = SessionLocal()
@@ -22,11 +37,12 @@ def main() -> None:
         total_docs = 0
         total_chunks = 0
         for path in sorted(SEED_DIR.glob("*.json")):
-            docs = json.loads(path.read_text(encoding="utf-8"))
+            docs = _load_documents(path)
             for doc in docs:
-                document = db.get(RagDocument, doc["id"])
+                document_id = _doc_id(doc)
+                document = db.get(RagDocument, document_id)
                 if not document:
-                    document = RagDocument(id=doc["id"])
+                    document = RagDocument(id=document_id)
                     db.add(document)
 
                 document.title = doc["title"]
@@ -39,7 +55,9 @@ def main() -> None:
 
                 db.query(RagChunk).filter(RagChunk.document_id == document.id).delete()
                 for index, chunk in enumerate(doc.get("chunks", [])):
-                    text = chunk["text"].strip()
+                    text = _chunk_text(chunk)
+                    if not text:
+                        continue
                     db.add(
                         RagChunk(
                             id=f"{document.id}:{index}",

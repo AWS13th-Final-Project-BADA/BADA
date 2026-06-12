@@ -57,5 +57,5 @@ async def _read_chat_payload(request: Request) -> ChatMessageRequest:
         session_id=session_id,
         case_id=case_id,
         message=str(message).strip(),
-        language=str(data.get("language") or data.get("lang") or "ko"),
+        language=str(data.get("language") or data.get("lang") or "auto"),
     )

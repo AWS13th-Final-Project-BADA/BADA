@@ -40,11 +40,17 @@ def get_db():
 
 
 def init_db():
-    """테이블 자동 생성. 앱 시작 시 호출."""
-    from . import models  # noqa: F401  (모델 등록)
+    """Create local/dev tables.
+
+    For shared RDS environments prefer Alembic migrations. This helper remains
+    for SQLite smoke tests and one-person local development.
+    """
+    from . import models  # noqa: F401  (register models)
+
     if engine.dialect.name == "postgresql":
         with engine.begin() as conn:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS pgcrypto"))
     Base.metadata.create_all(engine)
 
 
