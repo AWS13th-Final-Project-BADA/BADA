@@ -8,12 +8,15 @@ async function api(m,p,b){let r;try{const _h={"Content-Type":"application/json"}
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 function applyLang(){
+  document.documentElement.lang = S.lang;
   document.querySelectorAll("[data-k]").forEach(e=>{e.innerHTML=t(e.getAttribute("data-k"));});
   document.getElementById("chatQuickPack").textContent=ct("pack");
   document.getElementById("chatQuickScript").textContent=ct("script");
   document.getElementById("chatQuickDocs").textContent=ct("docs");
   document.getElementById("chatQuickRisk").textContent=ct("risk");
   document.getElementById("chatInput").placeholder=ct("placeholder");
+  // placeholder i18n
+  document.querySelectorAll("[data-ph]").forEach(el=>{el.placeholder=t(el.getAttribute("data-ph"));});
   if(!S.chat.length)renderChat();
   const L=document.getElementById("lang");L.innerHTML="";
   const langs=[{code:"ko",label:"한국어"},{code:"vi",label:"Tiếng Việt"},{code:"en",label:"English"},{code:"id",label:"Indonesia"},{code:"km",label:"ខ្មែរ"},{code:"ne",label:"नेपाली"},{code:"th",label:"ไทย"},{code:"ja",label:"日本語"}];
@@ -21,6 +24,26 @@ function applyLang(){
   langs.forEach(l=>{const o=document.createElement("option");o.value=l.code;o.textContent=l.label;if(l.code===S.lang)o.selected=true;sel.appendChild(o);});
   sel.onchange=()=>{S.lang=sel.value;applyLang();};
   L.appendChild(sel);
+  // 업로드 카드가 이미 렌더된 상태면 재렌더링
+  if(S.caseId && document.getElementById("uploadCard") && document.getElementById("uploadCard").children.length > 0) {
+    buildUpload();
+  }
+  // 문제 유형 칩 재렌더링
+  const iss=document.getElementById("f_iss");
+  if(iss && iss.children.length){
+    const selected=[...iss.querySelectorAll(".chip-sel.on")].map(c=>c.dataset.v);
+    iss.innerHTML="";
+    Object.entries(ISSUES).forEach(([k,v])=>{const c=document.createElement("div");c.className="chip-sel";c.dataset.v=k;c.textContent=t(v);
+      if(selected.includes(k))c.classList.add("on");
+      c.onclick=()=>c.classList.toggle("on");iss.appendChild(c);});
+  }
+  // 결과 페이지에서 언어 변경 시 조용히 재분석 (로딩바 없이)
+  if(S.analysis && S.caseId && document.getElementById("result").classList.contains("active")){
+    toast(t("lang_changing")||"언어 변경중...");
+    api("POST","/cases/"+S.caseId+"/analyze?lang="+S.lang,buildReq())
+      .then(a=>{S.analysis=a;renderResult();})
+      .catch(()=>{});
+  }
 }
 
 function goPage(id,nav){

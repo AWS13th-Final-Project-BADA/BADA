@@ -1,10 +1,10 @@
 // ===== 업로드·촬영·OCR 추출·편집 (OCR 담당 소유) =====
 const ROWS=[
- {cat:"contract",icon:'<i class="ti ti-file-text"></i>',bg:"soft-blue",t:"근로계약서",s:"임금 조건, 공제 조건"},
- {cat:"statement",icon:'<i class="ti ti-receipt"></i>',bg:"soft-green",t:"급여명세서",s:"지급액, 공제 항목"},
- {cat:"payment",icon:'<i class="ti ti-building-bank"></i>',bg:"soft-orange",t:"입금내역",s:"실제 입금액 비교"},
- {cat:"chat",icon:'<i class="ti ti-message"></i>',bg:"soft-blue",t:"대화 캡처",s:"지급 약속, 공제 설명"},
- {cat:"other",icon:'<i class="ti ti-world"></i>',bg:"soft-green",t:"모국어 메모",s:"상담용 문장 변환"}
+ {cat:"contract",icon:'<i class="ti ti-file-text"></i>',bg:"soft-blue",tk:"up_contract",sk:"up_contract_desc"},
+ {cat:"statement",icon:'<i class="ti ti-receipt"></i>',bg:"soft-green",tk:"up_statement",sk:"up_statement_desc"},
+ {cat:"payment",icon:'<i class="ti ti-building-bank"></i>',bg:"soft-orange",tk:"up_payment",sk:"up_payment_desc"},
+ {cat:"chat",icon:'<i class="ti ti-message"></i>',bg:"soft-blue",tk:"up_chat",sk:"up_chat_desc"},
+ {cat:"other",icon:'<i class="ti ti-world"></i>',bg:"soft-green",tk:"up_other",sk:"up_other_desc"}
 ];
 
 
@@ -43,8 +43,8 @@ function buildUpload(){
   ROWS.forEach(r=>{
     const card=document.createElement("div"); card.className="up-card";
     card.innerHTML=`<div class="file-icon ${r.bg}">${r.icon}</div>
-      <strong>${r.t}</strong>
-      <span class="up-state"><i class="ti ti-camera"></i> 촬영·파일</span>
+      <strong>${t(r.tk)}</strong>
+      <span class="up-state"><i class="ti ti-camera"></i> ${t("up_shoot_file")}</span>
       <span class="need"></span>
       <input type="file" accept="image/*,application/pdf" class="i-up" style="display:none">`;
     const inp=card.querySelector(".i-up"), st=card.querySelector(".up-state"), warnEl=card.querySelector(".need");
@@ -55,7 +55,7 @@ function buildUpload(){
 }
 
 const _esc=(s)=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
-const _catLabel=(c)=>{const r=ROWS.find(x=>x.cat===c);return r?r.t:c;};
+const _catLabel=(c)=>{const r=ROWS.find(x=>x.cat===c);return r?t(r.tk):c;};
 const _won=(n)=>Number(n).toLocaleString()+"원";
 
 function renderSanity(items){
