@@ -84,6 +84,20 @@ def update_entities(case_id: str, eid: str, payload: EntitiesUpdate, db: Session
     return row
 
 
+class RestoreRequest(BaseModel):
+    category: str = "other"
+
+
+@router.post("/{eid}/restore")
+def restore_excluded(case_id: str, eid: str, payload: RestoreRequest = RestoreRequest(),
+                     db: Session = Depends(get_db)):
+    """자동분류로 '제외'된 자료를 사용자가 되살림(HITL 안전망). 재추출 대기로 전환."""
+    row = ocr_service.restore_excluded(db, case_id, eid, payload.category)
+    if row is None:
+        raise HTTPException(status_code=404, detail="evidence not found")
+    return row
+
+
 @router.post("")
 def request_upload(case_id: str, payload: PresignedUploadRequest, db: Session = Depends(get_db)):
     file_key = f"cases/{case_id}/{payload.file_name}"
