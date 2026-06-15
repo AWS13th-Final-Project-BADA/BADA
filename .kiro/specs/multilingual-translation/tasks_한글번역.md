@@ -190,3 +190,13 @@ Wave 5: 선택적 테스트들 (property-based)
 - `backend/app/routers/analysis.py`의 report.html UI 텍스트에 th/ja 추가
 - `frontend/locales/th.json`, `ja.json` 생성
 - Amazon Translate가 ko→th, ko→ja 직접 지원하므로 피벗 불필요
+
+### ✅ 추가 작업 G: 프론트엔드 UI 전면 i18n 적용 (develop 브랜치)
+
+- `js/upload.js` ROWS 배열: 한국어 하드코딩 → i18n 키 참조 (5개 카드 + 촬영·파일)
+- `js/case.js` ISSUES 객체: 문제유형 칩 5개 다국어
+- `js/analysis.js` renderResult(): 결과 페이지 상태 메시지, 검증 포인트, GPS, 타임라인 다국어
+- `js/core.js` applyLang(): placeholder 갱신, 업로드 카드 재렌더, 문제유형 칩 재렌더, 결과 페이지 언어 변경 시 조용한 재분석 + 토스트
+- `index.html`: input placeholder → data-ph 속성, 섹션 제목 → data-k 속성
+- `js/i18n.js`: 8개 언어 전부에 40+ 신규 키 추가 (id/km/ne/th/ja 포함)
+- 리포트(report.html) 다국어 UI dict 재적용 (ko/en/vi/ja/th, 나머지 영어 fallback)

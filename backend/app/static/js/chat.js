@@ -39,7 +39,7 @@ async function sendChatMessage(event){
   S.chat.push({role:"bot",text:ct("loading")});
   renderChat();
   try{
-    const res=await api("POST","/chat/messages",{case_id:S.caseId||1,message,language:S.lang});
+    const res=await api("POST","/chat/messages",{case_id:S.caseId||1,message,language:"auto"});
     S.chat.pop();
     S.chat.push({role:"bot",text:res.answer,meta:res,next_actions:res.next_actions||[],sources:res.sources||[],disclaimer:res.disclaimer});
   }catch(e){

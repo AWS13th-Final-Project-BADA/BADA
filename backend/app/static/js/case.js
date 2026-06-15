@@ -1,9 +1,9 @@
 // ===== 사건 생성 (프론트/기획 소유) =====
-const ISSUES={wage_unpaid:"임금체불",statement_mismatch:"명세서 불일치",deduction:"공제",overtime:"초과근무",no_contract:"계약서 미교부"};
+const ISSUES={wage_unpaid:"iss_wage_unpaid",statement_mismatch:"iss_mismatch",deduction:"iss_deduction",overtime:"iss_overtime",no_contract:"iss_no_contract"};
 function startNewCase(){
   const iss=document.getElementById("f_iss");
   if(!iss.children.length){
-    Object.entries(ISSUES).forEach(([k,v])=>{const c=document.createElement("div");c.className="chip-sel";c.dataset.v=k;c.textContent=v;
+    Object.entries(ISSUES).forEach(([k,v])=>{const c=document.createElement("div");c.className="chip-sel";c.dataset.v=k;c.textContent=t(v);
       c.onclick=()=>c.classList.toggle("on");iss.appendChild(c);});
   }
   goPage("newcase",1);

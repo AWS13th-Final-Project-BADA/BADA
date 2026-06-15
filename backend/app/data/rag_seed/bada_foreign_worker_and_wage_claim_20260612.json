@@ -1,0 +1,403 @@
+{
+  "documents": [
+    {
+      "document_id": "molab-foreign-worker-wage-arrears-protection-joint-20251228",
+      "title": "임금체불 피해 외국인근로자 보호 강화",
+      "source_org": "고용노동부ㆍ법무부",
+      "document_type": "press_release",
+      "language": "ko",
+      "version": "2025-12-28 보도자료",
+      "source_url": null,
+      "metadata": {
+        "curation_note": "BADA 임금체불 상담 전 준비 챗봇에 필요한 범위로 요약 청킹한 seed 데이터"
+      },
+      "chunks": [
+        {
+          "chunk_id": "fw-wage-protection-overview",
+          "section": "보도자료 개요",
+          "content": "임금체불 피해 외국인근로자 보호 강화 자료는 외국인근로자의 임금체불 피해를 줄이고 상담ㆍ구제 접근성을 높이는 방향을 설명한다. BADA에서는 사용자의 언어와 자료 수준에 맞춘 상담 전 준비 안내에 활용한다.",
+          "keywords": [
+            "임금체불",
+            "외국인근로자",
+            "보호 강화",
+            "상담 접근성"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "임금체불 피해 외국인근로자 보호 강화",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "fw-wage-protection-cooperation",
+          "section": "기관 연계",
+          "content": "외국인근로자 임금체불 문제는 고용노동부, 법무부, 상담센터 등 여러 기관의 안내가 함께 필요할 수 있다. 사용자는 체류 관련 불안과 임금 문제를 구분해 질문 목록을 준비하는 것이 좋다.",
+          "keywords": [
+            "고용노동부",
+            "법무부",
+            "상담센터",
+            "체류",
+            "임금 문제"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "임금체불 피해 외국인근로자 보호 강화",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "fw-wage-protection-evidence",
+          "section": "피해 확인 자료",
+          "content": "상담 전에는 급여명세서, 계좌 입금내역, 근로계약서, 출퇴근 기록, 사업주 대화자료, 공제 설명자료를 모은다. 자료가 부족해도 현재 있는 자료와 없는 자료를 나누어 말하면 상담이 수월하다.",
+          "keywords": [
+            "급여명세서",
+            "입금내역",
+            "근로계약서",
+            "출퇴근 기록",
+            "공제 설명자료"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "임금체불 피해 외국인근로자 보호 강화",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "fw-wage-protection-language",
+          "section": "언어 지원",
+          "content": "외국인근로자 상담에서는 모국어 설명이나 통역 지원이 중요하다. BADA 챗봇은 사용자가 입력한 언어를 고려해 사건 요약, 질문 목록, 준비자료를 같은 언어 또는 한국어 병기 형태로 안내하는 방향이 적절하다.",
+          "keywords": [
+            "언어 지원",
+            "통역",
+            "모국어",
+            "다국어 챗봇"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "임금체불 피해 외국인근로자 보호 강화",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        }
+      ]
+    },
+    {
+      "document_id": "law-wage-claim-guarantee-act-21137-20260512",
+      "title": "임금채권보장법",
+      "source_org": "국가법령정보센터",
+      "document_type": "law",
+      "language": "ko",
+      "version": "법률 제21137호, 2026-05-12 시행",
+      "source_url": null,
+      "metadata": {
+        "curation_note": "BADA 임금체불 상담 전 준비 챗봇에 필요한 범위로 요약 청킹한 seed 데이터"
+      },
+      "chunks": [
+        {
+          "chunk_id": "wcga-purpose",
+          "section": "목적",
+          "content": "임금채권보장법은 사업주가 임금 등을 지급하지 못하는 경우 근로자의 생활 안정을 지원하기 위한 제도와 절차를 정한다. BADA에서는 대지급금 관련 상담 전 필요한 자료를 정리하는 참고자료로 사용한다.",
+          "keywords": [
+            "임금채권보장법",
+            "대지급금",
+            "생활 안정",
+            "자료 정리"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "임금채권보장법",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "wcga-unpaid-wages",
+          "section": "체불 임금등",
+          "content": "체불 임금등 관련 상담에서는 임금, 퇴직금, 휴업수당 등 어떤 금품이 문제인지, 어느 기간에 발생했는지, 어떤 자료로 확인할 수 있는지를 구분해야 한다. 최종 인정 여부는 관계기관의 확인이 필요하다.",
+          "keywords": [
+            "체불 임금등",
+            "퇴직금",
+            "휴업수당",
+            "기간",
+            "관계기관 확인"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "임금채권보장법",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "wcga-substitute-payment",
+          "section": "대지급금 상담 준비",
+          "content": "대지급금 상담을 준비할 때는 근무 기간, 퇴직 여부, 미지급 금액으로 보이는 내역, 사업주 정보, 신청서류와 첨부자료를 정리한다. BADA는 서류 목록과 질문 목록을 만드는 데 도움을 줄 수 있다.",
+          "keywords": [
+            "대지급금",
+            "근무 기간",
+            "퇴직 여부",
+            "사업주 정보",
+            "신청서류"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "임금채권보장법",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "wcga-employer-confirmation",
+          "section": "사업주 확인서 관련",
+          "content": "체불 임금등ㆍ사업주 확인서 발급신청과 관련해서는 사업장 정보, 근로자 정보, 임금 기간, 금액, 첨부자료를 준비해야 한다. 금액은 자료 기준으로 정리하고 법적 판단은 상담기관에 확인한다.",
+          "keywords": [
+            "사업주 확인서",
+            "발급신청",
+            "임금 기간",
+            "첨부자료"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "임금채권보장법",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "wcga-fraud-warning",
+          "section": "부정수급 주의",
+          "content": "대지급금 등 제도는 사실관계를 정확히 확인하는 것이 중요하다. 사실과 다른 내용으로 신청하면 불이익이 발생할 수 있으므로, BADA는 수급 가능 여부를 단정하지 않고 자료 정리와 상담 준비에 한정해 안내한다.",
+          "keywords": [
+            "부정수급",
+            "사실관계",
+            "수급 가능 여부",
+            "단정 금지"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "임금채권보장법",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        }
+      ]
+    },
+    {
+      "document_id": "easylaw-foreign-worker-employment-guide",
+      "title": "외국인근로자 취업 안내",
+      "source_org": "생활법령정보",
+      "document_type": "public_guide",
+      "language": "ko",
+      "version": "외국인근로자 취업 안내",
+      "source_url": null,
+      "metadata": {
+        "curation_note": "BADA 임금체불 상담 전 준비 챗봇에 필요한 범위로 요약 청킹한 seed 데이터"
+      },
+      "chunks": [
+        {
+          "chunk_id": "employment-guide-overview",
+          "section": "취업 안내 개요",
+          "content": "외국인근로자 취업 안내자료는 취업 가능 체류자격, 고용절차, 근로계약, 사업장 변경 등 기본 정보를 설명한다. 임금 상담에서는 체류자격보다 실제 근무 사실과 임금 자료를 먼저 정리하는 것이 중요하다.",
+          "keywords": [
+            "외국인근로자 취업",
+            "체류자격",
+            "고용절차",
+            "근로계약"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "외국인근로자 취업 안내",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "employment-guide-contract",
+          "section": "근로계약 확인",
+          "content": "근로계약서에는 임금, 근로시간, 업무, 근무 장소, 계약기간 등 상담의 핵심 정보가 들어간다. 한국어가 익숙하지 않은 사용자는 계약서 원문과 번역 내용을 함께 준비하면 좋다.",
+          "keywords": [
+            "근로계약서",
+            "임금",
+            "근로시간",
+            "업무",
+            "번역"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "외국인근로자 취업 안내",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "employment-guide-workplace-change",
+          "section": "사업장 변경 상담",
+          "content": "사업장 변경 관련 질문은 임금체불, 근무환경, 사업주와의 관계, 체류 절차가 함께 얽힐 수 있다. 상담 전에는 변경을 고민하게 된 사유와 관련 자료를 시간 순서로 정리한다.",
+          "keywords": [
+            "사업장 변경",
+            "임금체불",
+            "근무환경",
+            "체류 절차"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "외국인근로자 취업 안내",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "employment-guide-support-center",
+          "section": "상담기관",
+          "content": "외국인근로자는 고용센터, 외국인력상담센터, 지역 상담기관 등에서 도움을 받을 수 있다. 상담 전에는 사건 요약, 질문 목록, 준비자료 목록을 만들어 가면 더 정확한 안내를 받을 수 있다.",
+          "keywords": [
+            "고용센터",
+            "외국인력상담센터",
+            "상담기관",
+            "질문 목록"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "외국인근로자 취업 안내",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        }
+      ]
+    },
+    {
+      "document_id": "molab-foreign-worker-rights-protection-guide-en",
+      "title": "Guide to Protecting the Rights of Foreign Workers",
+      "source_org": "Ministry of Employment and Labor",
+      "document_type": "official_guide",
+      "language": "en",
+      "version": "English guide",
+      "source_url": null,
+      "metadata": {
+        "curation_note": "BADA 임금체불 상담 전 준비 챗봇에 필요한 범위로 요약 청킹한 seed 데이터"
+      },
+      "chunks": [
+        {
+          "chunk_id": "rights-guide-en-wages",
+          "section": "Wages and payslips",
+          "content": "Before consultation, foreign workers should prepare their employment contract, payslips, bank deposit records, working-hour records, and any explanation of deductions such as dormitory fees, meals, or uniforms.",
+          "keywords": [
+            "wages",
+            "payslip",
+            "bank deposit",
+            "deductions"
+          ],
+          "language": "en",
+          "metadata": {
+            "title": "Guide to Protecting the Rights of Foreign Workers",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "rights-guide-en-consultation",
+          "section": "Consultation preparation",
+          "content": "It is helpful to summarize the workplace name, employment period, promised wage, actual payment, disputed period, and available evidence in one short paragraph before visiting a labor office or support center.",
+          "keywords": [
+            "consultation",
+            "labor office",
+            "evidence",
+            "summary"
+          ],
+          "language": "en",
+          "metadata": {
+            "title": "Guide to Protecting the Rights of Foreign Workers",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "rights-guide-en-language",
+          "section": "Language support",
+          "content": "If Korean is difficult, workers should ask whether interpretation or multilingual support is available. BADA can help prepare a simple Korean summary and questions based on the user's own language.",
+          "keywords": [
+            "language support",
+            "interpretation",
+            "multilingual",
+            "questions"
+          ],
+          "language": "en",
+          "metadata": {
+            "title": "Guide to Protecting the Rights of Foreign Workers",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        }
+      ]
+    },
+    {
+      "document_id": "molab-foreign-worker-vulnerable-workplace-inspection-20250903",
+      "title": "외국인 고용 취약사업장 집중 감독",
+      "source_org": "고용노동부",
+      "document_type": "press_release",
+      "language": "ko",
+      "version": "2025-09-03 보도자료",
+      "source_url": null,
+      "metadata": {
+        "curation_note": "BADA 임금체불 상담 전 준비 챗봇에 필요한 범위로 요약 청킹한 seed 데이터"
+      },
+      "chunks": [
+        {
+          "chunk_id": "inspection-overview",
+          "section": "감독 자료 개요",
+          "content": "외국인 고용 취약사업장 집중 감독 자료는 외국인근로자의 임금, 근로조건, 근무환경 등 취약 요소를 점검하는 취지를 설명한다. BADA에서는 사용자가 상담 전 위험 신호와 자료를 정리하는 데 참고한다.",
+          "keywords": [
+            "취약사업장",
+            "집중 감독",
+            "외국인근로자",
+            "근로조건"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "외국인 고용 취약사업장 집중 감독",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "inspection-wage-evidence",
+          "section": "임금 관련 점검자료",
+          "content": "임금 관련 점검에는 급여명세서, 계좌 입금내역, 공제 내역, 근로계약서, 출퇴근 기록이 중요하다. 월별 차이가 있으면 같은 기간끼리 비교표를 만들어 상담기관에 보여주는 것이 좋다.",
+          "keywords": [
+            "급여명세서",
+            "입금내역",
+            "공제 내역",
+            "비교표"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "외국인 고용 취약사업장 집중 감독",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "inspection-workplace-risk",
+          "section": "사업장 관련 확인",
+          "content": "사업장 관련 상담에서는 사업장명, 주소, 대표자, 실제 근무 장소, 숙소 제공 여부, 업무 내용, 대화자료를 정리한다. BADA는 이 정보를 Evidence Pack의 핵심 요약과 누락자료 안내에 활용할 수 있다.",
+          "keywords": [
+            "사업장명",
+            "주소",
+            "숙소",
+            "업무 내용",
+            "대화자료"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "외국인 고용 취약사업장 집중 감독",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        }
+      ]
+    }
+  ]
+}
