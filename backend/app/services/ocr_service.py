@@ -92,7 +92,7 @@ def _row(ev: Evidence, cross: dict | None = None):
 
 
 def _eligible(ev: Evidence) -> bool:
-    return ev.file_type in ("image", "pdf") and bool(ev.file_key)
+    return ev.file_type in ("image", "pdf", "audio") and bool(ev.file_key)
 
 
 def collect(db: Session, case_id: str) -> dict:
