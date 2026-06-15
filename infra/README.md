@@ -35,4 +35,6 @@ MVP 원칙:
 - `ALB / ECS public subnet`, `RDS private subnet`
 - `NAT Gateway는 사용하지 않음`
 - `RDS Single-AZ`로 시작
+- `RDS 삭제 보호`, `자동 백업 7일 보존`, `삭제 시 최종 스냅샷 생성` 적용
+- RDS 생성 후 `bada` DB에 `postgis` extension 활성화
 - 프로젝트 운영 기간은 `2026-06-04 ~ 2026-07-10`, 팀 전체 AWS 총 예산은 `1,500달러`

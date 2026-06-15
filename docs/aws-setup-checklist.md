@@ -21,7 +21,7 @@
 ## 데이터/스토리지
 - [ ] Terraform 초기화: `cd infra && terraform init`
 - [ ] S3 버킷(KMS 암호화, 퍼블릭 차단) — Terraform으로 생성
-- [ ] RDS PostgreSQL 생성 후 `CREATE EXTENSION postgis;`
+- [x] RDS PostgreSQL 생성 후 `CREATE EXTENSION postgis;`
 - [ ] SQS 큐 생성, URL을 `.env` `SQS_QUEUE_URL`
 - [ ] SQS DLQ 생성 여부 확인
 - [ ] ECR 리포지토리 생성 (backend / worker)
