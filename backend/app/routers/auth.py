@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import secrets
+import string
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -52,6 +53,20 @@ def social_callback(provider: str, request: Request, code: str | None = None,
 
     jwt = auth_service.create_access_token(sub=user.id, email=user.email, name=user.name)
     return RedirectResponse(f"{settings.app_base_url}/#token={jwt}")
+
+
+@router.post("/kakao/link-code")
+def kakao_link_code(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """로그인한 사용자가 카카오 봇 연동용 6자리 코드를 발급받는다. (앱에서 호출)"""
+    from ..models import KakaoLinkCode
+    chars = string.ascii_uppercase + string.digits
+    while True:   # 영문+숫자 혼합 보장(영어단어 오인 방지)
+        code = "".join(secrets.choice(chars) for _ in range(6))
+        if any(ch.isdigit() for ch in code) and any(ch.isalpha() for ch in code):
+            break
+    db.add(KakaoLinkCode(code=code, user_id=user.id))
+    db.commit()
+    return {"code": code, "guide": "카카오톡 BADA 채널에 이 코드를 보내면 계정이 연동돼요."}
 
 
 @router.get("/me")
