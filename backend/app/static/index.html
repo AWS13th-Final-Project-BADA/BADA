@@ -54,6 +54,16 @@
         <div class="s3"><div class="s3-ic"><i class="ti ti-file-text" aria-hidden="true"></i></div><span data-k="st3">상담 준비</span></div>
       </div>
       <button class="primary-btn" data-k="hbtn" onclick="startNewCase()">내 증거 패키지 만들기</button>
+      <div id="kakaoLinkCard" style="display:none;margin-top:12px;background:#FEE500;border-radius:12px;padding:12px 14px;cursor:pointer" onclick="openKakaoLink()">
+        <div style="display:flex;align-items:center;gap:10px">
+          <i class="ti ti-message-circle-2" style="font-size:22px;color:#3C1E1E" aria-hidden="true"></i>
+          <div style="flex:1">
+            <div id="kakaoCardTitle" style="font-size:14px;font-weight:500;color:#3C1E1E">카카오톡으로도 받기</div>
+            <div id="kakaoCardSub" style="font-size:12px;color:#6b4f1e">연동하면 챗봇에서 내 사건을 확인해요</div>
+          </div>
+          <i class="ti ti-chevron-right" style="font-size:18px;color:#3C1E1E" aria-hidden="true"></i>
+        </div>
+      </div>
       <p class="trust-line"><i class="ti ti-shield-check" aria-hidden="true"></i> <span data-k="notice">BADA은 법률 판단을 하지 않습니다. 업로드한 자료를 상담 준비용으로 정리합니다.</span></p>
     </section>
 
@@ -199,6 +209,7 @@
       </div>
       <button class="primary-btn" onclick="openReport()"><i class="ti ti-file-download" aria-hidden="true"></i><span data-k="r_report">제출용 리포트 열기</span></button>
       <button class="primary-btn ghost-btn" style="margin-top:10px" onclick="goPage('chat',3)"><i class="ti ti-message-circle" aria-hidden="true"></i><span data-k="r_chat">다음 단계 물어보기</span></button>
+      <button class="primary-btn" style="margin-top:10px;background:#FEE500;color:#3C1E1E;border:none" onclick="openKakaoLink()"><i class="ti ti-message-circle-2" aria-hidden="true"></i> <span id="kakaoResultCta">카톡으로도 확인하기</span></button>
     </section>
 
     <!-- CHAT -->
@@ -240,6 +251,8 @@
 <script src="/static/js/analysis.js"></script>
 <script src="/static/js/gps.js"></script>
 <script src="/static/js/chat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/static/js/link.js"></script>
 <script>applyLang();</script>
 <script>
 if ("serviceWorker" in navigator) {
