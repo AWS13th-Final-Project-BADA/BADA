@@ -69,4 +69,15 @@ develop push
 - Scope: Backend ECS Service 우선 배포
 - Health Check: 고정 DNS가 아니라 `bada-dev-alb` 이름으로 ALB DNS를 조회한 뒤 `/health` 확인
 
+자동배포 검증 결과:
+
+```text
+PR #19 merge 이후 develop push 기준 실행 성공
+CI workflow     : success
+Deploy workflow : success
+Backend task def: bada-dev-backend:3
+ECS state       : desired=1, running=1, rolloutState=COMPLETED
+ALB /health     : 200 {"status":"ok"}
+```
+
 주의: `terraform.tfvars`는 로컬 전용 파일이며 GitHub에 커밋하지 않는다. Backend task를 계속 실행하면 Fargate 비용이 발생하므로 검증 종료 후 필요 시 `backend_desired_count = 0`으로 되돌린다.
