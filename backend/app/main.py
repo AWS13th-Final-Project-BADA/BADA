@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import settings
 from .db import check_db_connection, init_db
 from .errors import register_error_handlers
-from .routers import ai_chat, analysis, auth, cases, evidences, gps
+from .routers import ai_chat, analysis, auth, cases, evidences, gps, kakao
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -26,6 +26,7 @@ app.include_router(analysis.router)
 app.include_router(gps.router)
 app.include_router(ai_chat.router)
 app.include_router(auth.router)
+app.include_router(kakao.router)
 
 _STATIC = Path(__file__).parent / "static"
 _UPLOADS = Path(settings.upload_dir)

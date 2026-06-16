@@ -461,3 +461,22 @@ class GpsLog(Base):
     device_os: Mapped[str | None] = mapped_column(String(30))
     app_version: Mapped[str | None] = mapped_column(String(20))
     source: Mapped[str] = mapped_column(String(20), default="app")
+
+
+class KakaoLink(Base):
+    """카카오톡 봇 사용자 ↔ BADA 계정 매핑 (로그인 연동)."""
+    __tablename__ = "kakao_links"
+
+    kakao_user_id: Mapped[str] = mapped_column(String(120), primary_key=True)  # 카카오 스킬 userRequest.user.id
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    linked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class KakaoLinkCode(Base):
+    """앱에서 발급하는 일회용 연동 코드. 카톡에 입력하면 매핑 생성."""
+    __tablename__ = "kakao_link_codes"
+
+    code: Mapped[str] = mapped_column(String(12), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
