@@ -4,7 +4,8 @@ const ROWS=[
  {cat:"statement",icon:'<i class="ti ti-receipt"></i>',bg:"soft-green",tk:"up_statement",sk:"up_statement_desc"},
  {cat:"payment",icon:'<i class="ti ti-building-bank"></i>',bg:"soft-orange",tk:"up_payment",sk:"up_payment_desc"},
  {cat:"chat",icon:'<i class="ti ti-message"></i>',bg:"soft-blue",tk:"up_chat",sk:"up_chat_desc"},
- {cat:"other",icon:'<i class="ti ti-world"></i>',bg:"soft-green",tk:"up_other",sk:"up_other_desc"}
+ {cat:"other",icon:'<i class="ti ti-world"></i>',bg:"soft-green",tk:"up_other",sk:"up_other_desc"},
+ {cat:"audio",icon:'<i class="ti ti-microphone"></i>',bg:"soft-orange",tk:"up_audio",sk:"up_audio_desc"}
 ];
 
 
@@ -48,8 +49,17 @@ function buildUpload(){
       <span class="need"></span>
       <input type="file" accept="image/*,application/pdf" class="i-up" style="display:none">`;
     const inp=card.querySelector(".i-up"), st=card.querySelector(".up-state"), warnEl=card.querySelector(".need");
+    if(r.cat==="audio"){ inp.accept="audio/*,.mp3,.mp4,.m4a,.wav,.flac,.ogg,.amr,.webm"; inp.multiple=true; }
     card.onclick=(e)=>{ if(e.target.tagName!=="INPUT") inp.click(); };
-    inp.onchange=()=>{ if(inp.files.length) doUpload(r.cat, inp.files[0], st, warnEl); };
+    inp.onchange=async()=>{
+      if(!inp.files.length) return;
+      const files=[...inp.files];
+      for(let i=0;i<files.length;i++){
+        st.innerHTML=files.length>1?`<i class="ti ti-loader"></i> ${i+1}/${files.length} 업로드 중...`:"업로드 중...";
+        await doUpload(r.cat, files[i], st, warnEl);
+      }
+      if(files.length>1){ st.innerHTML='<i class="ti ti-check"></i> '+files.length+'개 완료'; st.classList.add("done"); }
+    };
     c.appendChild(card);
   });
 }
@@ -88,11 +98,21 @@ function _fld(eid,key,labelTxt,val,type){
 
 function renderCardBody(e){
   if(e.ocr_status==="processing"||e.ocr_status==="pending"){
-    return "<p class='small-muted'>⏳ 읽는 중...</p>";
+    const msg = e.file_type==="audio" ? "⏳ 음성을 텍스트로 변환 중입니다" : "⏳ 읽는 중...";
+    return "<p class='small-muted'>"+msg+"</p>";
   }
   if(e.ocr_status!=="done"){
     return "<p class='small-muted'>"+_esc(e.error||e.ocr_text||"읽기 실패")+"</p>"+
       "<button class='upload-chip' style='margin-top:8px' onclick=\"runExtract()\">다시 시도</button>";
+  }
+  // Audio transcription result with speaker diarization
+  if(e.file_type==="audio" && e.ocr_text){
+    const formatted = e.ocr_text.split("\n").map(line => {
+      const m = line.match(/^(Speaker \d+): (.+)$/);
+      if(m) return `<div class="speaker-line"><span class="speaker-label">${m[1]}</span> ${_esc(m[2])}</div>`;
+      return `<p>${_esc(line)}</p>`;
+    }).join("");
+    return `<div class="transcript-result">${formatted}</div>`;
   }
   const en=e.entities||{}, eid=e.evidence_id, cm=_confMap(e);
   S.ext[eid]=en;
