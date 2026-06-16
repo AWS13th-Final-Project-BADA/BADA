@@ -4,6 +4,10 @@
 window.BADA_API = window.BADA_API || "";
 window.apiUrl = function (p) { return (window.BADA_API || "") + p; };
 
+// 카카오 봇 연동: 채널 채팅 딥링크. 오픈빌더 채널의 채팅 URL로 교체하세요.
+// 예: "http://pf.kakao.com/_xxxxx/chat" (비워두면 '채널 검색' 안내 토스트만 표시)
+window.KAKAO_CHANNEL_URL = window.KAKAO_CHANNEL_URL || "";
+
 // 네이티브 앱일 때만 동작 (웹/플러그인 없으면 조용히 무시)
 (function () {
   try {

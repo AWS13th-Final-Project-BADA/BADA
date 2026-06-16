@@ -54,6 +54,16 @@
         <div class="s3"><div class="s3-ic"><i class="ti ti-file-text" aria-hidden="true"></i></div><span data-k="st3">상담 준비</span></div>
       </div>
       <button class="primary-btn" data-k="hbtn" onclick="startNewCase()">내 증거 패키지 만들기</button>
+      <div id="kakaoLinkCard" style="display:none;margin-top:12px;background:#FEE500;border-radius:12px;padding:12px 14px;cursor:pointer" onclick="openKakaoLink()">
+        <div style="display:flex;align-items:center;gap:10px">
+          <i class="ti ti-message-circle-2" style="font-size:22px;color:#3C1E1E" aria-hidden="true"></i>
+          <div style="flex:1">
+            <div id="kakaoCardTitle" style="font-size:14px;font-weight:500;color:#3C1E1E">카카오톡으로도 받기</div>
+            <div id="kakaoCardSub" style="font-size:12px;color:#6b4f1e">연동하면 챗봇에서 내 사건을 확인해요</div>
+          </div>
+          <i class="ti ti-chevron-right" style="font-size:18px;color:#3C1E1E" aria-hidden="true"></i>
+        </div>
+      </div>
       <p class="trust-line"><i class="ti ti-shield-check" aria-hidden="true"></i> <span data-k="notice">BADA은 법률 판단을 하지 않습니다. 업로드한 자료를 상담 준비용으로 정리합니다.</span></p>
     </section>
 
@@ -199,6 +209,7 @@
       </div>
       <button class="primary-btn" onclick="openReport()"><i class="ti ti-file-download" aria-hidden="true"></i><span data-k="r_report">제출용 리포트 열기</span></button>
       <button class="primary-btn ghost-btn" style="margin-top:10px" onclick="goPage('chat',3)"><i class="ti ti-message-circle" aria-hidden="true"></i><span data-k="r_chat">다음 단계 물어보기</span></button>
+      <button class="primary-btn" style="margin-top:10px;background:#FEE500;color:#3C1E1E;border:none" onclick="openKakaoLink()"><i class="ti ti-message-circle-2" aria-hidden="true"></i> <span id="kakaoResultCta">카톡으로도 확인하기</span></button>
     </section>
 
     <!-- CHAT -->
@@ -221,6 +232,47 @@
       </div>
       <button class="primary-btn" data-k="c_home" onclick="goPage('home',0)">처음으로 돌아가기</button>
     </section>
+    <!-- COMMUNITY -->
+    <section id="community" class="page">
+      <div class="community-hero">
+        <div class="community-hero-top">
+          <span><i class="ti ti-world" aria-hidden="true"></i> <span data-ck="hero_label">다국어 경험 공유</span></span>
+          <b><i></i> live</b>
+        </div>
+        <h1 data-ck="hero_title">상담 준비 이야기를<br/>서로의 언어로 나눠요</h1>
+        <p data-ck="hero_body">게시글과 댓글은 원문 그대로 보고, 필요할 때 번역해서 확인할 수 있어요. AI가 개인정보와 법률 판단 표현을 먼저 점검합니다.</p>
+        <div class="community-stats">
+          <div><strong id="communityStatPosts">-</strong><span data-ck="stat_posts">게시글</span></div>
+          <div><strong id="communityStatComments">-</strong><span data-ck="stat_comments">댓글</span></div>
+          <div><strong id="communityStatSaved">-</strong><span data-ck="stat_saved">저장</span></div>
+        </div>
+      </div>
+
+      <div class="community-tabs" id="communityTabs">
+        <button class="on" data-category="all"><i class="ti ti-flame"></i><span data-ck="tab_all">인기글</span></button>
+        <button data-category="free"><i class="ti ti-message"></i><span data-ck="tab_free">자유</span></button>
+        <button data-category="wage"><i class="ti ti-receipt"></i><span data-ck="tab_wage">임금</span></button>
+        <button data-category="petition"><i class="ti ti-file-text"></i><span data-ck="tab_petition">진정서</span></button>
+        <button data-category="review"><i class="ti ti-notes"></i><span data-ck="tab_review">후기</span></button>
+        <button data-category="mine"><i class="ti ti-user-edit"></i><span data-ck="tab_mine">내 글</span></button>
+      </div>
+
+      <div class="community-hot card">
+        <div class="community-card-title">
+          <h2><i class="ti ti-flame"></i> <span data-ck="hot_title">실시간 인기글</span></h2>
+          <button type="button" onclick="loadCommunityFeed()" data-ck="refresh">새로고침</button>
+        </div>
+        <div id="communityHotList" class="community-hot-list"></div>
+      </div>
+
+      <button class="community-compose-entry" type="button" onclick="openCommunityComposer()">
+        <span class="community-avatar me" data-ck="me">나</span>
+        <span data-ck="compose_entry">익명으로 질문 남기기 · AI 안전검사 포함</span>
+        <i class="ti ti-shield-check"></i>
+      </button>
+
+      <div id="communityFeed" class="community-feed"></div>
+    </section>
   </section>
 
   <nav class="bottom-nav">
@@ -228,9 +280,35 @@
     <button class="nav-item" onclick="goUpload()"><span class="nav-icon"><i class="ti ti-camera" aria-hidden="true"></i></span><span data-k="nav_up">업로드</span></button>
     <button class="nav-item" onclick="goResult()"><span class="nav-icon"><i class="ti ti-folder" aria-hidden="true"></i></span><span data-k="nav_pkg">패키지</span></button>
     <button class="nav-item" onclick="goPage('chat',3)"><span class="nav-icon"><i class="ti ti-message-circle" aria-hidden="true"></i></span><span data-k="nav_chat">챗봇</span></button>
+    <button class="nav-item" onclick="goCommunity()"><span class="nav-icon"><i class="ti ti-users" aria-hidden="true"></i></span><span data-ck="nav_community">커뮤니티</span></button>
   </nav>
 </main>
 
+<section class="community-sheet" id="communitySheet" aria-hidden="true">
+  <div class="community-sheet-panel">
+    <div class="community-grabber"></div>
+    <div class="community-sheet-head">
+      <h2 id="communitySheetTitle" data-ck="sheet_new">익명 글쓰기</h2>
+      <button type="button" onclick="closeCommunityComposer()" aria-label="닫기" data-caria="close"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="community-board-picks" id="communityBoardPicks">
+      <button class="on" data-category="wage" data-ck="board_wage">임금/공제</button>
+      <button data-category="petition" data-ck="board_petition">진정서</button>
+      <button data-category="review" data-ck="board_review">상담 후기</button>
+      <button data-category="free" data-ck="board_free">자유</button>
+    </div>
+    <input id="communityTitleInput" placeholder="제목을 입력하세요" data-cph="title_placeholder" />
+    <textarea id="communityContentInput" placeholder="상담 전 준비하고 싶은 내용을 적어주세요. 이름, 전화번호, 외국인등록번호는 올리지 않는 것이 안전해요." data-cph="content_placeholder"></textarea>
+    <div class="community-safe-result" id="communitySafeResult">
+      <i class="ti ti-shield-check"></i>
+      <span data-ck="safety_default">AI 안전검사로 개인정보와 법률 판단 표현을 확인할 수 있어요.</span>
+    </div>
+    <div class="community-sheet-actions">
+      <button type="button" class="ghost-btn" onclick="runCommunitySafetyCheck()" data-ck="btn_safety">AI 안전검사</button>
+      <button type="button" class="primary-btn" id="communitySubmitBtn" onclick="submitCommunityPost()" data-ck="btn_post">게시하기</button>
+    </div>
+  </div>
+</section>
 <script src="/static/js/config.js"></script>
 <script src="/static/js/auth.js"></script>
 <script src="/static/js/i18n.js"></script>
@@ -240,6 +318,9 @@
 <script src="/static/js/analysis.js"></script>
 <script src="/static/js/gps.js"></script>
 <script src="/static/js/chat.js"></script>
+<script src="/static/js/community.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/static/js/link.js"></script>
 <script>applyLang();</script>
 <script>
 if ("serviceWorker" in navigator) {

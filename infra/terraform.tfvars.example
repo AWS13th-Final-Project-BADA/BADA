@@ -8,7 +8,41 @@ db_username          = "bada_admin"
 db_password          = "change-me"
 db_instance_class    = "db.t4g.micro"
 db_allocated_storage = 20
+
+# Mentor feedback: keep Single-AZ but add minimum RDS data protection.
+db_backup_retention_period   = 7
+db_deletion_protection       = true
+db_skip_final_snapshot       = false
+db_final_snapshot_identifier = "bada-dev-postgres-final-snapshot"
+db_apply_immediately         = true
+
 app_port             = 8000
 log_retention_days   = 14
-api_container_image  = "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/bada-api:latest"
-worker_container_image = "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/bada-worker:latest"
+# Use "replace-me" to let Terraform use the ECR repositories created in this stack.
+api_container_image    = "replace-me"
+worker_container_image = "replace-me"
+
+# ECS service desired count.
+# Keep 0 until backend/worker images are pushed to ECR.
+backend_desired_count = 0
+worker_desired_count  = 0
+
+# Minimum Fargate task size for dev/MVP.
+backend_task_cpu    = 256
+backend_task_memory = 512
+worker_task_cpu     = 256
+worker_task_memory  = 512
+ecs_cpu_architecture = "ARM64"
+
+# Cost-safe defaults. Switch to aws/bedrock modes only when the team is ready.
+backend_provider_mode  = "local"
+backend_ai_chat_mode   = "mock"
+backend_embedding_mode = "mock"
+worker_provider_mode     = "local"
+worker_translate_mode    = "local"
+worker_structured_engine = "vision"
+
+# GitHub Actions OIDC deploy role scope.
+github_owner         = "AWS13th-Final-Project-BADA"
+github_repository    = "BADA"
+github_deploy_branch = "develop"

@@ -1,4 +1,10 @@
 """증거 — 메타데이터 등록(manual), 로컬 파일 업로드, AWS presign, OCR 추출."""
+from __future__ import annotations
+
+import logging
+import time
+from typing import Optional
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -10,7 +16,17 @@ from ..schemas import PresignedUploadRequest
 from ..services import jobs, ocr_service, s3
 from ..services.storage import get_storage
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/cases/{case_id}/evidences", tags=["evidences"])
+
+# ---------------------------------------------------------------------------
+# Audio upload constants
+# ---------------------------------------------------------------------------
+
+AUDIO_EXTENSIONS = {"mp3", "mp4", "m4a", "wav", "flac", "ogg", "amr", "webm"}
+SUPPORTED_LANGUAGE_CODES = {"ko-KR", "vi-VN", "en-US", "th-TH", "ja-JP", "id-ID", "km-KH", "ne-NP"}
+MAX_AUDIO_FILE_SIZE = 200 * 1024 * 1024  # 200 MB
 
 
 class ManualEvidence(BaseModel):
@@ -28,6 +44,10 @@ def _guess_type(name: str) -> str:
         return "pdf"
     if n.endswith((".png", ".jpg", ".jpeg", ".webp", ".heic")):
         return "image"
+    # Audio extensions
+    ext = n.rsplit(".", 1)[-1] if "." in n else ""
+    if ext in AUDIO_EXTENSIONS:
+        return "audio"
     return "text"
 
 
@@ -41,17 +61,86 @@ def add_manual(case_id: str, payload: ManualEvidence, db: Session = Depends(get_
 
 @router.post("/upload")
 async def upload_file(case_id: str, category: str = Form(...), file: UploadFile = File(...),
+                      language_code: Optional[str] = Form(None),
                       db: Session = Depends(get_db)):
-    """실제 파일 업로드 → storage 저장. 이후 /extract 로 OCR."""
+    """실제 파일 업로드 → storage 저장. 오디오 파일은 전사 처리도 수행."""
+    from fastapi import BackgroundTasks
+    from fastapi.responses import JSONResponse
+    import threading
+
+    # Determine file type from extension
+    file_type = _guess_type(file.filename)
+
+    # --- Audio-specific validations ---
+    if file_type == "audio":
+        # Validate language_code if provided
+        if language_code is not None and language_code not in SUPPORTED_LANGUAGE_CODES:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported language_code '{language_code}'. "
+                       f"Supported: {sorted(SUPPORTED_LANGUAGE_CODES)}",
+            )
+    else:
+        # For non-audio files: validate extension is one we support (image/pdf/text)
+        ext = (file.filename or "").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else ""
+        supported_non_audio = {"pdf", "png", "jpg", "jpeg", "webp", "heic"}
+        # We allow any non-audio file through as "text" — existing behavior preserved.
+
+    # Read file data
     data = await file.read()
+
+    # --- File size validation for audio ---
+    if file_type == "audio" and len(data) > MAX_AUDIO_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Audio file exceeds maximum size of 200MB. "
+                   f"Received: {len(data) / (1024 * 1024):.1f}MB",
+        )
+
+    # Store file
     key = f"cases/{case_id}/{file.filename}"
     get_storage().save(key, data)
-    ev = Evidence(case_id=case_id, file_key=key, file_name=file.filename,
-                  file_type=_guess_type(file.filename), category=category, ocr_status="pending")
-    db.add(ev); db.commit(); db.refresh(ev)
+
+    # Create Evidence record
+    ev = Evidence(
+        case_id=case_id,
+        file_key=key,
+        file_name=file.filename,
+        file_type=file_type,
+        category=category,
+        ocr_status="pending",
+    )
+    db.add(ev)
+    db.commit()
+    db.refresh(ev)
+
+    # --- Audio: trigger transcription (non-blocking) ---
+    if file_type == "audio":
+        ev.ocr_status = "processing"
+        db.commit()
+        if settings.sqs_queue_url:
+            _publish_transcription_message(ev, case_id, key, language_code)
+        else:
+            # Background thread for local transcription (non-blocking)
+            _ev_id = ev.id
+            _case_id = case_id
+            _key = key
+            _lang = language_code
+            def _bg_transcribe():
+                from ..db import SessionLocal
+                _db = SessionLocal()
+                try:
+                    _ev = _db.get(Evidence, _ev_id)
+                    if _ev:
+                        _run_local_transcription(_db, _ev, _key, _lang)
+                finally:
+                    _db.close()
+            threading.Thread(target=_bg_transcribe, daemon=True).start()
+
     return {"id": ev.id, "file_name": ev.file_name, "category": ev.category, "file_key": key}
 
 
+<<<<<<< HEAD
 @router.post("/scan")
 async def scan_evidences(case_id: str, files: list[UploadFile] = File(...)):
     """증거 수집 에이전트 [스캔] — 여러 이미지를 분류만으로 빠르게 훑어 후보를 추린다.
@@ -132,6 +221,94 @@ async def assess_evidence(case_id: str, file: UploadFile = File(...)):
         "reasons": result["reasons"],
         "alternative": (result.get("classify") or {}).get("alternative"),
     }
+=======
+def _publish_transcription_message(ev: Evidence, case_id: str, s3_key: str, language_code: str | None) -> None:
+    """Publish a transcription task message to SQS (AWS mode)."""
+    import json
+    import boto3
+
+    message = {
+        "task": "transcribe",
+        "evidence_id": ev.id,
+        "case_id": case_id,
+        "s3_key": s3_key,
+        "language_code": language_code or "ko-KR",
+    }
+    client = boto3.client("sqs", region_name=settings.aws_region)
+    client.send_message(QueueUrl=settings.sqs_queue_url, MessageBody=json.dumps(message))
+    logger.info("Published transcription message for evidence %s", ev.id)
+
+
+def _run_local_transcription(db: Session, ev: Evidence, s3_key: str, language_code: str | None) -> None:
+    """Run transcription in background (separate DB session)."""
+    import sys
+    import json
+    import urllib.request
+    from pathlib import Path
+
+    worker_dir = Path(__file__).resolve().parents[3] / "worker"
+    if str(worker_dir) not in sys.path:
+        sys.path.insert(0, str(worker_dir))
+
+    import boto3
+
+    # Build S3 URI
+    s3_uri = f"s3://{settings.s3_bucket}/{s3_key}"
+    job_name = f"bada-{ev.case_id[:8]}-{ev.id[:8]}-{int(time.time())}"
+    lang = language_code or "ko-KR"
+
+    try:
+        client = boto3.client("transcribe", region_name=settings.aws_region)
+
+        # Start job
+        client.start_transcription_job(
+            TranscriptionJobName=job_name,
+            LanguageCode=lang,
+            Media={"MediaFileUri": s3_uri},
+            Settings={"ShowSpeakerLabels": True, "MaxSpeakerLabels": 5},
+        )
+        logger.info("Transcription job started: %s (lang=%s)", job_name, lang)
+
+        # Poll (5s interval, 10min timeout)
+        elapsed = 0
+        while elapsed < 600:
+            time.sleep(5)
+            elapsed += 5
+            resp = client.get_transcription_job(TranscriptionJobName=job_name)
+            status = resp["TranscriptionJob"]["TranscriptionJobStatus"]
+
+            if status == "COMPLETED":
+                uri = resp["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
+                with urllib.request.urlopen(uri) as r:
+                    result_json = json.loads(r.read().decode("utf-8"))
+
+                # Parse transcript
+                transcripts = result_json.get("results", {}).get("transcripts", [])
+                text = transcripts[0]["transcript"] if transcripts else ""
+
+                ev.ocr_text = text
+                ev.ocr_status = "done"
+                logger.info("Transcription done: %s (%d chars)", job_name, len(text))
+                db.commit()
+                return
+
+            if status == "FAILED":
+                reason = resp["TranscriptionJob"].get("FailureReason", "unknown")
+                ev.ocr_status = "failed"
+                logger.error("Transcription failed: %s reason=%s", job_name, reason)
+                db.commit()
+                return
+
+        # Timeout
+        ev.ocr_status = "failed"
+        logger.error("Transcription timeout: %s", job_name)
+        db.commit()
+
+    except Exception as e:
+        ev.ocr_status = "failed"
+        logger.error("Transcription error for %s: %s", ev.id, e)
+        db.commit()
+>>>>>>> 34ba16f439702823bd8a18aee8ff51ecf43ca987
 
 
 @router.post("/extract")
