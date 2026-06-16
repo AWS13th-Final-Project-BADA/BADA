@@ -154,22 +154,27 @@ class AmazonTranscriber(Transcriber):
     def _ensure_vocabulary(self) -> None:
         """Custom Vocabulary가 없으면 생성한다. 이미 있으면 건너뜀."""
         try:
-            self._client.get_vocabulary(VocabularyName=self._vocabulary_name)
-            logger.debug("Custom vocabulary '%s' already exists", self._vocabulary_name)
-        except self._client.exceptions.NotFoundException:
-            logger.info("Creating custom vocabulary '%s'", self._vocabulary_name)
+            resp = self._client.get_vocabulary(VocabularyName=self._vocabulary_name)
+            state = resp.get("VocabularyState", "")
+            if state == "READY":
+                self._vocab_ready = True
+                logger.debug("Custom vocabulary '%s' is READY", self._vocabulary_name)
+            else:
+                # PENDING/FAILED 상태 → 아직 못 씀
+                self._vocab_ready = False
+                logger.info("Custom vocabulary '%s' state=%s, skipping", self._vocabulary_name, state)
+        except Exception:
+            # 없으면 생성 시도
+            self._vocab_ready = False
             try:
                 self._client.create_vocabulary(
                     VocabularyName=self._vocabulary_name,
                     LanguageCode="ko-KR",
                     Phrases=self._VOCAB_PHRASES,
                 )
-                logger.info("Custom vocabulary '%s' created", self._vocabulary_name)
+                logger.info("Custom vocabulary '%s' creation initiated (will be READY shortly)", self._vocabulary_name)
             except Exception as e:
-                # Vocabulary 생성 실패해도 전사 자체는 가능 → 경고만
                 logger.warning("Failed to create custom vocabulary: %s", e)
-        except Exception as e:
-            logger.warning("Failed to check custom vocabulary: %s", e)
 
     def start_job(self, s3_uri: str, language_code: str, job_name: str) -> str:
         """Amazon Transcribe에 전사 잡을 제출한다.
@@ -182,8 +187,8 @@ class AmazonTranscriber(Transcriber):
         try:
             # 먼저 채널 식별 모드로 시도 (전화 통화 = 스테레오가 대부분)
             settings: dict = {"ChannelIdentification": True}
-            # 한국어일 때만 Custom Vocabulary 적용
-            if language_code == "ko-KR":
+            # 한국어 + Vocabulary READY일 때만 적용
+            if language_code == "ko-KR" and self._vocab_ready:
                 settings["VocabularyName"] = self._vocabulary_name
             self._client.start_transcription_job(
                 TranscriptionJobName=job_name,
@@ -198,7 +203,7 @@ class AmazonTranscriber(Transcriber):
                 "ShowSpeakerLabels": True,
                 "MaxSpeakerLabels": 5,
             }
-            if language_code == "ko-KR":
+            if language_code == "ko-KR" and self._vocab_ready:
                 fallback_settings["VocabularyName"] = self._vocabulary_name
             self._client.start_transcription_job(
                 TranscriptionJobName=job_name + "-retry",
