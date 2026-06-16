@@ -1,0 +1,139 @@
+{
+  "documents": [
+    {
+      "document_id": "molab-subrogation-confirmation-application-form",
+      "title": "대지급금 등 확인신청서",
+      "source_org": "고용노동부",
+      "document_type": "official_form",
+      "language": "ko",
+      "version": "임금채권보장법 시행규칙 별지 제4호서식",
+      "source_url": null,
+      "metadata": {
+        "curation_note": "BADA 임금체불 상담 전 준비 챗봇에 필요한 범위로 요약 청킹한 seed 데이터"
+      },
+      "chunks": [
+        {
+          "chunk_id": "subrogation-form-overview",
+          "section": "서식 개요",
+          "content": "대지급금 등 확인신청서는 임금채권보장제도 관련 확인을 신청할 때 사용하는 공식 서식이다. BADA에서는 사용자가 상담 전 어떤 항목을 준비해야 하는지 안내하는 참고자료로 활용한다.",
+          "keywords": [
+            "대지급금",
+            "확인신청서",
+            "임금채권보장법",
+            "서식"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "대지급금 등 확인신청서",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "subrogation-form-applicant",
+          "section": "신청인 정보",
+          "content": "신청인 항목에는 성명, 주민등록번호 또는 외국인등록번호, 주소, 연락처 등 본인을 식별할 수 있는 정보를 적는다. 외국인근로자는 체류자격과 연락 가능한 전화번호를 함께 정리해 두면 상담이 수월하다.",
+          "keywords": [
+            "신청인",
+            "외국인등록번호",
+            "체류자격",
+            "연락처"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "대지급금 등 확인신청서",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "subrogation-form-employer",
+          "section": "대상 사업주 정보",
+          "content": "대상 사업주 항목에는 사업장명, 대표자, 사업장 주소, 연락처 등 사업장을 확인할 수 있는 정보를 적는다. 사업장 정보가 불명확하면 근로계약서, 급여명세서, 사업장 사진 등 보조자료가 도움이 될 수 있다.",
+          "keywords": [
+            "사업주",
+            "사업장명",
+            "대표자",
+            "사업장 주소"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "대지급금 등 확인신청서",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "subrogation-form-claim",
+          "section": "확인 신청 사항",
+          "content": "확인 신청 사항에는 체불 임금, 퇴직금, 휴업수당 등 확인받으려는 금액과 기간을 사실관계 중심으로 정리한다. 금액은 확정 판단처럼 단정하지 말고 자료 기준의 차이와 산정 근거를 함께 표시하는 것이 좋다.",
+          "keywords": [
+            "체불 임금",
+            "퇴직금",
+            "휴업수당",
+            "금액",
+            "기간"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "대지급금 등 확인신청서",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "subrogation-form-attachments",
+          "section": "첨부자료",
+          "content": "신청 전에는 근로계약서, 임금명세서, 통장 입금내역, 출퇴근 기록, 사업주와의 대화자료 등 사실관계를 보여주는 자료를 함께 정리하는 것이 좋다. BADA의 Evidence Pack은 이 첨부자료 목록을 상담 전 점검하는 데 활용할 수 있다.",
+          "keywords": [
+            "첨부자료",
+            "근로계약서",
+            "임금명세서",
+            "입금내역",
+            "출퇴근 기록"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "대지급금 등 확인신청서",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "subrogation-form-consent",
+          "section": "자료 제공 동의",
+          "content": "서식에는 행정기관이 필요한 자료를 확인하거나 제공받는 것에 관한 동의 항목이 포함될 수 있다. 사용자는 어떤 개인정보가 사용되는지 확인하고, 모르는 항목은 상담기관에 질문하도록 안내하는 것이 적절하다.",
+          "keywords": [
+            "자료 제공",
+            "개인정보",
+            "동의",
+            "행정기관"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "대지급금 등 확인신청서",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        },
+        {
+          "chunk_id": "subrogation-form-warning",
+          "section": "작성 시 주의사항",
+          "content": "대지급금 관련 서식은 사실과 다른 내용으로 신청하면 문제가 될 수 있으므로, BADA는 법적 판단이나 수급 가능 여부를 단정하지 않고 자료 정리와 질문 목록 준비만 지원한다.",
+          "keywords": [
+            "주의사항",
+            "사실관계",
+            "부정수급",
+            "법적 판단 금지"
+          ],
+          "language": "ko",
+          "metadata": {
+            "title": "대지급금 등 확인신청서",
+            "chunking_strategy": "curated_section_chunking",
+            "source_use": "rag_consultation_preparation"
+          }
+        }
+      ]
+    }
+  ]
+}

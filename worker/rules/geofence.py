@@ -24,11 +24,17 @@ def tag_ping(lat: float, lng: float, center_lat: float, center_lng: float, radiu
 
 
 def tag_logs(logs: list[dict], center_lat: float, center_lng: float, radius_m: float = 50) -> list[dict]:
-    """logs: [{"ts": datetime, "lat","lng","is_mocked"(opt)}]. is_mocked는 status=None으로 배제."""
+    """logs: [{"ts": datetime, "lat","lng","is_mocked"(opt),"is_delayed_upload"(opt)}].
+    is_mocked=True 또는 is_delayed_upload=True 핑은 excluded=True로 배제한다.
+    is_delayed_upload 핑은 타임라인·교차검증에서 제외하되 기록은 보존한다.
+    """
     out = []
     for lg in logs:
         if lg.get("is_mocked"):
-            out.append({**lg, "status": None, "excluded": True})
+            out.append({**lg, "status": None, "excluded": True, "exclude_reason": "mocked"})
+            continue
+        if lg.get("is_delayed_upload"):
+            out.append({**lg, "status": None, "excluded": True, "exclude_reason": "delayed_upload"})
             continue
         status = tag_ping(lg["lat"], lg["lng"], center_lat, center_lng, radius_m)
         out.append({**lg, "status": status, "excluded": False})
@@ -42,11 +48,13 @@ def cross_check(
 ) -> list[dict]:
     """같은 시간대(±window_min)에 '도착' 카톡 발화와 IN_WORKPLACE 핑이 함께 있으면 정황 일치.
 
-    반환: [{"chat_ts": datetime, "gps_ts": datetime, "match": True}]
+    반환: [{"chat_ts": datetime, "gps_ts": datetime|None, "match": bool}]
+    - match=True : 창 안에 IN_WORKPLACE 핑이 존재 → 정황 일치
+    - match=False: 창 안에 IN_WORKPLACE 핑 없음 → 정황 불일치 (도착 발화만 존재)
     교차검증은 시간 매칭 규칙이며 위법을 판단하지 않는다.
     """
     in_pings = [lg for lg in tagged_logs if not lg.get("excluded") and lg.get("status") == "IN_WORKPLACE"]
-    matches: list[dict] = []
+    results: list[dict] = []
     win = timedelta(minutes=window_min)
     for chat_ts in chat_arrivals:
         nearest = None
@@ -55,5 +63,8 @@ def cross_check(
                 if nearest is None or abs(p["ts"] - chat_ts) < abs(nearest["ts"] - chat_ts):
                     nearest = p
         if nearest is not None:
-            matches.append({"chat_ts": chat_ts, "gps_ts": nearest["ts"], "match": True})
-    return matches
+            results.append({"chat_ts": chat_ts, "gps_ts": nearest["ts"], "match": True})
+        else:
+            # 버그#6 수정: 매칭 실패 케이스도 반환해 "정황 불일치" 추적 가능하게 함
+            results.append({"chat_ts": chat_ts, "gps_ts": None, "match": False})
+    return results

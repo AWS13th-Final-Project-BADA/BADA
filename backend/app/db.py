@@ -1,12 +1,29 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from .config import settings
 
-# SQLite는 멀티스레드 접근 위해 check_same_thread=False 필요
-_connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
 
-engine = create_engine(settings.database_url, pool_pre_ping=True, connect_args=_connect_args)
+def _engine_kwargs() -> dict:
+    if settings.database_url.startswith("sqlite"):
+        return {
+            "connect_args": {"check_same_thread": False},
+            "pool_pre_ping": True,
+        }
+
+    connect_args = {}
+    if settings.database_ssl_mode:
+        connect_args["sslmode"] = settings.database_ssl_mode
+
+    return {
+        "pool_pre_ping": True,
+        "pool_size": settings.database_pool_size,
+        "max_overflow": settings.database_max_overflow,
+        "connect_args": connect_args,
+    }
+
+
+engine = create_engine(settings.database_url, **_engine_kwargs())
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
@@ -23,6 +40,22 @@ def get_db():
 
 
 def init_db():
-    """테이블 자동 생성. 앱 시작 시 호출."""
-    from . import models  # noqa: F401  (모델 등록)
+    """Create local/dev tables.
+
+    For shared RDS environments prefer Alembic migrations. This helper remains
+    for SQLite smoke tests and one-person local development.
+    """
+    from . import models  # noqa: F401  (register models)
+
+    if engine.dialect.name == "postgresql":
+        with engine.begin() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS pgcrypto"))
     Base.metadata.create_all(engine)
+
+
+def check_db_connection() -> dict:
+    with engine.connect() as conn:
+        dialect = conn.dialect.name
+        result = conn.execute(text("select 1")).scalar_one()
+    return {"ok": result == 1, "dialect": dialect}

@@ -66,7 +66,36 @@ AI가 추출한 금액: 2,300,000원
 - AI 결과는 단순 텍스트가 아니라 **재분석·디버깅·품질측정이 가능한 구조화 데이터**로 RDS에 저장한다.
 - 사용자 수정 이력을 보존한다 (원본 추출값 vs 수정값).
 
-## 6. (MVP+) 챗봇 = 제한적 Agentic Workflow
+## 6. GPS 증거 신빙성 — 미완성 항목 (구현 필요)
+
+> 아래는 설계는 완료됐으나 SQS 워커 진입점 코드가 없어 연결이 끝나지 않은 항목이다.
+
+### pipeline.py 호출 시 gps_logs 구성 규칙
+DB에서 GPS 로그를 꺼내 `ctx["gps_logs"]`에 담을 때 반드시 `is_delayed_upload` 필드를 포함해야 한다.
+`geofence.tag_logs()`가 이 값을 보고 지연 업로드 핑을 교차검증에서 자동 배제한다.
+
+```python
+# SQS 워커 진입점에서 이렇게 구성해야 함
+ctx["gps_logs"] = [
+    {
+        "ts": log.ts,
+        "lat": float(log.lat),
+        "lng": float(log.lng),
+        "is_mocked": log.is_mocked,
+        "is_delayed_upload": log.is_delayed_upload,  # ← 반드시 포함
+    }
+    for log in gps_logs
+]
+```
+
+누락 시 지연 업로드 핑이 걸러지지 않고 교차검증 결과에 포함된다.
+
+### chain_hash DB 마이그레이션 주의
+`gps_logs.chain_hash`는 `nullable=False`. 기존 데이터가 있는 상태에서 마이그레이션 시
+기존 행 처리 방식을 정해야 한다 (예: 빈 문자열 기본값 부여 후 제약 추가).
+MVP 초기라 데이터가 없으면 해당 없음.
+
+## 7. (MVP+) 챗봇 = 제한적 Agentic Workflow
 
 완전 자율 Agent를 만들지 않는다. 도구 호출은 아래로 제한:
 - 허용: 질문 분류 / 공식문서 검색(RAG 또는 정적 FAQ) / Evidence Pack 상태 확인 / 누락자료 안내 / 절차 안내 / 모국어 설명 / 전문가 확인 필요 안내

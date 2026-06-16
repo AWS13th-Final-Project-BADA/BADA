@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Literal
 
 
@@ -18,42 +19,176 @@ Intent = Literal[
 
 
 def classify_intent(message: str) -> Intent:
-    text = message.lower().strip()
+    text = _normalize(message)
 
-    legal_phrases = [
-        "불법",
-        "위법",
-        "체불임금",
-        "무조건 받을",
-        "사업주가 법",
-        "소송",
-        "확정",
-    ]
-    if any(phrase in text for phrase in legal_phrases):
+    if _has_any(
+        text,
+        [
+            "불법",
+            "위법",
+            "법 위반",
+            "체불 확정",
+            "소송",
+            "고소",
+            "sue",
+            "illegal",
+            "violate the law",
+            "bất hợp pháp",
+            "trái pháp luật",
+            "vi phạm pháp luật",
+            "kiện",
+            "tố cáo",
+        ],
+    ):
         return "legal_judgment_risk"
 
-    if any(phrase in text for phrase in ["한 문단", "요약", "중요한 내용", "핵심", "패키지에서", "사건을 정리"]):
+    if _has_any(
+        text,
+        [
+            "요약",
+            "핵심",
+            "중요한 내용",
+            "패키지에서",
+            "사건 정리",
+            "summary",
+            "main point",
+            "key point",
+            "tóm tắt",
+            "điểm chính",
+            "nội dung quan trọng",
+        ],
+    ):
         return "pack_summary"
 
-    if any(phrase in text for phrase in ["뭐부터 말", "순서", "상담하러", "상담 때", "질문 목록", "보여줄 문장", "말하면"]):
+    if _has_any(
+        text,
+        [
+            "뭐부터 말",
+            "상담할 때",
+            "질문 목록",
+            "말해야",
+            "설명하면",
+            "what should i say",
+            "consultation script",
+            "question list",
+            "nói gì",
+            "nói như thế nào",
+            "danh sách câu hỏi",
+        ],
+    ):
         return "consultation_script"
 
-    if any(phrase in text for phrase in ["왜 필요", "무슨 뜻", "누락된", "누락 자료", "추가 자료", "더 준비"]):
+    if _has_any(
+        text,
+        [
+            "무슨 자료",
+            "누락",
+            "추가 자료",
+            "더 필요",
+            "missing document",
+            "what documents",
+            "additional documents",
+            "thiếu tài liệu",
+            "cần thêm tài liệu",
+            "tài liệu nào",
+        ],
+    ):
         return "missing_document_explanation"
 
-    if any(phrase in text for phrase in ["400,000", "400000", "차이", "금액", "입금액", "급여명세서", "공제"]):
+    if _has_any(
+        text,
+        [
+            "400,000",
+            "400000",
+            "차이",
+            "금액",
+            "입금",
+            "급여명세서",
+            "공제",
+            "difference",
+            "deduction",
+            "payment",
+            "payslip",
+            "chênh lệch",
+            "khấu trừ",
+            "bảng lương",
+            "chuyển khoản",
+        ],
+    ):
         return "amount_difference_explanation"
 
-    if any(phrase in text for phrase in ["쉽게", "베트남어", "영어", "한국어 문장", "번역", "보여줘요"]):
+    if _has_any(
+        text,
+        [
+            "쉽게",
+            "베트남어",
+            "영어",
+            "한국어 문장",
+            "번역",
+            "translate",
+            "plain language",
+            "easy words",
+            "dịch",
+            "giải thích dễ hiểu",
+        ],
+    ):
         return "plain_language_or_translation"
 
-    if any(phrase in text for phrase in ["준비", "무엇", "어떻게", "뭘", "가지", "가기 전에"]):
+    if _has_any(
+        text,
+        [
+            "준비",
+            "무엇",
+            "어떻게",
+            "뭘",
+            "가지고",
+            "가기 전에",
+            "prepare",
+            "before consultation",
+            "what should i bring",
+            "chuẩn bị",
+            "trước khi tư vấn",
+            "cần viết",
+            "nên viết",
+        ],
+    ):
         return "preparation_guidance"
 
-    if any(phrase in text for phrase in ["충분", "자료", "누락", "더 필요", "없나요", "가도 될까요"]):
+    if _has_any(
+        text,
+        [
+            "충분",
+            "자료",
+            "없나요",
+            "missing",
+            "enough evidence",
+            "đủ không",
+            "tài liệu",
+        ],
+    ):
         return "missing_document_check"
 
-    if any(phrase in text for phrase in ["bada pack", "evidence pack", "들어가", "무엇", "목록", "어땠"]):
+    if _has_any(
+        text,
+        [
+            "bada pack",
+            "evidence pack",
+            "뭐가 들어",
+            "무엇",
+            "목록",
+            "역할",
+            "gói tài liệu",
+            "bằng chứng",
+        ],
+    ):
         return "evidence_pack_explanation"
 
     return "general_guidance"
+
+
+def _normalize(message: str) -> str:
+    return re.sub(r"\s+", " ", message.lower().strip())
+
+
+def _has_any(text: str, phrases: list[str]) -> bool:
+    return any(phrase in text for phrase in phrases)

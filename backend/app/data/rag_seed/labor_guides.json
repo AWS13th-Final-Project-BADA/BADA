@@ -1,0 +1,138 @@
+[
+  {
+    "document_id": "molab-wage-statement-prep",
+    "title": "임금명세서와 입금내역 상담 준비",
+    "source_org": "고용노동부",
+    "document_type": "official_guide_summary",
+    "language": "ko",
+    "version": "mvp-2026-06",
+    "source_url": null,
+    "metadata": {
+      "curation_note": "BADA 임금체불 상담 전 준비 챗봇에 필요한 범위로 요약 청킹한 seed 데이터"
+    },
+    "chunks": [
+      {
+        "chunk_id": "wage-statement-compare",
+        "section": "임금명세서 확인",
+        "content": "상담 전에는 급여명세서, 실제 입금내역, 근로계약서의 임금 조건을 함께 정리하는 것이 좋다. 명세서 금액과 실제 입금액 사이에 차이가 있으면 차이 금액, 지급일, 공제 항목을 같은 기간 기준으로 표시한다.",
+        "keywords": [
+          "임금명세서",
+          "입금내역",
+          "급여",
+          "차이",
+          "공제",
+          "상담 준비"
+        ],
+        "language": "ko",
+        "metadata": {
+          "title": "임금명세서와 입금내역 상담 준비",
+          "chunking_strategy": "curated_section_chunking",
+          "source_use": "rag_consultation_preparation"
+        }
+      },
+      {
+        "chunk_id": "wage-deduction-check",
+        "section": "공제 항목 확인",
+        "content": "기숙사비, 식비, 작업복비처럼 임금에서 빠진 항목은 항목명, 금액, 설명받은 내용, 동의 자료가 있는지 정리한다. 공제의 적법성이나 체불 여부는 BADA가 단정하지 않고 상담기관에서 확인해야 한다.",
+        "keywords": [
+          "공제",
+          "기숙사비",
+          "식비",
+          "작업복비",
+          "동의",
+          "상담기관"
+        ],
+        "language": "ko",
+        "metadata": {
+          "title": "임금명세서와 입금내역 상담 준비",
+          "chunking_strategy": "curated_section_chunking",
+          "source_use": "rag_consultation_preparation"
+        }
+      }
+    ]
+  },
+  {
+    "document_id": "molab-labor-office-consultation-prep",
+    "title": "고용노동부 상담 전 준비자료",
+    "source_org": "고용노동부",
+    "document_type": "official_guide_summary",
+    "language": "ko",
+    "version": "mvp-2026-06",
+    "source_url": null,
+    "metadata": {
+      "curation_note": "BADA 임금체불 상담 전 준비 챗봇에 필요한 범위로 요약 청킹한 seed 데이터"
+    },
+    "chunks": [
+      {
+        "chunk_id": "labor-office-speaking-order",
+        "section": "상담 순서",
+        "content": "상담할 때는 사업장명과 근무 기간을 먼저 말하고, 약속한 임금과 실제 입금액을 설명한 뒤, 급여명세서와 입금내역의 차이 및 공제 항목을 보여주는 순서가 좋다.",
+        "keywords": [
+          "상담",
+          "순서",
+          "사업장",
+          "근무 기간",
+          "임금",
+          "입금액"
+        ],
+        "language": "ko",
+        "metadata": {
+          "title": "고용노동부 상담 전 준비자료",
+          "chunking_strategy": "curated_section_chunking",
+          "source_use": "rag_consultation_preparation"
+        }
+      },
+      {
+        "chunk_id": "labor-office-missing-materials",
+        "section": "누락 자료",
+        "content": "자료가 부족해도 현재 가진 자료를 먼저 정리해 상담할 수 있다. 다만 근무시간 기록, 계약서 첫 페이지, 사업장 정보, 공제 설명 자료, 대화 캡처 원본이 있으면 상담 시 확인에 도움이 된다.",
+        "keywords": [
+          "누락 자료",
+          "근무시간 기록",
+          "계약서",
+          "사업장 정보",
+          "대화 캡처"
+        ],
+        "language": "ko",
+        "metadata": {
+          "title": "고용노동부 상담 전 준비자료",
+          "chunking_strategy": "curated_section_chunking",
+          "source_use": "rag_consultation_preparation"
+        }
+      }
+    ]
+  },
+  {
+    "document_id": "bada-safety-legal-judgment-policy",
+    "title": "BADA 법률 판단 제한 정책",
+    "source_org": "BADA",
+    "document_type": "product_policy",
+    "language": "ko",
+    "version": "mvp-2026-06",
+    "source_url": null,
+    "metadata": {
+      "curation_note": "BADA 임금체불 상담 전 준비 챗봇에 필요한 범위로 요약 청킹한 seed 데이터"
+    },
+    "chunks": [
+      {
+        "chunk_id": "bada-no-legal-judgment",
+        "section": "표현 제한",
+        "content": "BADA는 법률 판단을 제공하지 않는다. 위법 여부, 체불 확정, 받을 금액 확정, 소송 또는 즉시 신고 지시처럼 결론을 단정하는 표현은 피하고, 상담기관 또는 전문가 확인이 필요하다고 안내한다.",
+        "keywords": [
+          "법률 판단",
+          "위법",
+          "체불 확정",
+          "단정 금지",
+          "상담기관",
+          "전문가"
+        ],
+        "language": "ko",
+        "metadata": {
+          "title": "BADA 법률 판단 제한 정책",
+          "chunking_strategy": "curated_section_chunking",
+          "source_use": "rag_consultation_preparation"
+        }
+      }
+    ]
+  }
+]

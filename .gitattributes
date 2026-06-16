@@ -1,0 +1,34 @@
+# 모든 텍스트 파일 줄바꿈을 저장소에서 LF로 정규화 (Windows/Mac 혼용 시 CRLF 노이즈 제거)
+* text=auto eol=lf
+
+# 명시적으로 LF 고정
+*.py    text eol=lf
+*.js    text eol=lf
+*.ts    text eol=lf
+*.jsx   text eol=lf
+*.tsx   text eol=lf
+*.html  text eol=lf
+*.css   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.txt   text eol=lf
+*.tf    text eol=lf
+*.example text eol=lf
+*.webmanifest text eol=lf
+
+# Windows 전용 스크립트는 CRLF 유지
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+
+# 바이너리 (줄바꿈 변환 금지)
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary

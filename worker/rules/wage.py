@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 @dataclass
 class WageResult:
     total_expected_wage: int | None
-    total_received_wage: int
+    total_received_wage: int | None
     suspected_unpaid: int | None
     calculation_detail: dict = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
@@ -23,7 +23,8 @@ def compute_unpaid(
     worked_hours: list[float],
     deposits: list[int],
 ) -> WageResult:
-    received = sum(deposits)
+    # 입금 자료가 없으면 '0원 수령'으로 단정하지 않는다 → None(확인 불가)
+    received = sum(deposits) if deposits else None
     notes: list[str] = []
 
     if not agreed_hourly_wage or not worked_hours:
@@ -39,6 +40,18 @@ def compute_unpaid(
 
     hours_sum = sum(worked_hours)
     expected = int(round(agreed_hourly_wage * hours_sum))
+
+    if received is None:
+        # 입금 내역이 없으면 실수령·차액을 단정하지 않는다(허위 '0원 수령' 방지)
+        notes.append("입금 내역이 없어 실수령액과 차액을 계산할 수 없습니다. 통장 내역 확인이 필요합니다.")
+        return WageResult(
+            total_expected_wage=expected,
+            total_received_wage=None,
+            suspected_unpaid=None,
+            calculation_detail={"hourly_wage": agreed_hourly_wage, "hours_sum": hours_sum, "expected": expected},
+            notes=notes,
+        )
+
     suspected = expected - received
     if suspected < 0:
         notes.append("입금액이 기대급여보다 큽니다. 추가 항목(수당 등) 확인이 필요합니다.")

@@ -65,9 +65,11 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ## 동작 범위 / 한계
 
 - **지금 되는 것**: 사건 관리, 규칙 기반 분석(차액·공제·누락·GPS 교차검증), 타임라인, 리포트.
-- **지금 챗봇**: 프론트 입력창 + `/chat/messages` + intent/risk/guardrail + mock/Bedrock 전환 구조.
-- **아직 스텁**: 이미지 OCR(숫자는 직접 입력) = B2 bolt에서 Bedrock 연결.
-  인증(Cognito)·S3 업로드·실시간 번역(Translate)도 AWS 모드(W1) 연결 후 동작.
+- **OCR·AI 문장화·번역**: 기본은 Mock(키 불필요). `backend/.env`에 `PROVIDER_MODE=aws` +
+  AWS 자격증명(`aws configure`)을 넣으면 실제 동작(Claude Vision/Bedrock/Translate). → `docs/enable-aws.md`
+  - 위 `pip install -r backend/requirements.txt` 한 번이면 로컬·AWS 둘 다 커버(boto3·requests 포함).
+- **AI 챗봇**: 프론트 입력창 + `/chat/messages` + intent/risk/guardrail + mock/Bedrock 전환 구조.
+- **아직 스텁**: 인증(Cognito)·S3 업로드는 AWS 모드 연결 후 동작(다른 담당).
 - **DB 교체**: 나중에 Postgres로 바꾸려면 `backend/app/config.py`의 `database_url`만 변경
   (`postgresql+psycopg://...`) + `pip install "psycopg[binary]"`. 모델 코드는 그대로.
 
@@ -76,3 +78,59 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 - `ModuleNotFoundError` → venv 활성화 확인, `pip install -r backend/requirements.txt` 다시.
 - 포트 충돌 → `uvicorn app.main:app --reload --port 8001`.
 - DB 초기화 → `backend/bada.db` 파일 삭제 후 재실행.
+
+## RDS Postgres + RAG 연결
+
+RDS를 만든 뒤 `backend/.env`에 아래 값을 넣습니다.
+
+```dotenv
+DATABASE_URL=postgresql+psycopg://bada:PASSWORD@RDS_ENDPOINT:5432/bada
+DATABASE_AUTO_CREATE=true
+DATABASE_SSL_MODE=require
+DATABASE_POOL_SIZE=5
+DATABASE_MAX_OVERFLOW=10
+
+RAG_ENABLED=true
+RAG_USE_VECTOR=true
+EMBEDDING_MODE=bedrock
+EMBEDDING_MODEL_ID=amazon.titan-embed-text-v2:0
+EMBEDDING_DIMENSION=1024
+```
+
+로컬에서 RDS에 붙으려면 RDS 보안 그룹 inbound에 현재 PC IP의 `5432` 접근이 열려 있어야 합니다.
+
+DB 연결과 테이블 생성을 먼저 확인합니다.
+
+```bash
+cd /c/Users/DGSO23/BADA/BADA/backend
+source .venv/Scripts/activate
+pip install -r requirements.txt
+python scripts/check_db.py
+```
+
+정상 예:
+
+```text
+connection=ok dialect=postgresql
+create_all=ok
+tables=analysis_results, cases, evidences, rag_chunks, rag_documents, ...
+```
+
+RAG seed를 적재합니다.
+
+```bash
+python scripts/ingest_rag_seed.py
+```
+
+정상 예:
+
+```text
+rag_ingest=ok documents=3 chunks=5
+```
+
+서버 실행 후 DB 헬스체크:
+
+```bash
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+curl http://127.0.0.1:8000/health/db
+```

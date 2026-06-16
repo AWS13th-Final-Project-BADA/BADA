@@ -7,13 +7,14 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
-from .db import init_db
+from .db import check_db_connection, init_db
 from .errors import register_error_handlers
-from .routers import ai_chat, analysis, cases, evidences, gps
+from .routers import ai_chat, analysis, auth, cases, evidences, gps
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
-init_db()  # SQLite 테이블 자동 생성
+if settings.database_auto_create:
+    init_db()  # MVP 자동 테이블 생성. 운영/마이그레이션 도입 후 false 권장.
 
 app = FastAPI(title="BADA API", description="상담 준비용 증거 정리 도구 - 법률자문 아님", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -24,16 +25,35 @@ app.include_router(evidences.router)
 app.include_router(analysis.router)
 app.include_router(gps.router)
 app.include_router(ai_chat.router)
+app.include_router(auth.router)
 
 _STATIC = Path(__file__).parent / "static"
 _UPLOADS = Path(settings.upload_dir)
 _UPLOADS.mkdir(parents=True, exist_ok=True)
 app.mount("/files", StaticFiles(directory=str(_UPLOADS)), name="files")
+app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
+
+
+# PWA: manifest·서비스워커는 루트 scope에서 서빙해야 앱 전체를 제어할 수 있음.
+@app.get("/manifest.webmanifest")
+def manifest():
+    return FileResponse(_STATIC / "manifest.webmanifest", media_type="application/manifest+json")
+
+
+@app.get("/sw.js")
+def service_worker():
+    return FileResponse(_STATIC / "sw.js", media_type="application/javascript",
+                        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/health/db")
+def health_db():
+    return check_db_connection()
 
 
 @app.get("/version")
