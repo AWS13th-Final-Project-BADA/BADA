@@ -38,9 +38,71 @@ async function doUpload(cat, file, btn, warnEl){
   }catch(e){ btn.textContent="다시"; alert("업로드 실패: "+e.message); }
 }
 
+// 여러 장을 category='auto'로 올림 → 서버가 분류·선별. 다 올리면 자동 추출 시작.
+async function doUploadAuto(files, st, warnEl){
+  let ok=0;
+  for(let i=0;i<files.length;i++){
+    st.innerHTML='<i class="ti ti-loader-2"></i> 올리는 중 '+(i+1)+'/'+files.length;
+    try{
+      const {blob,name}=await preprocessImage(files[i]);
+      const fd=new FormData(); fd.append("category","auto"); fd.append("file",blob,name);
+      const res=await fetch(apiUrl("/cases/"+S.caseId+"/evidences/upload"),{method:"POST",body:fd});
+      if(res.ok) ok++;
+    }catch(e){}
+  }
+  st.innerHTML='<i class="ti ti-check"></i> '+ok+'장 업로드 완료';
+  if(warnEl) warnEl.textContent="에이전트가 종류를 분류하고 무관한 건 빼요. 결과는 아래에서 확인·수정하세요.";
+  if(typeof runExtract==="function") runExtract();   // 자동으로 분류·추출 시작
+}
+
+// 제외된 자료 되살리기(HITL 안전망) → 재추출
+async function restoreEvidence(eid){
+  try{
+    await api("POST","/cases/"+S.caseId+"/evidences/"+eid+"/restore",{category:"other"});
+    if(typeof runExtract==="function") runExtract();
+  }catch(e){ alert("되살리기 실패: "+e.message); }
+}
+
+// 자동 분류 근거 한 줄(있을 때만)
+function _classifyNote(cl){
+  if(!cl) return "";
+  const conf={high:"확실",medium:"아마 맞아요",low:"불확실 — 확인해주세요"}[cl.confidence]||"";
+  const why=cl.reason?(" — "+_esc(cl.reason)):"";
+  return `<div class="small-muted" style="margin-top:4px"><i class="ti ti-sparkles"></i> 자동분류: ${_esc(_catLabel(cl.category))} <b>(${conf})</b>${why}</div>`;
+}
+
 function buildUpload(){
   const c=document.getElementById("uploadCard");
   c.className="up-grid"; c.innerHTML="";
+  // 자동 분류 카드 — 여러 장을 한 번에 던지면 에이전트가 종류를 알아서 판단
+  const auto=document.createElement("div"); auto.className="up-card";
+  auto.style="grid-column:1/-1;border:1px dashed #93c5fd;background:#f5f9ff";
+  auto.innerHTML=`<div class="file-icon soft-blue"><i class="ti ti-sparkles"></i></div>
+    <strong>여러 장 한 번에</strong>
+    <span class="up-state"><i class="ti ti-folder"></i> 자동 분류 업로드</span>
+    <span class="need"></span>
+    <input type="file" accept="image/*,application/pdf" multiple class="i-auto" style="display:none">`;
+  const ainp=auto.querySelector(".i-auto"), ast=auto.querySelector(".up-state"), awarn=auto.querySelector(".need");
+  auto.onclick=(e)=>{ if(e.target.tagName!=="INPUT") ainp.click(); };
+  ainp.onchange=()=>{ if(ainp.files.length) doUploadAuto([...ainp.files], ast, awarn); };
+  c.appendChild(auto);
+  // 폴더 통째로 선택 — 폴더 안 이미지/PDF 전부 자동 분류
+  const folder=document.createElement("div"); folder.className="up-card";
+  folder.style="grid-column:1/-1;border:1px dashed #93c5fd;background:#f5f9ff";
+  folder.innerHTML=`<div class="file-icon soft-blue"><i class="ti ti-folder-open"></i></div>
+    <strong>폴더 통째로</strong>
+    <span class="up-state"><i class="ti ti-folders"></i> 폴더 선택 → 자동 분류</span>
+    <span class="need"></span>
+    <input type="file" webkitdirectory directory multiple class="i-folder" style="display:none">`;
+  const finp=folder.querySelector(".i-folder"), fst=folder.querySelector(".up-state"), fwarn=folder.querySelector(".need");
+  folder.onclick=(e)=>{ if(e.target.tagName!=="INPUT") finp.click(); };
+  finp.onchange=()=>{
+    // 폴더 안에서 이미지/PDF만 골라냄(잡파일 제외)
+    const files=[...finp.files].filter(f=>/\.(png|jpe?g|webp|heic|pdf)$/i.test(f.name));
+    if(files.length) doUploadAuto(files, fst, fwarn);
+    else fst.innerHTML='<i class="ti ti-alert-circle"></i> 이미지/PDF가 없어요';
+  };
+  c.appendChild(folder);
   ROWS.forEach(r=>{
     const card=document.createElement("div"); card.className="up-card";
     card.innerHTML=`<div class="file-icon ${r.bg}">${r.icon}</div>
@@ -156,6 +218,17 @@ function renderCardBody(e){
 }
 
 function renderCard(e){
+  // 자동 분류로 '제외'된 자료 — 이유 + 되살리기(안전망)
+  if(e.ocr_status==="excluded"){
+    const cl=e.classify||{};
+    return `<div class="card" id="card_${e.evidence_id}" style="margin:8px 0;padding:14px;opacity:.85">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <strong style="font-size:13px"><i class="ti ti-photo-off"></i> ${_esc(e.file_name||"")}</strong>
+        <span class='tag' style='background:#f3f4f6;color:#6b7280'>제외</span></div>
+      <p class="small-muted" style="margin-top:6px">${_esc(cl.reason||e.ocr_text||"임금체불과 무관한 자료로 보여서 뺐어요")}</p>
+      <button class="upload-chip" style="margin-top:8px" onclick="restoreEvidence('${e.evidence_id}')"><i class="ti ti-arrow-back-up"></i> 되살리기</button>
+    </div>`;
+  }
   const badge = e.ocr_status==="done"
     ? "<span class='tag' style='background:#e8fbf3;color:#047857'>읽음</span>"
     : (e.ocr_status==="processing"||e.ocr_status==="pending")
@@ -164,6 +237,7 @@ function renderCard(e){
   return `<div class="card" id="card_${e.evidence_id}" style="margin:8px 0;padding:14px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
       <strong style="font-size:13px">${_esc(e.file_name||"")} <span class='tag'>${_esc(_catLabel(e.category))}</span></strong>${badge}</div>
+    ${_classifyNote(e.classify)}
     ${renderCardBody(e)}</div>`;
 }
 
