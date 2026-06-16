@@ -135,6 +135,41 @@ class AmazonTranscriber(Transcriber):
 
         self._region = region
         self._client = boto3.client("transcribe", region_name=region)
+        self._vocabulary_name = "bada-labor-vocab"
+        self._ensure_vocabulary()
+
+    # 노동 도메인 Custom Vocabulary — 전화 통화에서 자주 오인식되는 단어
+    _VOCAB_PHRASES = [
+        "월급", "시급", "공제", "기숙사비", "숙소비", "식비",
+        "야근", "잔업", "수당", "주휴수당", "연장근로", "야간근로",
+        "계약서", "명세서", "급여명세서", "급여", "입금",
+        "임금", "체불", "미지급", "통장", "이체",
+        "고용노동부", "노동청", "근로감독관", "진정서",
+        "사업주", "사장님", "대표님", "공장장",
+        "퇴직금", "해고", "부당해고", "권고사직",
+        "국민연금", "건강보험", "고용보험", "산재보험",
+        "근로계약", "표준근로계약서", "근무표", "출퇴근",
+    ]
+
+    def _ensure_vocabulary(self) -> None:
+        """Custom Vocabulary가 없으면 생성한다. 이미 있으면 건너뜀."""
+        try:
+            self._client.get_vocabulary(VocabularyName=self._vocabulary_name)
+            logger.debug("Custom vocabulary '%s' already exists", self._vocabulary_name)
+        except self._client.exceptions.NotFoundException:
+            logger.info("Creating custom vocabulary '%s'", self._vocabulary_name)
+            try:
+                self._client.create_vocabulary(
+                    VocabularyName=self._vocabulary_name,
+                    LanguageCode="ko-KR",
+                    Phrases=self._VOCAB_PHRASES,
+                )
+                logger.info("Custom vocabulary '%s' created", self._vocabulary_name)
+            except Exception as e:
+                # Vocabulary 생성 실패해도 전사 자체는 가능 → 경고만
+                logger.warning("Failed to create custom vocabulary: %s", e)
+        except Exception as e:
+            logger.warning("Failed to check custom vocabulary: %s", e)
 
     def start_job(self, s3_uri: str, language_code: str, job_name: str) -> str:
         """Amazon Transcribe에 전사 잡을 제출한다.
@@ -146,25 +181,30 @@ class AmazonTranscriber(Transcriber):
         """
         try:
             # 먼저 채널 식별 모드로 시도 (전화 통화 = 스테레오가 대부분)
+            settings: dict = {"ChannelIdentification": True}
+            # 한국어일 때만 Custom Vocabulary 적용
+            if language_code == "ko-KR":
+                settings["VocabularyName"] = self._vocabulary_name
             self._client.start_transcription_job(
                 TranscriptionJobName=job_name,
                 LanguageCode=language_code,
                 Media={"MediaFileUri": s3_uri},
-                Settings={
-                    "ChannelIdentification": True,
-                },
+                Settings=settings,
             )
         except Exception as e:
             # 채널 식별 실패(모노 파일 등) → 화자 분리로 폴백
             logger.info("Channel identification failed for %s, falling back to speaker diarization: %s", job_name, e)
+            fallback_settings: dict = {
+                "ShowSpeakerLabels": True,
+                "MaxSpeakerLabels": 5,
+            }
+            if language_code == "ko-KR":
+                fallback_settings["VocabularyName"] = self._vocabulary_name
             self._client.start_transcription_job(
                 TranscriptionJobName=job_name + "-retry",
                 LanguageCode=language_code,
                 Media={"MediaFileUri": s3_uri},
-                Settings={
-                    "ShowSpeakerLabels": True,
-                    "MaxSpeakerLabels": 5,
-                },
+                Settings=fallback_settings,
             )
             return job_name + "-retry"
         return job_name
