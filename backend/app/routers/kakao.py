@@ -11,6 +11,7 @@
 
 원칙: LLM 미사용(5초 안전) · 법적 판단/대리 안 함 · 정보 제공만(법률자문 아님).
 """
+import os
 import re
 import sys
 from pathlib import Path
@@ -417,6 +418,75 @@ def _diagnose_text(utterance, c, lang):
     return _t_diag_ok(lang, wage, floor)
 
 
+# ── 리치 카드 응답 빌더 (시각·구조·상호작용 개선) ──
+def _app_button(lang):
+    """BADA_APP_URL 환경변수가 있을 때만 '앱 열기' webLink 버튼 (배포 후 채우면 자동 활성)."""
+    url = (os.environ.get("BADA_APP_URL") or "").strip()
+    if not url:
+        return []
+    label = {"ko": "BADA 앱 열기", "vi": "Mở app BADA", "en": "Open BADA app"}[lang]
+    return [{"action": "webLink", "label": label, "webLinkUrl": url}]
+
+
+def _quick(lang, menu=True):
+    btns = LANG_BTNS if not menu else MENU[lang]
+    return [{"action": "message", "label": l, "messageText": m} for l, m in btns]
+
+
+def _card_response(card, lang, menu=True, with_disc=True):
+    outputs = [card]
+    if with_disc:
+        outputs.append({"simpleText": {"text": DISCLAIMER[lang]}})
+    return {"version": "2.0", "template": {"outputs": outputs, "quickReplies": _quick(lang, menu)}}
+
+
+def _text_card(title, desc, lang, buttons=None, menu=True):
+    title = (title or "").strip()[:50]
+    desc = (desc or "").strip()
+    if len(desc) > 400:
+        desc = desc[:399].rstrip() + "…"
+    card = {"textCard": {"title": title, "description": desc}}
+    btns = (buttons or []) + _app_button(lang)
+    if btns:
+        card["textCard"]["buttons"] = btns[:3]
+    return _card_response(card, lang, menu=menu)
+
+
+def _split_card(text, lang, menu=True):
+    """'헤더\\n본문' 텍스트 → textCard(제목+설명). 단문이면 simpleText 그대로."""
+    text = (text or "").strip()
+    head, _, body = text.partition("\n")
+    body = body.strip()
+    if not body:
+        return _template(text, lang, menu)
+    return _text_card(head, body, lang, menu=menu)
+
+
+_CHK_DESC = {
+    "ko": {"contract": "임금·공제 조건", "statement": "지급액·공제 항목", "payment": "실제 입금 내역", "schedule": "근무시간 기록"},
+    "vi": {"contract": "Điều kiện lương·trừ", "statement": "Số tiền·khoản trừ", "payment": "Tiền vào thực tế", "schedule": "Giờ làm việc"},
+    "en": {"contract": "Wage·deduction terms", "statement": "Amount·deductions", "payment": "Actual deposits", "schedule": "Work hours"},
+}
+
+
+def _checklist_card(c, lang):
+    have = set(c.get("category_codes", [])) if c else set()
+    cat = CATEGORY[lang]
+    done = sum(1 for x in _REQUIRED if x in have)
+    header = {"ko": f"📋 체크리스트 {done}/{len(_REQUIRED)}",
+              "vi": f"📋 Checklist {done}/{len(_REQUIRED)}",
+              "en": f"📋 Checklist {done}/{len(_REQUIRED)}"}[lang]
+    items = []
+    for x in _REQUIRED:
+        mark = "✅ " if x in have else "⬜ "
+        items.append({"title": (mark + cat.get(x, x))[:36], "description": _CHK_DESC[lang].get(x, "")[:40]})
+    card = {"listCard": {"header": {"title": header}, "items": items}}
+    btns = _app_button(lang)
+    if btns:
+        card["listCard"]["buttons"] = btns[:3]
+    return _card_response(card, lang, menu=True, with_disc=True)
+
+
 # ── 핸들러 ──
 @router.post("/skill")
 async def kakao_skill(request: Request) -> dict[str, Any]:
@@ -458,16 +528,16 @@ async def kakao_skill(request: Request) -> dict[str, Any]:
     case = _load_case(kakao_user_id)
 
     if intent == "diagnose":
-        return _template(_diagnose_text(utterance, case, lang), lang)
+        return _split_card(_diagnose_text(utterance, case, lang), lang)
     if intent == "checklist":
-        return _template(_checklist_text(case, lang), lang)
+        return _checklist_card(case, lang)
     if intent == "status":
-        return _template(_status_text(case, lang) if case else _no_case(lang), lang)
+        return _split_card(_status_text(case, lang), lang) if case else _template(_no_case(lang), lang)
     if intent == "missing":
-        return _template(_missing_text(case, lang), lang)
+        return _split_card(_missing_text(case, lang), lang)
     if intent == "todo":
-        return _template(_todo_text(case, lang), lang)
+        return _split_card(_todo_text(case, lang), lang)
     if intent in GUIDES:
-        return _template(GUIDES[intent][lang], lang)
+        return _split_card(GUIDES[intent][lang], lang)
 
     return _template(FALLBACK[lang], lang)
