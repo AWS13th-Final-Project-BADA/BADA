@@ -119,20 +119,45 @@ ALB /health       : 200 {"status":"ok"}
 ALB /version      : 200 {"name":"BADA","version":"0.1.0","auth_mode":"demo","storage_mode":"s3"}
 ```
 
+## GitHub Actions 자동배포
+
+- [x] GitHub Actions 배포 전략 확정
+- [x] GitHub Actions OIDC Provider 확인
+- [x] GitHub Actions용 IAM Role 생성
+- [x] GitHub Actions Role trust policy에 repo / branch 조건 설정
+- [x] ECR push 권한 최소화
+- [x] ECS deploy 권한 구성
+- [x] `.github/workflows/deploy-dev.yml` 작성
+- [x] `develop` push 시 Backend image build / ECR push 자동화 구성
+- [x] ECS Task Definition 새 revision 등록 자동화 구성
+- [x] ECS Service update 자동화 구성
+- [x] 배포 후 ALB DNS 동적 조회 구성
+- [x] 배포 후 ALB `/health` 자동 검증 구성
+- [ ] GitHub Actions 실제 실행 결과 확인
+- [ ] 배포 실패 시 rollback 또는 이전 task definition 복구 절차 정리
+
+현재 자동배포 구성:
+
+```text
+develop push
+  -> GitHub Actions OIDC Role assume
+  -> Backend Docker image buildx build
+  -> ECR push
+  -> ECS Task Definition 새 revision 등록
+  -> ECS Service update
+  -> ALB DNS lookup
+  -> ALB /health check
+```
+
+배포 Role:
+
+```text
+arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role
+```
+
 ## 남은 Infra / DevOps 작업
 
-- [ ] GitHub Actions 배포 전략 확정
-- [ ] GitHub Actions OIDC Provider 구성
-- [ ] GitHub Actions용 IAM Role 생성
-- [ ] GitHub Actions Role trust policy에 repo / branch 조건 설정
-- [ ] ECR push 권한 최소화
-- [ ] ECS deploy 권한 최소화
-- [ ] `.github/workflows/deploy-dev.yml` 작성
-- [ ] `develop` push 시 Backend image build / ECR push 자동화
-- [ ] ECS Task Definition 새 revision 등록 자동화
-- [ ] ECS Service update 자동화
-- [ ] 배포 후 ALB `/health` 자동 검증
-- [ ] 배포 실패 시 rollback 또는 이전 task definition 복구 절차 정리
+- [ ] GitHub Actions 실제 실행 성공 확인
 - [ ] CloudWatch Alarm 세부화
 - [ ] Well-Architected Tool 점검 및 milestone 저장
 

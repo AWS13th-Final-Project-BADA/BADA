@@ -218,3 +218,21 @@ variable "retention_days" {
   type        = number
   default     = 90
 }
+
+variable "github_owner" {
+  description = "GitHub organization or user that owns the repository"
+  type        = string
+  default     = "AWS13th-Final-Project-BADA"
+}
+
+variable "github_repository" {
+  description = "GitHub repository name allowed to assume the deploy role"
+  type        = string
+  default     = "BADA"
+}
+
+variable "github_deploy_branch" {
+  description = "GitHub branch allowed to deploy the dev environment"
+  type        = string
+  default     = "develop"
+}

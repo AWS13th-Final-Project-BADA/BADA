@@ -41,3 +41,8 @@ backend_embedding_mode = "mock"
 worker_provider_mode     = "local"
 worker_translate_mode    = "local"
 worker_structured_engine = "vision"
+
+# GitHub Actions OIDC deploy role scope.
+github_owner         = "AWS13th-Final-Project-BADA"
+github_repository    = "BADA"
+github_deploy_branch = "develop"

@@ -51,4 +51,22 @@ ALB /health        : 200 {"status":"ok"}
 ALB /version       : 200 {"name":"BADA","version":"0.1.0","auth_mode":"demo","storage_mode":"s3"}
 ```
 
+GitHub Actions 자동배포:
+
+```text
+develop push
+  -> OIDC Role assume
+  -> Backend Docker image build / ECR push
+  -> ECS Task Definition 새 revision 등록
+  -> ECS Service update
+  -> ALB DNS lookup
+  -> ALB /health check
+```
+
+- Workflow: `.github/workflows/deploy-dev.yml`
+- Deploy Role: `arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role`
+- Trigger: `develop` push 또는 수동 실행
+- Scope: Backend ECS Service 우선 배포
+- Health Check: 고정 DNS가 아니라 `bada-dev-alb` 이름으로 ALB DNS를 조회한 뒤 `/health` 확인
+
 주의: `terraform.tfvars`는 로컬 전용 파일이며 GitHub에 커밋하지 않는다. Backend task를 계속 실행하면 Fargate 비용이 발생하므로 검증 종료 후 필요 시 `backend_desired_count = 0`으로 되돌린다.
