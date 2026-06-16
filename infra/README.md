@@ -40,6 +40,8 @@ MVP 원칙:
 - Backend / Worker 이미지는 ECR `latest` 태그로 push 가능
 - Backend ECS Service는 수동 검증 기준 `desired_count = 1`로 기동 및 ALB `/health` 200 응답 확인
 - Worker ECS Service는 SQS consumer 검증 전까지 `desired_count = 0` 유지
+- 오디오 전사는 Worker SQS consumer 완성 전까지 `TRANSCRIPTION_DISPATCH_MODE=inline`으로 Backend에서 직접 처리 가능하게 구성
+- ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
 - 프로젝트 운영 기간은 `2026-06-04 ~ 2026-07-10`, 팀 전체 AWS 총 예산은 `1,500달러`
 
 수동 배포 검증 결과:
@@ -49,6 +51,8 @@ Backend ECS Service: desired=1, running=1
 Worker ECS Service : desired=0, running=0
 ALB /health        : 200 {"status":"ok"}
 ALB /version       : 200 {"name":"BADA","version":"0.1.0","auth_mode":"demo","storage_mode":"s3"}
+S3 Evidence object : SSE-KMS 저장 확인
+RDS schema         : alembic_version=20260616_0004, community tables/provider columns/timeline confidence 확인
 ```
 
 GitHub Actions 자동배포:
@@ -72,12 +76,32 @@ develop push
 자동배포 검증 결과:
 
 ```text
-PR #19 merge 이후 develop push 기준 실행 성공
+PR #23 merge 이후 develop push 기준 실행 성공
 CI workflow     : success
 Deploy workflow : success
-Backend task def: bada-dev-backend:3
+Backend task def: bada-dev-backend:6
 ECS state       : desired=1, running=1, rolloutState=COMPLETED
 ALB /health     : 200 {"status":"ok"}
+```
+
+인프라 보강 적용 결과:
+
+```text
+Terraform apply : success
+Backend task def: bada-dev-backend:7
+추가 환경변수    : TRANSCRIPTION_DISPATCH_MODE=inline
+추가 IAM 권한   : transcribe:Start/Get/Delete/ListTranscriptionJob
+```
+
+팀원 기능 smoke test:
+
+```text
+POST /cases                                      : 200
+POST /community/posts                           : 200
+POST /cases/{case_id}/evidences/agent-upload    : 200
+GET  /cases/{case_id}/evidences                 : 200
+POST /cases/{case_id}/evidences/scan            : 200
+CloudWatch Logs                                 : 요청 로그 확인
 ```
 
 주의: `terraform.tfvars`는 로컬 전용 파일이며 GitHub에 커밋하지 않는다. Backend task를 계속 실행하면 Fargate 비용이 발생하므로 검증 종료 후 필요 시 `backend_desired_count = 0`으로 되돌린다.

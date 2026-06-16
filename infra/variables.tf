@@ -195,6 +195,17 @@ variable "backend_embedding_mode" {
   default     = "mock"
 }
 
+variable "backend_transcription_dispatch_mode" {
+  description = "How backend dispatches audio transcription jobs. Use inline for MVP demo until the SQS worker consumer is ready."
+  type        = string
+  default     = "inline"
+
+  validation {
+    condition     = contains(["inline", "sqs"], var.backend_transcription_dispatch_mode)
+    error_message = "backend_transcription_dispatch_mode must be either inline or sqs."
+  }
+}
+
 variable "worker_provider_mode" {
   description = "Worker provider mode"
   type        = string

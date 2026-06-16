@@ -548,6 +548,10 @@ resource "aws_iam_role_policy" "ecs_task_app_access" {
         Action = [
           "bedrock:InvokeModel",
           "bedrock:InvokeModelWithResponseStream",
+          "transcribe:StartTranscriptionJob",
+          "transcribe:GetTranscriptionJob",
+          "transcribe:DeleteTranscriptionJob",
+          "transcribe:ListTranscriptionJobs",
           "translate:TranslateText"
         ]
         Resource = "*"
@@ -674,6 +678,7 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "S3_BUCKET", value = aws_s3_bucket.evidence.bucket },
         { name = "KMS_KEY_ID", value = aws_kms_key.evidence.arn },
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.analysis.url },
+        { name = "TRANSCRIPTION_DISPATCH_MODE", value = var.backend_transcription_dispatch_mode },
         { name = "COGNITO_USER_POOL_ID", value = aws_cognito_user_pool.main.id },
         { name = "COGNITO_CLIENT_ID", value = aws_cognito_user_pool_client.app.id },
         { name = "RETENTION_DAYS", value = tostring(var.retention_days) }
