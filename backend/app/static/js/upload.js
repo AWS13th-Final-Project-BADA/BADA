@@ -49,9 +49,17 @@ function buildUpload(){
       <span class="need"></span>
       <input type="file" accept="image/*,application/pdf" class="i-up" style="display:none">`;
     const inp=card.querySelector(".i-up"), st=card.querySelector(".up-state"), warnEl=card.querySelector(".need");
-    if(r.cat==="audio") inp.accept="audio/*,.mp3,.mp4,.wav,.flac,.ogg,.amr,.webm";
+    if(r.cat==="audio"){ inp.accept="audio/*,.mp3,.mp4,.m4a,.wav,.flac,.ogg,.amr,.webm"; inp.multiple=true; }
     card.onclick=(e)=>{ if(e.target.tagName!=="INPUT") inp.click(); };
-    inp.onchange=()=>{ if(inp.files.length) doUpload(r.cat, inp.files[0], st, warnEl); };
+    inp.onchange=async()=>{
+      if(!inp.files.length) return;
+      const files=[...inp.files];
+      for(let i=0;i<files.length;i++){
+        st.innerHTML=files.length>1?`<i class="ti ti-loader"></i> ${i+1}/${files.length} 업로드 중...`:"업로드 중...";
+        await doUpload(r.cat, files[i], st, warnEl);
+      }
+      if(files.length>1){ st.innerHTML='<i class="ti ti-check"></i> '+files.length+'개 완료'; st.classList.add("done"); }
+    };
     c.appendChild(card);
   });
 }

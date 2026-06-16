@@ -24,7 +24,7 @@ router = APIRouter(prefix="/cases/{case_id}/evidences", tags=["evidences"])
 # Audio upload constants
 # ---------------------------------------------------------------------------
 
-AUDIO_EXTENSIONS = {"mp3", "mp4", "wav", "flac", "ogg", "amr", "webm"}
+AUDIO_EXTENSIONS = {"mp3", "mp4", "m4a", "wav", "flac", "ogg", "amr", "webm"}
 SUPPORTED_LANGUAGE_CODES = {"ko-KR", "vi-VN", "en-US", "th-TH", "ja-JP", "id-ID", "km-KH", "ne-NP"}
 MAX_AUDIO_FILE_SIZE = 200 * 1024 * 1024  # 200 MB
 
