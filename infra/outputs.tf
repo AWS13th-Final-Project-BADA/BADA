@@ -77,3 +77,7 @@ output "worker_ecr_repository_url" {
 output "secrets_manager_secret_arn" {
   value = aws_secretsmanager_secret.app.arn
 }
+
+output "github_actions_deploy_role_arn" {
+  value = aws_iam_role.github_actions_deploy.arn
+}
