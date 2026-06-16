@@ -226,6 +226,7 @@ class TimelineEvent(Base):
     event_date: Mapped[date | None] = mapped_column(Date, index=True)
     event_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     date_precision: Mapped[str] = mapped_column(String(20), default="unknown", nullable=False)
+    # confidence는 high/medium/low enum 문자열(domain.md). 점수화(Numeric)는 Phase 2.
     confidence: Mapped[str | None] = mapped_column(String(20))
     source: Mapped[str] = mapped_column(String(30), default="ai", nullable=False)
     source_evidence_id: Mapped[str | None] = mapped_column(ForeignKey("evidences.id", ondelete="SET NULL"))

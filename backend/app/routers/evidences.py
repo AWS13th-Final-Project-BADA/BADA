@@ -140,7 +140,6 @@ async def upload_file(case_id: str, category: str = Form(...), file: UploadFile 
     return {"id": ev.id, "file_name": ev.file_name, "category": ev.category, "file_key": key}
 
 
-<<<<<<< HEAD
 @router.post("/scan")
 async def scan_evidences(case_id: str, files: list[UploadFile] = File(...)):
     """증거 수집 에이전트 [스캔] — 여러 이미지를 분류만으로 빠르게 훑어 후보를 추린다.
@@ -221,7 +220,8 @@ async def assess_evidence(case_id: str, file: UploadFile = File(...)):
         "reasons": result["reasons"],
         "alternative": (result.get("classify") or {}).get("alternative"),
     }
-=======
+
+
 def _publish_transcription_message(ev: Evidence, case_id: str, s3_key: str, language_code: str | None) -> None:
     """Publish a transcription task message to SQS (AWS mode)."""
     import json
@@ -308,7 +308,6 @@ def _run_local_transcription(db: Session, ev: Evidence, s3_key: str, language_co
         ev.ocr_status = "failed"
         logger.error("Transcription error for %s: %s", ev.id, e)
         db.commit()
->>>>>>> 34ba16f439702823bd8a18aee8ff51ecf43ca987
 
 
 @router.post("/extract")
