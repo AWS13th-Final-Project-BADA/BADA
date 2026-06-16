@@ -48,3 +48,6 @@ Thumbs.db
 eval/dataset/raw/
 *.local.json
 uploads/
+
+# 개인 작업 메모 (협업 저장소에 올리지 않음)
+evidence-agent-context.md

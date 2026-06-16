@@ -52,6 +52,88 @@ async def upload_file(case_id: str, category: str = Form(...), file: UploadFile 
     return {"id": ev.id, "file_name": ev.file_name, "category": ev.category, "file_key": key}
 
 
+@router.post("/scan")
+async def scan_evidences(case_id: str, files: list[UploadFile] = File(...)):
+    """증거 수집 에이전트 [스캔] — 여러 이미지를 분류만으로 빠르게 훑어 후보를 추린다.
+
+    단계적 비용 절감: 여기선 OCR을 돌리지 않는다(형태 분류만, 싸다).
+    무관 이미지(셀카 등)는 rejected로 걸러지고, 관련 후보만 사용자에게 추천한다.
+
+    반환:
+      candidates: [{file_name, category, decision, confidence, alternative, reasons}]
+      summary:    {auto_accept, needs_review, rejected}
+      recommended:[관련 후보 file_name]   ← 사용자가 승인하면 /upload 로 등록(OCR은 그때 1회)
+
+    ⚠️ 자동 등록하지 않는다(HITL). 비싼 OCR은 승인 후 /extract 단계에서만.
+    """
+    from ..services.intake_service import scan_images
+
+    images: list[tuple[str, bytes]] = []
+    for f in files:
+        images.append((f.filename, await f.read()))
+    return scan_images(images)
+
+
+@router.post("/agent-upload")
+async def agent_batch_upload(
+    case_id: str,
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
+    """증거 수집 에이전트 [4단계] — 승인된 파일들을 일괄 업로드 + category=auto 로 등록.
+
+    디바이스에서 1~3단계 필터를 거치고 사용자가 승인한 파일만 여기로 온다.
+    category="auto"로 등록하면 기존 ocr_service가 자동분류+OCR+저장을 한 번에 처리한다.
+
+    흐름: agent-upload → (DB 등록) → /extract 호출 → classify+OCR 1회 → 분석 준비 완료
+    """
+    results = []
+    storage = get_storage()
+    for f in files:
+        data = await f.read()
+        key = f"cases/{case_id}/{f.filename}"
+        storage.save(key, data)
+        ev = Evidence(
+            case_id=case_id, file_key=key, file_name=f.filename,
+            file_type=_guess_type(f.filename), category="auto", ocr_status="pending",
+        )
+        db.add(ev)
+        results.append({"file_name": f.filename, "category": "auto", "file_key": key})
+    db.commit()
+    return {
+        "uploaded": len(results),
+        "files": results,
+        "next_step": f"POST /cases/{case_id}/evidences/extract 를 호출하면 자동분류+OCR이 실행됩니다.",
+    }
+
+
+@router.post("/assess")
+async def assess_evidence(case_id: str, file: UploadFile = File(...)):
+    """증거 수집 에이전트 [정밀] — 1장을 분류+OCR+키워드 교차검증으로 확인(정확성 3종).
+
+    스캔에서 추려진 파일을 정밀 확인하거나, 사용자가 애매한 1장을 확인할 때 사용.
+
+    decision:
+      - auto_accept   : 형태+내용 모두 강함
+      - needs_review  : 애매/불일치 → 사용자 확인 필요
+      - rejected      : 무관 이미지 → 제외
+
+    ⚠️ 자동 등록하지 않는다. 승인 시 /upload 로 등록(HITL).
+    """
+    from ..services.intake_service import assess_one_deep
+
+    data = await file.read()
+    result = assess_one_deep(data)
+    return {
+        "file_name": file.filename,
+        "suggested_category": result["category"],
+        "decision": result["decision"],
+        "confidence": result["confidence"],
+        "reasons": result["reasons"],
+        "alternative": (result.get("classify") or {}).get("alternative"),
+    }
+
+
 @router.post("/extract")
 def extract(case_id: str, wait: bool = False, db: Session = Depends(get_db)):
     """업로드된 증거 파일에 OCR 실행 → 엔티티 추출·저장.
