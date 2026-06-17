@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     s3_bucket: str = ""
     kms_key_id: str = ""
     sqs_queue_url: str = ""
+    transcription_dispatch_mode: str = "inline"  # inline | sqs
     # Claude Sonnet 4.6 (Global 추론 프로파일, 비전 지원). 텍스트·비전 공용.
     bedrock_model_id: str = "global.anthropic.claude-sonnet-4-6"
     bedrock_vision_model_id: str = "global.anthropic.claude-sonnet-4-6"

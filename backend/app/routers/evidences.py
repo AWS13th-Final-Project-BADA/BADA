@@ -118,7 +118,7 @@ async def upload_file(case_id: str, category: str = Form(...), file: UploadFile 
     if file_type == "audio":
         ev.ocr_status = "processing"
         db.commit()
-        if settings.sqs_queue_url:
+        if settings.transcription_dispatch_mode == "sqs" and settings.sqs_queue_url:
             _publish_transcription_message(ev, case_id, key, language_code)
         else:
             # Background thread for local transcription (non-blocking)
