@@ -17,7 +17,7 @@
 | 파일 저장소 | S3 Evidence / Report Bucket |
 | 비밀값 관리 | Secrets Manager |
 | 설정값 관리 | SSM Parameter Store |
-| 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 준비 |
+| 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 및 AWS 권한 반영 완료 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
 | 모니터링 | CloudWatch Logs / Alarms |
 
@@ -150,9 +150,21 @@ develop push
 | 인증 방식 | GitHub Actions OIDC |
 | 배포 대상 | Worker ECS Service |
 | 현재 실행 상태 | `desired_count=0` 유지 |
-| AWS 권한 반영 | Terraform apply 후 Worker ECR push 가능 |
+| AWS 권한 반영 | 완료. Deploy Role이 Backend / Worker ECR push 가능 |
+| 실행 검증 | 대기. `worker/**` 변경 push 또는 workflow default branch 반영 후 검증 |
 
 Worker는 아직 SQS long-running consumer가 구현되지 않았으므로, 배포 workflow는 이미지와 Task Definition revision을 갱신하는 용도로만 사용한다. Worker consumer가 완성되면 Terraform에서 `worker_desired_count`를 올려 실제 실행 상태로 전환한다.
+
+검증 기록:
+
+```text
+terraform apply : success
+changed         : 1 IAM role policy
+terraform plan  : No changes
+Worker service  : desired=0, running=0
+```
+
+주의: 현재 GitHub 기본 브랜치가 `main`이므로, `develop`에만 존재하는 신규 workflow는 GitHub Actions 수동 실행 목록에 바로 노출되지 않을 수 있다. Worker workflow 실제 실행 검증은 `worker/**` 변경이 `develop`에 push될 때 자동 실행되거나, workflow가 default branch에 반영된 뒤 수동 실행으로 진행한다.
 
 ### Backend 수동 롤백
 
@@ -176,7 +188,7 @@ workflow_dispatch
 | 항목 | 상태 | 비고 |
 | --- | --- | --- |
 | Worker SQS long-running consumer | 미구현 | 구현 후 Worker Service 기동 필요 |
-| Worker ECR push 권한 AWS 반영 | 대기 | Terraform apply 필요 |
+| Worker 자동배포 실행 검증 | 대기 | `worker/**` 변경 push 또는 workflow default branch 반영 후 가능 |
 | Well-Architected Tool 점검 | 대기 | 기능 통합 후 점검 예정 |
 | SNS 기반 알림 전송 | 대기 | 현재 CloudWatch Alarm은 알람 객체만 생성 |
 

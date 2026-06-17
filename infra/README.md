@@ -108,6 +108,21 @@ develop push
 - 현재 기준: Worker SQS consumer 구현 전이므로 `desired_count = 0` 유지
 - 의미: Worker consumer가 완성되면 image build, ECR push, task definition revision 갱신 흐름을 바로 사용할 수 있다.
 
+Worker 자동배포 권한 반영 결과:
+
+```text
+Terraform apply : success
+Changed         : GitHub Actions Deploy Role policy 1개
+ECR push scope  : bada-dev-backend, bada-dev-worker
+Terraform plan  : No changes
+Worker Service  : desired=0, running=0
+```
+
+주의:
+
+- 현재 GitHub 기본 브랜치가 `main`이므로, `develop`에만 존재하는 신규 workflow는 `workflow_dispatch` 수동 실행 목록에 바로 보이지 않을 수 있다.
+- Worker workflow 실제 실행 검증은 `worker/**` 변경이 `develop`에 push될 때 자동 실행되거나, workflow가 default branch에 반영된 뒤 수동 실행으로 진행한다.
+
 GitHub Actions 수동 롤백:
 
 ```text
