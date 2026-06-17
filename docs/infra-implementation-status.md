@@ -20,6 +20,7 @@
 | 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 및 AWS 권한 반영 완료 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
 | 모니터링 | CloudWatch Logs / Alarms |
+| Well-Architected | Workload 생성 및 초기 milestone 저장 완료 |
 
 ## 2. 현재 실행 상태
 
@@ -108,6 +109,7 @@ SQS
 | CloudWatch Log Group | 완료 | Backend / Worker 로그 |
 | CloudWatch Alarm | 완료 | ALB, ECS, RDS, SQS 핵심 지표 8개 |
 | AWS Budgets | 완료 | 팀 예산 추적 |
+| Well-Architected Tool | 초기 등록 완료 | Workload / Milestone 생성 |
 
 ## 5. 배포 자동화 현황
 
@@ -189,10 +191,36 @@ workflow_dispatch
 | --- | --- | --- |
 | Worker SQS long-running consumer | 미구현 | 구현 후 Worker Service 기동 필요 |
 | Worker 자동배포 실행 검증 | 대기 | `worker/**` 변경 push 또는 workflow default branch 반영 후 가능 |
-| Well-Architected Tool 점검 | 대기 | 기능 통합 후 점검 예정 |
+| Well-Architected 질문 답변 | 대기 | Workload와 초기 milestone은 생성 완료 |
 | SNS 기반 알림 전송 | 대기 | 현재 CloudWatch Alarm은 알람 객체만 생성 |
 
-## 7. 참고 문서
+## 7. Well-Architected Tool 현황
+
+| 항목 | 값 |
+| --- | --- |
+| Workload Name | `BADA Dev Infrastructure` |
+| Workload ID | `95748e8dbd2cc80821d6429d20a9ef03` |
+| Environment | `PREPRODUCTION` |
+| Region | `ap-northeast-2` |
+| Lens | `AWS Well-Architected Framework` |
+| Initial Milestone | `2026-06-17 initial workload baseline` |
+| Milestone Number | `1` |
+| 현재 답변 상태 | 57개 질문 모두 `UNANSWERED` |
+
+미답변 질문 분포:
+
+| Pillar | 미답변 수 |
+| --- | ---: |
+| Operational Excellence | 11 |
+| Security | 11 |
+| Reliability | 13 |
+| Performance Efficiency | 5 |
+| Cost Optimization | 11 |
+| Sustainability | 6 |
+
+현재는 BADA dev 인프라를 Well-Architected Tool에 등록하고 초기 기준선을 저장한 상태다. 이후 멘토링 또는 팀 리뷰를 통해 Operational Excellence, Security, Reliability, Performance Efficiency, Cost Optimization, Sustainability 질문을 순차적으로 답변한다.
+
+## 8. 참고 문서
 
 | 문서 | 목적 |
 | --- | --- |

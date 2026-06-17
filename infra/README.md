@@ -192,6 +192,24 @@ SQS Analysis DLQ            : visible message 1개 이상
 - 적용 결과: `terraform apply`로 8개 알람 생성 완료, 이후 `terraform plan` 기준 `No changes` 확인
 - 참고: 생성 직후에는 CloudWatch metric 데이터가 충분하지 않아 `INSUFFICIENT_DATA`로 보일 수 있다.
 
+Well-Architected Tool 등록:
+
+```text
+Workload Name     : BADA Dev Infrastructure
+Workload ID       : 95748e8dbd2cc80821d6429d20a9ef03
+Environment       : PREPRODUCTION
+Region            : ap-northeast-2
+Lens              : AWS Well-Architected Framework
+Initial Milestone : 2026-06-17 initial workload baseline
+Milestone Number  : 1
+Question status   : 57 UNANSWERED
+```
+
+- 현재는 workload를 생성하고 초기 milestone을 저장한 상태다.
+- 미답변 질문은 운영 11개, 보안 11개, 신뢰성 13개, 성능 5개, 비용 11개, 지속가능성 6개다.
+- 질문 답변은 멘토링 또는 팀 리뷰 이후 순차적으로 채운다.
+- 처음 생성 시 `IndustryType=Technology`는 AWS 허용 값이 아니어서 실패했고, `InfoTech`로 생성했다.
+
 롤백 대상 revision 확인:
 
 ```bash
