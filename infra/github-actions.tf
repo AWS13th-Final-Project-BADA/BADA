@@ -49,7 +49,7 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         Resource = "*"
       },
       {
-        Sid    = "BackendEcrPush"
+        Sid    = "AppEcrPush"
         Effect = "Allow"
         Action = [
           "ecr:BatchCheckLayerAvailability",
@@ -62,7 +62,10 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
           "ecr:PutImage",
           "ecr:UploadLayerPart"
         ]
-        Resource = aws_ecr_repository.backend.arn
+        Resource = [
+          aws_ecr_repository.backend.arn,
+          aws_ecr_repository.worker.arn
+        ]
       },
       {
         Sid    = "BackendEcsDeploy"

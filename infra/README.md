@@ -40,6 +40,7 @@ MVP 원칙:
 - Backend / Worker 이미지는 ECR `latest` 태그로 push 가능
 - Backend ECS Service는 수동 검증 기준 `desired_count = 1`로 기동 및 ALB `/health` 200 응답 확인
 - Worker ECS Service는 SQS consumer 검증 전까지 `desired_count = 0` 유지
+- Worker 자동배포 workflow는 준비하되, consumer 구현 전까지는 Task Definition revision 갱신과 Service 상태 확인 용도로만 사용
 - 오디오 전사는 Worker SQS consumer 완성 전까지 `TRANSCRIPTION_DISPATCH_MODE=inline`으로 Backend에서 직접 처리 가능하게 구성
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
 - CloudWatch Alarm은 ALB/ECS/RDS/SQS 핵심 지표 기준으로 생성하며, 기본은 콘솔 확인용이다.
@@ -70,7 +71,7 @@ S3 Evidence object : SSE-KMS 저장 확인
 RDS schema         : alembic_version=20260616_0004, community tables/provider columns/timeline confidence 확인
 ```
 
-GitHub Actions 자동배포:
+GitHub Actions Backend 자동배포:
 
 ```text
 develop push
@@ -88,6 +89,24 @@ develop push
 - Scope: Backend ECS Service 우선 배포
 - Health Check: 고정 DNS가 아니라 `bada-dev-alb` 이름으로 ALB DNS를 조회한 뒤 `/health` 확인
 - Terraform은 ECS Service 골격을 관리하고, 배포 후 task definition revision 변경은 GitHub Actions가 관리한다. 따라서 ECS Service의 `task_definition` drift는 Terraform에서 무시한다.
+
+GitHub Actions Worker 자동배포:
+
+```text
+develop push
+  -> OIDC Role assume
+  -> Worker Docker image build / ECR push
+  -> ECS Task Definition 새 revision 등록
+  -> ECS Service update
+  -> ECS Service 상태 출력
+```
+
+- Workflow: `.github/workflows/deploy-dev-worker.yml`
+- Deploy Role: `arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role`
+- Trigger: `worker/**` 변경이 포함된 `develop` push 또는 수동 실행
+- Scope: Worker ECS Service 배포 준비
+- 현재 기준: Worker SQS consumer 구현 전이므로 `desired_count = 0` 유지
+- 의미: Worker consumer가 완성되면 image build, ECR push, task definition revision 갱신 흐름을 바로 사용할 수 있다.
 
 GitHub Actions 수동 롤백:
 
