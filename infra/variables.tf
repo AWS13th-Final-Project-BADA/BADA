@@ -100,6 +100,12 @@ variable "log_retention_days" {
   default     = 14
 }
 
+variable "alarm_actions" {
+  description = "SNS topic ARNs or other alarm action ARNs. Keep empty for console-only alarms."
+  type        = list(string)
+  default     = []
+}
+
 variable "api_container_image" {
   description = "Backend API container image URI"
   type        = string

@@ -34,6 +34,10 @@ worker_task_cpu     = 256
 worker_task_memory  = 512
 ecs_cpu_architecture = "ARM64"
 
+# CloudWatch alarm actions.
+# Keep empty for console-only alarms. Add SNS topic ARNs later if notification is needed.
+alarm_actions = []
+
 # Cost-safe defaults. Switch to aws/bedrock modes only when the team is ready.
 backend_provider_mode  = "local"
 backend_ai_chat_mode   = "mock"
