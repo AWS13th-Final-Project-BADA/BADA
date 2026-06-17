@@ -240,68 +240,33 @@ def _publish_transcription_message(ev: Evidence, case_id: str, s3_key: str, lang
 
 
 def _run_local_transcription(db: Session, ev: Evidence, s3_key: str, language_code: str | None) -> None:
-    """Run transcription in background (separate DB session)."""
+    """Run transcription in background using worker's process_transcription.
+
+    채널 식별 + Custom Vocabulary + Claude 후처리가 모두 적용된다.
+    """
     import sys
-    import json
-    import urllib.request
     from pathlib import Path
 
     worker_dir = Path(__file__).resolve().parents[3] / "worker"
     if str(worker_dir) not in sys.path:
         sys.path.insert(0, str(worker_dir))
 
-    import boto3
-
-    # Build S3 URI
     s3_uri = f"s3://{settings.s3_bucket}/{s3_key}"
     job_name = f"bada-{ev.case_id[:8]}-{ev.id[:8]}-{int(time.time())}"
     lang = language_code or "ko-KR"
 
     try:
-        client = boto3.client("transcribe", region_name=settings.aws_region)
+        from services.transcription import process_transcription
 
-        # Start job
-        client.start_transcription_job(
-            TranscriptionJobName=job_name,
-            LanguageCode=lang,
-            Media={"MediaFileUri": s3_uri},
-            Settings={"ShowSpeakerLabels": True, "MaxSpeakerLabels": 5},
-        )
-        logger.info("Transcription job started: %s (lang=%s)", job_name, lang)
+        result = process_transcription(s3_uri=s3_uri, language_code=lang, job_name=job_name)
 
-        # Poll (5s interval, 10min timeout)
-        elapsed = 0
-        while elapsed < 600:
-            time.sleep(5)
-            elapsed += 5
-            resp = client.get_transcription_job(TranscriptionJobName=job_name)
-            status = resp["TranscriptionJob"]["TranscriptionJobStatus"]
-
-            if status == "COMPLETED":
-                uri = resp["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
-                with urllib.request.urlopen(uri) as r:
-                    result_json = json.loads(r.read().decode("utf-8"))
-
-                # Parse transcript
-                transcripts = result_json.get("results", {}).get("transcripts", [])
-                text = transcripts[0]["transcript"] if transcripts else ""
-
-                ev.ocr_text = text
-                ev.ocr_status = "done"
-                logger.info("Transcription done: %s (%d chars)", job_name, len(text))
-                db.commit()
-                return
-
-            if status == "FAILED":
-                reason = resp["TranscriptionJob"].get("FailureReason", "unknown")
-                ev.ocr_status = "failed"
-                logger.error("Transcription failed: %s reason=%s", job_name, reason)
-                db.commit()
-                return
-
-        # Timeout
-        ev.ocr_status = "failed"
-        logger.error("Transcription timeout: %s", job_name)
+        if result["status"] == "done":
+            ev.ocr_text = result["text"] or ""
+            ev.ocr_status = "done"
+            logger.info("Transcription done: %s (%d chars)", job_name, len(ev.ocr_text))
+        else:
+            ev.ocr_status = "failed"
+            logger.error("Transcription failed: %s error=%s", job_name, result.get("error"))
         db.commit()
 
     except Exception as e:
