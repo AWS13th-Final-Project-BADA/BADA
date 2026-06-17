@@ -201,14 +201,25 @@ Environment       : PREPRODUCTION
 Region            : ap-northeast-2
 Lens              : AWS Well-Architected Framework
 Initial Milestone : 2026-06-17 initial workload baseline
-Milestone Number  : 1
-Question status   : 57 UNANSWERED
+Review Milestone  : 2026-06-17 first review answers
+Milestone Number  : 1, 2
+Question status   : 57 answered
+Risk summary      : HIGH 30 / MEDIUM 24 / NONE 3 / UNANSWERED 0
 ```
 
-- 현재는 workload를 생성하고 초기 milestone을 저장한 상태다.
-- 미답변 질문은 운영 11개, 보안 11개, 신뢰성 13개, 성능 5개, 비용 11개, 지속가능성 6개다.
-- 질문 답변은 멘토링 또는 팀 리뷰 이후 순차적으로 채운다.
+- workload를 생성하고 초기 milestone과 1차 답변 milestone을 저장했다.
+- 답변은 현재 구현된 dev/pre-production 인프라 기준으로 보수적으로 선택했다.
+- High Risk는 대부분 MVP 일정과 비용 때문에 의도적으로 미룬 HTTPS, 알림, DR 테스트, 오토스케일링, 보안 스캔, 비용 상세 분석 항목이다.
 - 처음 생성 시 `IndustryType=Technology`는 AWS 허용 값이 아니어서 실패했고, `InfoTech`로 생성했다.
+
+우선 개선 항목:
+
+- P0: ALB HTTPS/ACM 적용 및 HTTP -> HTTPS redirect 검토
+- P0: CloudWatch Alarm에 SNS 이메일 또는 Slack 알림 연결
+- P0: Worker SQS consumer 구현 후 Worker Service 기동 검증
+- P1: RTO/RPO와 RDS restore rehearsal 절차 정의
+- P1: ECR image scan, dependency scan, CI 보안 검증 강화
+- P1: ECS Backend/Worker Auto Scaling과 부하 테스트 기준 수립
 
 롤백 대상 revision 확인:
 

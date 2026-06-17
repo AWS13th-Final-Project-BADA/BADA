@@ -191,7 +191,7 @@ workflow_dispatch
 | --- | --- | --- |
 | Worker SQS long-running consumer | 미구현 | 구현 후 Worker Service 기동 필요 |
 | Worker 자동배포 실행 검증 | 대기 | `worker/**` 변경 push 또는 workflow default branch 반영 후 가능 |
-| Well-Architected 질문 답변 | 대기 | Workload와 초기 milestone은 생성 완료 |
+| Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
 | SNS 기반 알림 전송 | 대기 | 현재 CloudWatch Alarm은 알람 객체만 생성 |
 
 ## 7. Well-Architected Tool 현황
@@ -204,21 +204,44 @@ workflow_dispatch
 | Region | `ap-northeast-2` |
 | Lens | `AWS Well-Architected Framework` |
 | Initial Milestone | `2026-06-17 initial workload baseline` |
-| Milestone Number | `1` |
-| 현재 답변 상태 | 57개 질문 모두 `UNANSWERED` |
+| First Review Milestone | `2026-06-17 first review answers` |
+| Milestone Number | `1`, `2` |
+| 현재 답변 상태 | 57개 질문 답변 완료 |
 
-미답변 질문 분포:
+1차 리뷰 결과:
 
-| Pillar | 미답변 수 |
+| Risk | 개수 |
 | --- | ---: |
-| Operational Excellence | 11 |
-| Security | 11 |
-| Reliability | 13 |
-| Performance Efficiency | 5 |
-| Cost Optimization | 11 |
-| Sustainability | 6 |
+| High | 30 |
+| Medium | 24 |
+| None | 3 |
+| Unanswered | 0 |
 
-현재는 BADA dev 인프라를 Well-Architected Tool에 등록하고 초기 기준선을 저장한 상태다. 이후 멘토링 또는 팀 리뷰를 통해 Operational Excellence, Security, Reliability, Performance Efficiency, Cost Optimization, Sustainability 질문을 순차적으로 답변한다.
+Pillar별 리스크:
+
+| Pillar | High | Medium | None |
+| --- | ---: | ---: | ---: |
+| Operational Excellence | 7 | 4 | 0 |
+| Security | 7 | 3 | 1 |
+| Reliability | 8 | 5 | 0 |
+| Performance Efficiency | 2 | 3 | 0 |
+| Cost Optimization | 6 | 3 | 2 |
+| Sustainability | 0 | 6 | 0 |
+
+현재 High Risk는 대부분 MVP/dev 환경에서 일정과 비용을 우선해 의도적으로 미뤄둔 항목이다. 따라서 즉시 모든 리스크를 제거하기보다, 멘토링과 기능 통합에 필요한 항목부터 개선한다.
+
+우선 개선 항목:
+
+| 우선순위 | 개선 항목 | 관련 Pillar | 상태 |
+| --- | --- | --- | --- |
+| P0 | ALB HTTPS/ACM 적용 및 HTTP -> HTTPS redirect 검토 | Security | 대기 |
+| P0 | CloudWatch Alarm에 SNS 이메일 또는 Slack 알림 연결 | Operational Excellence / Reliability | 대기 |
+| P0 | Worker SQS consumer 구현 후 Worker Service 기동 검증 | Reliability / Cost | 개발 대기 |
+| P1 | RTO/RPO와 RDS restore rehearsal 절차 정의 | Reliability | 대기 |
+| P1 | ECR image scan, dependency scan, CI 보안 검증 강화 | Security | 대기 |
+| P1 | ECS Backend/Worker Auto Scaling과 부하 테스트 기준 수립 | Performance / Reliability | 대기 |
+| P2 | Cost allocation tag, Cost Explorer/CUR 기반 비용 분석 강화 | Cost Optimization | 대기 |
+| P2 | S3 lifecycle/retention 정책과 데이터 분류 기준 구체화 | Security / Sustainability | 대기 |
 
 ## 8. 참고 문서
 
