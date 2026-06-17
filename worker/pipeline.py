@@ -52,8 +52,12 @@ def process_case(case_id: str, ctx: dict) -> dict:
         # 버그#6 수정 반영: cross_check는 match=False도 반환하므로 match=True만 카운트
         gps_result = {
             "tagged_count": len(tagged),
+            "excluded_count": sum(1 for t in tagged if t.get("excluded")),
+            "in_count": sum(1 for t in tagged if t.get("status") == "IN_WORKPLACE"),
+            "out_count": sum(1 for t in tagged if t.get("status") == "OUTSIDE"),
             "cross_matches": sum(1 for r in results if r["match"]),
             "cross_mismatches": sum(1 for r in results if not r["match"]),
+            "daily": geofence.summarize_by_day(tagged),
         }
 
     result = {

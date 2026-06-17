@@ -123,9 +123,24 @@ class MissingItem(BaseModel):
     reason: str
 
 
+class GpsDaySummary(BaseModel):
+    work_date: str
+    in_count: int = 0
+    out_count: int = 0
+    first_in: Optional[str] = None
+    last_out: Optional[str] = None
+    estimated_hours: float = 0.0
+    hours_method: str = "insufficient_pings"
+
+
 class Gps(BaseModel):
     tagged_count: int = 0
+    excluded_count: int = 0
+    in_count: int = 0
+    out_count: int = 0
     cross_matches: int = 0
+    cross_mismatches: int = 0
+    daily: list[GpsDaySummary] = Field(default_factory=list)
 
 
 class Narrative(BaseModel):

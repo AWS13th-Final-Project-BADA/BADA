@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 
 from ..schemas_report import (
     SCHEMA_VERSION, AnalysisReport, CaseInfo, Comparison, Deduction, Finding,
-    Gps, Legal, Meta, MinWage, Narrative, Period, TimelineItem, TranslationItem,
-    Wage, MissingItem,
+    Gps, GpsDaySummary, Legal, Meta, MinWage, Narrative, Period, TimelineItem,
+    TranslationItem, Wage, MissingItem,
 )
 
 DISCLAIMER = ("본 자료는 법률자문이 아닌 상담 준비용 증거 정리 자료입니다. "
@@ -79,7 +79,15 @@ def build_report(case, result: dict, lang: str = "ko", provider_mode: str = "loc
                for m in (result.get("missing_evidences") or [])]
 
     g = result.get("gps") or {}
-    gps = Gps(tagged_count=g.get("tagged_count", 0), cross_matches=g.get("cross_matches", 0)) if g else None
+    gps = Gps(
+        tagged_count=g.get("tagged_count", 0),
+        excluded_count=g.get("excluded_count", 0),
+        in_count=g.get("in_count", 0),
+        out_count=g.get("out_count", 0),
+        cross_matches=g.get("cross_matches", 0),
+        cross_mismatches=g.get("cross_mismatches", 0),
+        daily=[GpsDaySummary(**d) for d in (g.get("daily") or [])],
+    ) if g else None
 
     return AnalysisReport(
         schema_version=SCHEMA_VERSION,

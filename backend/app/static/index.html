@@ -39,9 +39,10 @@
             <div class="gps-toggle-sub" id="gpsToggleSub">사건을 먼저 만들어주세요</div>
           </div>
         </div>
-        <button class="gps-toggle-btn" id="gpsToggleBtn" onclick="toggleGpsTracking()" disabled>
-          <span id="gpsToggleBtnText">시작</span>
-        </button>
+        <label class="gps-switch" id="gpsSwitch" title="GPS 기록 켜기/끄기">
+          <input type="checkbox" id="gpsSwitchInput" onchange="onGpsSwitch(this.checked)" />
+          <span class="gps-switch-slider"></span>
+        </label>
       </div>
 
       <h1 class="home-title" data-k="h1">흩어진 자료를<br/>상담 가능한 사건 파일로</h1>
@@ -93,6 +94,26 @@
       <div class="section-title" style="margin-top:4px"><h2 data-k="nc_title">사건 정보</h2><span>Step 0</span></div>
       <div class="card">
         <label data-k="f_wp">사업장명</label><input id="f_wn" data-ph="ph_workplace"/>
+        <label style="margin-top:10px">근무지 위치 <span class="small-muted">(선택 · GPS 출퇴근 판정용)</span></label>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+          <input id="f_wp_addr" placeholder="주소·건물명 검색 (예: 서울시청, 강남역)" style="flex:1"/>
+          <button type="button" class="upload-chip" id="btnAddrSearch" onclick="searchCaseAddress()" title="주소 검색">
+            <i class="ti ti-search"></i>
+          </button>
+        </div>
+        <div id="addrResults" style="display:none;max-height:140px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-bottom:6px"></div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input id="f_wp" placeholder="위도,경도 (검색·현재위치로 자동 입력)" style="flex:1"/>
+          <button type="button" class="upload-chip" id="btnCaseLoc" onclick="setCaseWorkplaceByGeo()" title="현재 위치 사용">
+            <i class="ti ti-current-location"></i>
+          </button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+          <label style="margin:0;font-size:13px;white-space:nowrap">인정 반경</label>
+          <input id="f_wp_radius" type="range" min="50" max="500" step="50" value="100" style="flex:1;margin:0" oninput="document.getElementById('f_wp_radius_val').textContent=this.value+'m'"/>
+          <span id="f_wp_radius_val" style="font-size:13px;font-weight:700;min-width:45px">100m</span>
+        </div>
+        <p class="small-muted" style="margin-top:4px">작은 사업장은 50m, 농장·건설현장 등 넓은 곳은 300~500m로 설정하세요.</p>
         <div class="frow">
           <div><label data-k="f_start">근무 시작일</label><input id="f_ws" type="date"/></div>
           <div><label data-k="f_end">근무 종료일</label><input id="f_we" type="date"/></div>
@@ -103,7 +124,7 @@
         </div>
         <label data-k="f_issue">문제 유형</label><div class="chips" id="f_iss"></div>
       </div>
-      <button class="primary-btn" data-k="nc_next" onclick="submitCase()">다음: 자료 올리기</button>
+      <button class="primary-btn" data-k="nc_next" onclick="submitCase().then(function(){if(typeof _registerCaseWorkplace==='function')_registerCaseWorkplace()}).catch(function(){})">다음: 자료 올리기</button>
     </section>
 
     <!-- UPLOAD -->
@@ -128,20 +149,19 @@
         <label data-k="num_ded">공제 항목 (한 줄에 '이름, 금액')</label><textarea id="n_ded" data-ph="ph_deductions"></textarea>
         <label style="margin-top:8px"><input type="checkbox" id="n_gchk" style="width:auto"/> <span data-k="num_gps">GPS 정황 포함</span></label>
         <div id="gbox" style="display:none">
-          <label data-k="num_wp">근무지 (lat,lng,반경m)</label>
-          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
-            <input id="n_wp" data-ph="ph_workplace_coord" style="flex:1"/>
-            <button type="button" class="upload-chip" id="btnMyLoc" onclick="setWorkplaceByGeo()" title="현재 위치 사용">
-              <i class="ti ti-current-location"></i>
-            </button>
+          <!-- 근무지는 사건 정보에서 한 번만 등록 → 여기서는 확인만 -->
+          <div id="gpsWpInfo" style="margin:8px 0;padding:10px 12px;background:#f8fafc;border-radius:10px;border:1px solid var(--line);font-size:13px">
+            <i class="ti ti-map-pin"></i> <span id="gpsWpText">근무지 정보를 불러오는 중...</span>
           </div>
-          <!-- 카카오맵: 지도 클릭 → 근무지 좌표 자동 입력 -->
-          <div id="wp-map" style="width:100%;height:200px;border-radius:12px;border:1px solid var(--line);margin-bottom:8px;background:#f0f0f0;display:flex;align-items:center;justify-content:center">
-            <span style="color:var(--muted);font-size:12px">지도를 클릭하면 근무지로 설정됩니다</span>
+          <!-- GPS 핑은 홈 화면 토글로 자동 수집되어 분석에 반영됩니다 -->
+          <div id="gpsPingInfo" style="margin:8px 0;padding:10px 12px;background:#f0f9ff;border-radius:10px;border:1px solid #bae6fd;font-size:13px;color:#075985">
+            <i class="ti ti-route"></i> 홈 화면 GPS 기록으로 모은 위치가 분석에 자동 포함됩니다.
+            <span id="gpsPingCount" style="font-weight:700"></span>
           </div>
-          <p class="small-muted" style="margin-top:4px">📍 지도를 클릭하거나 현재 위치 버튼을 누르면 좌표가 자동 입력됩니다.</p>
-          <label data-k="num_png">GPS 핑 (ts,lat,lng,mocked)</label><textarea id="n_png" data-ph="ph_gps_pings"></textarea>
-          <label data-k="num_arr">도착 카톡 시각 (ISO)</label><textarea id="n_arr" data-ph="ph_arrivals"></textarea>
+          <!-- 폴백/고급용 수동 입력 (기본 숨김) -->
+          <input id="n_wp" type="hidden"/>
+          <textarea id="n_png" style="display:none"></textarea>
+          <label data-k="num_arr" style="margin-top:8px">도착 카톡 시각 (ISO · 선택)</label><textarea id="n_arr" data-ph="ph_arrivals"></textarea>
         </div>
       </details>
       <button class="primary-btn" data-k="up_run" onclick="startAnalysis()">Evidence Pack 분석 시작</button>
