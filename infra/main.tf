@@ -1040,4 +1040,4 @@ resource "aws_ssm_parameter" "cognito_client_id" {
 # - GitHub Actions will build/push images first, then raise desired_count or update services.
 # TODO (next stage):
 # - PostGIS extension initialization strategy
-# - Worker SQS consumer and Worker deployment flow
+# - Worker SQS consumer

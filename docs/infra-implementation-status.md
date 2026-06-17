@@ -12,12 +12,12 @@
 | 배포 대상 | ECS Fargate |
 | 기준 브랜치 | `develop` |
 | Backend 상태 | ECS Service 실행 중 |
-| Worker 상태 | SQS consumer 구현 전으로 미실행 |
+| Worker 상태 | SQS consumer 구현 전으로 미실행, 배포 workflow 코드 준비 |
 | DB | RDS PostgreSQL, private subnet |
 | 파일 저장소 | S3 Evidence / Report Bucket |
 | 비밀값 관리 | Secrets Manager |
 | 설정값 관리 | SSM Parameter Store |
-| 배포 자동화 | GitHub Actions OIDC 기반 Backend 자동배포 |
+| 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 준비 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
 | 모니터링 | CloudWatch Logs / Alarms |
 
@@ -131,6 +131,29 @@ develop push
 | 배포 대상 | Backend ECS Service |
 | 배포 후 검증 | ALB `/health` |
 
+### Worker 자동배포
+
+```text
+develop push
+  -> GitHub Actions OIDC Role Assume
+  -> Worker Docker image build
+  -> ECR push
+  -> ECS Task Definition 새 revision 등록
+  -> ECS Service update
+  -> ECS Service 상태 출력
+```
+
+| 항목 | 상태 |
+| --- | --- |
+| Workflow | `.github/workflows/deploy-dev-worker.yml` |
+| Trigger | `worker/**` 변경이 포함된 `develop` push 또는 수동 실행 |
+| 인증 방식 | GitHub Actions OIDC |
+| 배포 대상 | Worker ECS Service |
+| 현재 실행 상태 | `desired_count=0` 유지 |
+| AWS 권한 반영 | Terraform apply 후 Worker ECR push 가능 |
+
+Worker는 아직 SQS long-running consumer가 구현되지 않았으므로, 배포 workflow는 이미지와 Task Definition revision을 갱신하는 용도로만 사용한다. Worker consumer가 완성되면 Terraform에서 `worker_desired_count`를 올려 실제 실행 상태로 전환한다.
+
 ### Backend 수동 롤백
 
 ```text
@@ -153,7 +176,7 @@ workflow_dispatch
 | 항목 | 상태 | 비고 |
 | --- | --- | --- |
 | Worker SQS long-running consumer | 미구현 | 구현 후 Worker Service 기동 필요 |
-| Worker 자동배포 | 대기 | Worker 실행 방식 확정 후 구성 |
+| Worker ECR push 권한 AWS 반영 | 대기 | Terraform apply 필요 |
 | Well-Architected Tool 점검 | 대기 | 기능 통합 후 점검 예정 |
 | SNS 기반 알림 전송 | 대기 | 현재 CloudWatch Alarm은 알람 객체만 생성 |
 
@@ -164,4 +187,5 @@ workflow_dispatch
 | `infra/README.md` | Terraform 실행 방법과 인프라 코드 구조 |
 | `docs/OWNERSHIP.md` | 파트별 담당 영역 |
 | `.github/workflows/deploy-dev.yml` | Backend 자동배포 workflow |
+| `.github/workflows/deploy-dev-worker.yml` | Worker 자동배포 workflow |
 | `.github/workflows/rollback-dev-backend.yml` | Backend 수동 롤백 workflow |
