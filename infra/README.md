@@ -121,7 +121,8 @@ ALB /health     : 200 {"status":"ok"}
 
 ```text
 Terraform apply : success
-Backend task def: bada-dev-backend:7
+Terraform 기준 Backend task def: bada-dev-backend:7
+현재 ECS Service task def     : bada-dev-backend:9
 추가 환경변수    : TRANSCRIPTION_DISPATCH_MODE=inline
 추가 IAM 권한   : transcribe:Start/Get/Delete/ListTranscriptionJob
 GitHub Actions : PR #24 merge 후 bada-dev-backend:9로 코드 배포 완료
