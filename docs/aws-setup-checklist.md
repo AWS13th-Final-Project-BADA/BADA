@@ -20,6 +20,7 @@
 - [x] Terraform으로 관리하는 리소스는 콘솔에서 직접 수정하지 않는다.
 - [x] 실제 `terraform apply`는 인프라 담당자가 수행한다.
 - [x] 팀원은 AWS 콘솔 조회, `terraform plan`, RDS 접속, 로그 확인 중심으로 사용한다.
+- [x] 현재 dev 계정은 구축 속도를 위해 비교적 넓은 권한을 허용하되, 운영/프로덕션 전환 시 IAM Access Advisor/CloudTrail 기반으로 최소권한을 재설계한다.
 - [x] `terraform.tfvars`는 로컬 전용 파일이며 GitHub에 커밋하지 않는다.
 - [x] 민감정보는 Secrets Manager, 비민감 설정은 SSM Parameter Store로 분리한다.
 - [x] 인프라 비용 절감을 위해 NAT Gateway는 사용하지 않는다.
@@ -36,6 +37,21 @@
 - [x] 리전 `ap-northeast-2` 고정
 - [x] AWS Budgets 비용 알림 생성
 - [x] 팀 전체 예산 `1,500달러` 기준 공유
+
+### IAM 권한 운영 기준
+
+현재 프로젝트는 4주 MVP 개발 단계이므로, 팀원별 IAM User에는 개발 속도와 협업 편의성을 우선해 비교적 넓은 dev 권한을 부여한다. 다만 권한 운영 기준은 아래처럼 구분한다.
+
+| 구분 | 현재 dev 계정 기준 |
+| --- | --- |
+| 콘솔 조회 | 팀원 허용 |
+| AWS CLI 사용 | 팀원 허용 |
+| `terraform plan` | 팀원 허용 가능 |
+| `terraform apply` | 원칙적으로 인프라 담당자가 수행 |
+| 콘솔 직접 리소스 수정 | 지양. Terraform 관리 리소스는 코드로 변경 |
+| 프로덕션 전환 시 | IAM Access Advisor, CloudTrail, 사용 이력 기반 최소권한 재설계 |
+
+멘토 피드백 기준으로, 구축 초기 dev 환경에서 완전한 최소권한 정책을 세밀하게 적용하는 것은 과한 비용일 수 있다. 대신 개발이 어느 정도 안정화되면 실제 사용한 권한을 확인하고, 필요한 권한만 남긴 정책을 운영/프로덕션 환경에 적용한다.
 
 ## Terraform / 네트워크
 
@@ -134,7 +150,8 @@ ALB /version      : 200 {"name":"BADA","version":"0.1.0","auth_mode":"demo","sto
 - [x] 배포 후 ALB DNS 동적 조회 구성
 - [x] 배포 후 ALB `/health` 자동 검증 구성
 - [x] GitHub Actions 실제 실행 결과 확인
-- [ ] 배포 실패 시 rollback 또는 이전 task definition 복구 절차 정리
+- [x] 배포 실패 시 rollback 또는 이전 task definition 복구 절차 정리
+- [x] 수동 롤백 GitHub Actions workflow 추가
 
 현재 자동배포 구성:
 
@@ -149,6 +166,29 @@ develop push
   -> ALB /health check
 ```
 
+운영 기준:
+
+- Terraform은 ECS Cluster, Service, IAM, ALB, RDS, S3, SQS 등 인프라 골격을 관리한다.
+- GitHub Actions는 Backend image build/push와 ECS Task Definition revision 배포를 관리한다.
+- Terraform apply가 GitHub Actions로 배포된 최신 Backend revision을 과거 revision으로 되돌리지 않도록 ECS Service `task_definition`은 `ignore_changes`로 둔다.
+
+현재 수동 롤백 구성:
+
+```text
+workflow_dispatch
+  -> rollback 대상 Task Definition 입력
+  -> GitHub Actions OIDC Role assume
+  -> ECS Backend Service update-service
+  -> services-stable 대기
+  -> ALB /health check
+```
+
+- Workflow: `.github/workflows/rollback-dev-backend.yml`
+- 실행 브랜치: `develop`
+- 입력 예시: `bada-dev-backend:9`
+- 롤백 기준: 마지막으로 `/health`, `/version`, 핵심 API smoke test가 정상 확인된 Task Definition revision
+- 제한: DB migration, 데이터 변경, Secrets 변경은 이 workflow로 되돌아가지 않는다.
+
 배포 Role:
 
 ```text
@@ -158,20 +198,45 @@ arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role
 실제 실행 검증 결과:
 
 ```text
-PR              : #19
-Merge commit    : 2cbef370f86dcfcbaf48c6b31617bb3b8cca4988
+PR              : #24
+Merge commit    : 6a822044fdf5894f34886bac72fb754fe56a3d7d
 CI workflow     : success
 Deploy workflow : success
-Backend task def: bada-dev-backend:3
+Backend task def: bada-dev-backend:9
 ECS state       : desired=1, running=1, rolloutState=COMPLETED
 ALB /health     : 200 {"status":"ok"}
 ```
 
 ## 남은 Infra / DevOps 작업
 
-- [ ] CloudWatch Alarm 세부화
+- [x] CloudWatch Alarm 기본 세트 코드화
 - [ ] Well-Architected Tool 점검 및 milestone 저장
-- [ ] 배포 실패 시 rollback 또는 이전 task definition 복구 절차 정리
+- [ ] Worker SQS consumer 구현 이후 Worker 배포 자동화 확장 여부 결정
+
+## CloudWatch Alarm 기본 세트
+
+- [x] ALB Target 5xx 알람
+- [x] ALB Unhealthy Target 알람
+- [x] Backend ECS CPU 80% 이상 알람
+- [x] Backend ECS Memory 80% 이상 알람
+- [x] RDS CPU 80% 이상 알람
+- [x] RDS Free Storage 5 GiB 미만 알람
+- [x] SQS Analysis Queue backlog 알람
+- [x] SQS Analysis DLQ 메시지 감지 알람
+
+현재는 `alarm_actions = []` 기준으로 알람 객체만 생성한다. 이메일/Slack 등 알림 전송이 필요해지면 SNS Topic을 만든 뒤 `alarm_actions`에 Topic ARN을 추가한다.
+
+적용 결과:
+
+```text
+terraform apply : success
+added           : 8 CloudWatch alarms
+changed         : 0
+destroyed       : 0
+terraform plan  : No changes
+```
+
+생성 직후 CloudWatch 알람 상태가 `INSUFFICIENT_DATA`로 보일 수 있다. 이는 metric 수집 데이터가 아직 충분하지 않은 초기 상태이며, 장애 상태를 의미하지 않는다.
 
 ## 다른 파트 확인 필요 항목
 
@@ -227,6 +292,16 @@ curl http://bada-dev-alb-1367676989.ap-northeast-2.elb.amazonaws.com/health
 curl http://bada-dev-alb-1367676989.ap-northeast-2.elb.amazonaws.com/version
 ```
 
+### 롤백 대상 Task Definition 확인
+
+```bash
+aws ecs list-task-definitions \
+  --region ap-northeast-2 \
+  --family-prefix bada-dev-backend \
+  --sort DESC \
+  --max-items 10
+```
+
 ## 주의사항
 
 - `terraform.tfvars`에는 실제 DB 비밀번호가 들어갈 수 있으므로 절대 커밋하지 않는다.
@@ -234,3 +309,4 @@ curl http://bada-dev-alb-1367676989.ap-northeast-2.elb.amazonaws.com/version
 - Backend task 1개가 실행 중이면 Fargate 비용이 발생한다.
 - 검증 종료 후 비용을 줄여야 하면 인프라 담당자가 `backend_desired_count = 0`으로 되돌리고 Terraform apply를 수행한다.
 - Worker는 아직 장기 실행 SQS consumer 검증 전이므로 기본적으로 실행하지 않는다.
+- 롤백 workflow는 ECS Backend Task Definition만 되돌린다. Alembic migration이나 DB 데이터 변경이 포함된 배포는 별도 복구 계획이 필요하다.
