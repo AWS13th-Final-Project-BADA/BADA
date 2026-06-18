@@ -48,8 +48,14 @@ BADA/
 │  ├─ components/
 │  ├─ locales/            # ko/vi/km/ne/id/en.json
 │  └─ lib/
-├─ infra/                 # AWS CDK (Python)
-│  └─ stacks/
+├─ infra/                 # Terraform (AWS IaC)
+│  ├─ main.tf             # 핵심 리소스 (VPC/ALB/ECS/RDS/S3/SQS/Cognito 등)
+│  ├─ providers.tf        # provider 설정
+│  ├─ variables.tf        # 입력 변수
+│  ├─ outputs.tf          # 출력값
+│  ├─ github-actions.tf   # OIDC 배포 Role / 권한
+│  ├─ terraform.tfvars.example  # tfvars 템플릿 (실제 tfvars는 Git 비추적)
+│  └─ README.md           # Terraform 실행 방법 / 인프라 코드 구조
 ├─ eval/                  # 평가셋 + 정확도 측정 하네스
 │  ├─ dataset/            # 라벨된 샘플 (gold)
 │  └─ harness.py
