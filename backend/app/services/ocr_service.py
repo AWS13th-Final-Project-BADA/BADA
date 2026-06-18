@@ -2,6 +2,8 @@
 
 로컬: Mock(빈 결과). AWS: Claude Vision / Upstage 하이브리드.
 성능: 'done'은 재OCR 안 함(캐싱). 보안: 카톡(chat/other)은 PII 마스킹(계좌·주민번호·전화).
+자동 분류: category='auto'로 올라온 증거는 추출 전에 종류를 판단(분류)하고,
+          무관하면 'excluded'(추출 skip), 관련이면 분류된 카테고리로 추출한다.
 """
 from __future__ import annotations
 
@@ -87,12 +89,13 @@ def _row(ev: Evidence, cross: dict | None = None):
         "entities": ents, "evidence_quality": _quality(ev.category, ev.ocr_status, ents),
         "sanity": _sanity(ev.ocr_status, ents),
         "confidence": _confidence(ev.ocr_status, ents, cross),
+        "classify": ents.get("_classify"),   # 자동 분류 결과(있으면) — UI 표시용
         "error": None,
     }
 
 
 def _eligible(ev: Evidence) -> bool:
-    return ev.file_type in ("image", "pdf") and bool(ev.file_key)
+    return ev.file_type in ("image", "pdf", "audio") and bool(ev.file_key)
 
 
 def collect(db: Session, case_id: str) -> dict:
@@ -113,11 +116,11 @@ def collect(db: Session, case_id: str) -> dict:
 
 
 def mark_processing(db: Session, case_id: str) -> None:
-    """비동기 OCR 시작 전, 대상 중 아직 안 끝난(done 아님) 증거를 processing으로 표시(즉시 UI 피드백)."""
+    """비동기 OCR 시작 전, 대상 중 아직 안 끝난(done/excluded 아님) 증거를 processing으로 표시."""
     evs = db.query(Evidence).filter(Evidence.case_id == case_id).all()
     changed = False
     for ev in evs:
-        if _eligible(ev) and ev.ocr_status != "done":
+        if _eligible(ev) and ev.ocr_status not in ("done", "excluded"):
             ev.ocr_status = "processing"
             changed = True
     if changed:
@@ -136,31 +139,58 @@ def update_entities(db: Session, case_id: str, eid: str, entities: dict) -> dict
     return _row(ev, _cross_for_case(evs))
 
 
+def restore_excluded(db: Session, case_id: str, eid: str, category: str = "other") -> dict | None:
+    """사용자가 '제외'된 자료를 되살림(HITL 안전망) → 지정 카테고리로 재추출 대기(pending)."""
+    ev = db.get(Evidence, eid)
+    if not ev or ev.case_id != case_id:
+        return None
+    ev.category = category
+    ev.ocr_status = "pending"
+    ev.ocr_text = None
+    db.commit()
+    return _row(ev, _cross_for_case(db.query(Evidence).filter(Evidence.case_id == case_id).all()))
+
+
 def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
-    from providers.ocr import get_ocr      # worker
-    from services.extract import aggregate  # worker
+    from providers.ocr import get_ocr        # worker
+    from providers.classify import classify  # worker (자동 분류)
+    from services.extract import aggregate   # worker
 
     storage = get_storage()
     evs = db.query(Evidence).filter(Evidence.case_id == case_id).all()
-    collected: list[dict] = []
+    collected: list = []
 
-    # OCR 대상만 선별(이미지/PDF · 캐시된 done 제외) → 즉시 processing 표시
+    # OCR 대상만 선별(이미지/PDF · 캐시된 done/excluded 제외) → 즉시 processing 표시
     targets = [ev for ev in evs
                if ev.file_type in ("image", "pdf") and ev.file_key
-               and (force or ev.ocr_status != "done")]
+               and (force or ev.ocr_status not in ("done", "excluded"))]
     for ev in targets:
         ev.ocr_status = "processing"
 
-    # 느린 부분(파일읽기 + Bedrock 호출)만 스레드로 동시 실행 — ORM/DB는 손대지 않는다.
+    # 느린 부분(파일읽기 + 분류 + Bedrock OCR)만 스레드로 동시 실행 — ORM/DB는 손대지 않는다.
     def _extract_one(args):
         eid, category, file_key = args
         try:
             data = storage.read(file_key)
+            cls = None
+            # category='auto' → 먼저 분류. 무관하면 추출 안 함(제외).
+            if category == "auto":
+                cls = classify(data)
+                if not cls.get("relevant", True):
+                    return eid, {"excluded": True, "cls": cls,
+                                 "category": cls.get("category", "irrelevant"),
+                                 "text": None, "ents": None, "err": None}
+                category = cls.get("category") or "other"
             out = get_ocr(category).extract(data, category)
             text, ents = _mask_chat(category, out.get("raw_text", ""), out.get("entities", {}))
-            return eid, {"text": text, "ents": ents, "err": None}
-        except Exception as e:  # noqa: BLE001 (사유는 아래 메인스레드에서 기록)
-            return eid, {"text": None, "ents": None, "err": str(e)[:300]}
+            if cls:
+                ents = dict(ents or {})
+                ents["_classify"] = cls   # 분류 근거·신뢰도 보존(UI 표시·HITL용)
+            return eid, {"excluded": False, "cls": cls, "category": category,
+                         "text": text, "ents": ents, "err": None}
+        except Exception as e:  # noqa: BLE001 (사유는 메인스레드에서 기록)
+            return eid, {"excluded": False, "cls": None, "category": category,
+                         "text": None, "ents": None, "err": str(e)[:300]}
 
     results: dict = {}
     job_args = [(ev.id, ev.category, ev.file_key) for ev in targets]
@@ -173,11 +203,21 @@ def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
     for ev in evs:
         if ev.file_type not in ("image", "pdf") or not ev.file_key:
             continue
-        if ev.id not in results:   # 캐시된 done
+        if ev.id not in results:   # 캐시된 done/excluded
             collected.append(ev)
             continue
         res = results[ev.id]
-        if res["err"] is None:
+        if res.get("excluded"):
+            # 무관 자료 → 제외(추출 안 함). 사용자가 '되살리기' 가능(restore_excluded).
+            ev.category = res["category"]
+            ev.ocr_status = "excluded"
+            ev.extracted_entities = {"_classify": res["cls"]}
+            reason = (res["cls"] or {}).get("reason", "임금체불과 무관한 자료로 보임")
+            ev.ocr_text = f"[제외] {reason}"
+            collected.append((ev, None))
+        elif res["err"] is None:
+            if res.get("category"):
+                ev.category = res["category"]   # 분류 결과로 카테고리 확정
             ev.ocr_text = res["text"]
             ev.extracted_entities = res["ents"]
             ev.ocr_status = "done"

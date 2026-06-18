@@ -10,6 +10,10 @@ locals {
     ? var.worker_container_image
     : "${aws_ecr_repository.worker.repository_url}:latest"
   )
+  alarm_action_arns = concat(
+    var.alarm_actions,
+    length(var.alarm_email_endpoints) > 0 ? [aws_sns_topic.alarms.arn] : []
+  )
 
   common_tags = {
     Project     = var.project_name
@@ -113,7 +117,9 @@ resource "aws_sqs_queue" "analysis_dlq" {
 }
 
 resource "aws_sqs_queue" "analysis" {
-  name = "${local.name_prefix}-analysis"
+  name                       = "${local.name_prefix}-analysis"
+  visibility_timeout_seconds = var.sqs_visibility_timeout_seconds
+  receive_wait_time_seconds  = var.sqs_receive_wait_time_seconds
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.analysis_dlq.arn
@@ -379,8 +385,60 @@ resource "aws_cognito_user_pool" "main" {
   tags = local.common_tags
 }
 
+resource "aws_cognito_identity_provider" "google" {
+  count = var.enable_google_identity_provider ? 1 : 0
+
+  user_pool_id  = aws_cognito_user_pool.main.id
+  provider_name = "Google"
+  provider_type = "Google"
+
+  provider_details = {
+    authorize_scopes = join(" ", var.cognito_oauth_scopes)
+    client_id        = var.google_oauth_client_id
+    client_secret    = var.google_oauth_client_secret
+  }
+
+  attribute_mapping = {
+    email          = "email"
+    email_verified = "email_verified"
+    name           = "name"
+  }
+
+  lifecycle {
+    precondition {
+      condition = (
+        !var.enable_google_identity_provider ||
+        (
+          var.google_oauth_client_id != null &&
+          var.google_oauth_client_secret != null &&
+          try(trimspace(var.google_oauth_client_id), "") != "" &&
+          try(trimspace(var.google_oauth_client_secret), "") != ""
+        )
+      )
+      error_message = "Google OAuth client ID and client secret are required when enable_google_identity_provider is true."
+    }
+  }
+}
+
 resource "aws_cognito_user_pool_client" "app" {
-  name         = "${local.name_prefix}-app-client"
+  name                                 = "${local.name_prefix}-app-client"
+  user_pool_id                         = aws_cognito_user_pool.main.id
+  callback_urls                        = var.cognito_callback_urls
+  logout_urls                          = var.cognito_logout_urls
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = var.cognito_oauth_scopes
+  allowed_oauth_flows_user_pool_client = true
+  supported_identity_providers = concat(
+    ["COGNITO"],
+    var.enable_google_identity_provider ? ["Google"] : []
+  )
+  prevent_user_existence_errors = "ENABLED"
+
+  depends_on = [aws_cognito_identity_provider.google]
+}
+
+resource "aws_cognito_user_pool_domain" "main" {
+  domain       = var.cognito_domain_prefix
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
@@ -548,6 +606,10 @@ resource "aws_iam_role_policy" "ecs_task_app_access" {
         Action = [
           "bedrock:InvokeModel",
           "bedrock:InvokeModelWithResponseStream",
+          "transcribe:StartTranscriptionJob",
+          "transcribe:GetTranscriptionJob",
+          "transcribe:DeleteTranscriptionJob",
+          "transcribe:ListTranscriptionJobs",
           "translate:TranslateText"
         ]
         Resource = "*"
@@ -674,8 +736,14 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "S3_BUCKET", value = aws_s3_bucket.evidence.bucket },
         { name = "KMS_KEY_ID", value = aws_kms_key.evidence.arn },
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.analysis.url },
+        { name = "TRANSCRIPTION_DISPATCH_MODE", value = var.backend_transcription_dispatch_mode },
+        { name = "TRANSCRIBE_MODE", value = var.backend_transcribe_mode != "" ? var.backend_transcribe_mode : var.backend_provider_mode },
         { name = "COGNITO_USER_POOL_ID", value = aws_cognito_user_pool.main.id },
         { name = "COGNITO_CLIENT_ID", value = aws_cognito_user_pool_client.app.id },
+        { name = "COGNITO_DOMAIN", value = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com/" },
+        { name = "COGNITO_REDIRECT_URI", value = var.cognito_callback_urls[0] },
+        { name = "COGNITO_LOGOUT_URI", value = var.cognito_logout_urls[0] },
+        { name = "COGNITO_SCOPES", value = join(" ", var.cognito_oauth_scopes) },
         { name = "RETENTION_DAYS", value = tostring(var.retention_days) }
       ]
 
@@ -723,10 +791,18 @@ resource "aws_ecs_task_definition" "worker" {
       environment = [
         { name = "AWS_REGION", value = var.aws_region },
         { name = "PROVIDER_MODE", value = var.worker_provider_mode },
+        { name = "TRANSCRIBE_MODE", value = var.worker_transcribe_mode != "" ? var.worker_transcribe_mode : var.worker_provider_mode },
         { name = "TRANSLATE_MODE", value = var.worker_translate_mode },
         { name = "STRUCTURED_ENGINE", value = var.worker_structured_engine },
         { name = "S3_BUCKET", value = aws_s3_bucket.evidence.bucket },
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.analysis.url }
+      ]
+
+      secrets = [
+        {
+          name      = "DATABASE_URL"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:database_url::"
+        }
       ]
 
       logConfiguration = {
@@ -766,6 +842,10 @@ resource "aws_ecs_service" "backend" {
 
   depends_on = [aws_lb_listener.http]
 
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-backend-service" })
 }
 
@@ -784,7 +864,197 @@ resource "aws_ecs_service" "worker" {
     assign_public_ip = true
   }
 
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-service" })
+}
+
+resource "aws_sns_topic" "alarms" {
+  name = "${local.name_prefix}-alarm-notifications"
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-alarm-notifications" })
+}
+
+resource "aws_sns_topic_subscription" "alarm_email" {
+  for_each = toset(var.alarm_email_endpoints)
+
+  topic_arn = aws_sns_topic.alarms.arn
+  protocol  = "email"
+  endpoint  = each.value
+}
+
+resource "aws_cloudwatch_metric_alarm" "alb_target_5xx" {
+  alarm_name          = "${local.name_prefix}-alb-target-5xx"
+  alarm_description   = "Backend target 5xx responses from ALB are above the MVP threshold."
+  namespace           = "AWS/ApplicationELB"
+  metric_name         = "HTTPCode_Target_5XX_Count"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 5
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    LoadBalancer = aws_lb.main.arn_suffix
+    TargetGroup  = aws_lb_target_group.backend.arn_suffix
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-alb-target-5xx" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets" {
+  alarm_name          = "${local.name_prefix}-alb-unhealthy-targets"
+  alarm_description   = "At least one backend target is unhealthy behind the ALB."
+  namespace           = "AWS/ApplicationELB"
+  metric_name         = "UnHealthyHostCount"
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 2
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    LoadBalancer = aws_lb.main.arn_suffix
+    TargetGroup  = aws_lb_target_group.backend.arn_suffix
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-alb-unhealthy-targets" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "backend_cpu_high" {
+  alarm_name          = "${local.name_prefix}-backend-cpu-high"
+  alarm_description   = "Backend ECS service CPU utilization is high."
+  namespace           = "AWS/ECS"
+  metric_name         = "CPUUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.backend.name
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-backend-cpu-high" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "backend_memory_high" {
+  alarm_name          = "${local.name_prefix}-backend-memory-high"
+  alarm_description   = "Backend ECS service memory utilization is high."
+  namespace           = "AWS/ECS"
+  metric_name         = "MemoryUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.backend.name
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-backend-memory-high" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
+  alarm_name          = "${local.name_prefix}-rds-cpu-high"
+  alarm_description   = "RDS PostgreSQL CPU utilization is high."
+  namespace           = "AWS/RDS"
+  metric_name         = "CPUUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-rds-cpu-high" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "rds_free_storage_low" {
+  alarm_name          = "${local.name_prefix}-rds-free-storage-low"
+  alarm_description   = "RDS PostgreSQL free storage is below 5 GiB."
+  namespace           = "AWS/RDS"
+  metric_name         = "FreeStorageSpace"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 5368709120
+  comparison_operator = "LessThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-rds-free-storage-low" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "sqs_analysis_backlog" {
+  alarm_name          = "${local.name_prefix}-sqs-analysis-backlog"
+  alarm_description   = "SQS analysis queue has visible messages waiting for processing."
+  namespace           = "AWS/SQS"
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 10
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    QueueName = aws_sqs_queue.analysis.name
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-sqs-analysis-backlog" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "sqs_analysis_dlq_messages" {
+  alarm_name          = "${local.name_prefix}-sqs-analysis-dlq-messages"
+  alarm_description   = "SQS analysis dead-letter queue has at least one message."
+  namespace           = "AWS/SQS"
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    QueueName = aws_sqs_queue.analysis_dlq.name
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-sqs-analysis-dlq-messages" })
 }
 
 resource "aws_secretsmanager_secret" "app" {
@@ -850,10 +1120,41 @@ resource "aws_ssm_parameter" "cognito_client_id" {
   tags = local.common_tags
 }
 
+resource "aws_ssm_parameter" "cognito_domain" {
+  name  = "/${local.name_prefix}/cognito/domain"
+  type  = "String"
+  value = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com/"
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_redirect_uri" {
+  name  = "/${local.name_prefix}/cognito/redirect_uri"
+  type  = "String"
+  value = var.cognito_callback_urls[0]
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_logout_uri" {
+  name  = "/${local.name_prefix}/cognito/logout_uri"
+  type  = "String"
+  value = var.cognito_logout_urls[0]
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_scopes" {
+  name  = "/${local.name_prefix}/cognito/scopes"
+  type  = "String"
+  value = join(" ", var.cognito_oauth_scopes)
+
+  tags = local.common_tags
+}
+
 # Week 2 deployment foundation:
 # - ECS task definitions and services are created with desired_count=0 by default.
 # - GitHub Actions will build/push images first, then raise desired_count or update services.
 # TODO (next stage):
-# - CloudWatch alarms
 # - PostGIS extension initialization strategy
-# - GitHub Actions -> ECR -> ECS deployment flow
+# - Worker SQS consumer

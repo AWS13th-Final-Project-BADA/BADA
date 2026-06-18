@@ -18,6 +18,25 @@ db_apply_immediately         = true
 
 app_port             = 8000
 log_retention_days   = 14
+
+# Cognito Hosted UI / OAuth authorization code grant.
+cognito_domain_prefix = "bada-dev-165749212250"
+cognito_callback_urls = ["http://localhost:8000/auth/cognito/callback"]
+cognito_logout_urls   = ["http://localhost:8000/"]
+cognito_oauth_scopes  = ["openid", "email", "profile"]
+
+# Google OAuth credentials must stay in the ignored terraform.tfvars file.
+# Google redirect URI:
+# https://bada-dev-165749212250.auth.ap-northeast-2.amazoncognito.com/oauth2/idpresponse
+enable_google_identity_provider = false
+google_oauth_client_id           = "replace-me.apps.googleusercontent.com"
+google_oauth_client_secret       = "replace-me"
+
+# Worker queue runtime settings.
+# 15-minute visibility timeout covers the current 10-minute transcription timeout with a buffer.
+sqs_visibility_timeout_seconds = 900
+sqs_receive_wait_time_seconds  = 20
+
 # Use "replace-me" to let Terraform use the ECR repositories created in this stack.
 api_container_image    = "replace-me"
 worker_container_image = "replace-me"
@@ -34,11 +53,25 @@ worker_task_cpu     = 256
 worker_task_memory  = 512
 ecs_cpu_architecture = "ARM64"
 
+# CloudWatch alarm notifications.
+# alarm_email_endpoints creates email subscriptions on the Terraform-managed SNS topic.
+# Each recipient must confirm the AWS SNS subscription email before notifications are delivered.
+alarm_email_endpoints = []
+
+# Optional: add existing SNS topic ARNs or other action ARNs if the team already owns one.
+alarm_actions = []
+
 # Cost-safe defaults. Switch to aws/bedrock modes only when the team is ready.
 backend_provider_mode  = "local"
 backend_ai_chat_mode   = "mock"
 backend_embedding_mode = "mock"
+# inline: backend task handles audio transcription directly.
+# sqs: backend sends transcription messages to SQS; requires a running worker consumer.
+backend_transcription_dispatch_mode = "inline"
+# Transcribe can use AWS independently while OCR/Bedrock remain local/mock.
+backend_transcribe_mode = "aws"
 worker_provider_mode     = "local"
+worker_transcribe_mode   = "aws"
 worker_translate_mode    = "local"
 worker_structured_engine = "vision"
 

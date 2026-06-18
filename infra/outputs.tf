@@ -38,6 +38,22 @@ output "cognito_app_client_id" {
   value = aws_cognito_user_pool_client.app.id
 }
 
+output "cognito_domain" {
+  value = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com/"
+}
+
+output "cognito_redirect_uri" {
+  value = var.cognito_callback_urls[0]
+}
+
+output "cognito_logout_uri" {
+  value = var.cognito_logout_urls[0]
+}
+
+output "cognito_oauth_scopes" {
+  value = join(" ", var.cognito_oauth_scopes)
+}
+
 output "ecs_cluster_name" {
   value = aws_ecs_cluster.main.name
 }
@@ -80,4 +96,8 @@ output "secrets_manager_secret_arn" {
 
 output "github_actions_deploy_role_arn" {
   value = aws_iam_role.github_actions_deploy.arn
+}
+
+output "alarm_sns_topic_arn" {
+  value = aws_sns_topic.alarms.arn
 }

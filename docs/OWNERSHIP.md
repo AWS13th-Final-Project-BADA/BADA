@@ -49,7 +49,7 @@
 ## 5) 스토리지/인프라 담당 — 파일·배포
 
 - **구현할 것**: `backend/app/services/storage.py:S3Storage` (이미 골격), `infra/*.tf` (RDS+PostGIS·S3·SQS(+DLQ)·Cognito·ECR·ALB·Fargate)
-- **참고**: `docs/aws-setup-checklist.md`
+- **참고**: `docs/infra-implementation-status.md`
 - **전환**: `STORAGE_MODE=s3`, `DATABASE_URL`을 Postgres로.
 - **운영 기준**:
   - `ALB/ECS public subnet`, `RDS private subnet`

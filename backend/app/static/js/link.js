@@ -169,7 +169,9 @@ function openKakaoChannel(){
   }
   const el = document.getElementById("kakaoCodeVal");
   if(el) _copyText(el.textContent.trim(), lt("opening"));
-  window.open(KAKAO_CHANNEL_URL, "_blank");
+  // noreferrer: referer(이전 페이지) 미전송 → 카카오 채널 진입 시 "이전 페이지: ..." 안내가 뜨지 않고
+  // 바로 채팅이 시작돼 봇 웰컴(BADA 카드)이 노출됨. (카카오 공식: referer 미확인 시 이전 페이지 미표시)
+  window.open(KAKAO_CHANNEL_URL, "_blank", "noopener,noreferrer");
 }
 
 // 언어 적용/인증 변경 시 진입점 텍스트·노출 갱신 (i18n.js·auth.js는 건드리지 않고 래핑)

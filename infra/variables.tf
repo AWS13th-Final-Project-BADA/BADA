@@ -94,10 +94,89 @@ variable "app_port" {
   default     = 8000
 }
 
+variable "cognito_domain_prefix" {
+  description = "Globally unique Cognito Hosted UI domain prefix"
+  type        = string
+  default     = "bada-dev-165749212250"
+}
+
+variable "cognito_callback_urls" {
+  description = "Allowed OAuth callback URLs for the Cognito App Client"
+  type        = list(string)
+  default     = ["http://localhost:8000/auth/cognito/callback"]
+}
+
+variable "cognito_logout_urls" {
+  description = "Allowed sign-out URLs for the Cognito App Client"
+  type        = list(string)
+  default     = ["http://localhost:8000/"]
+}
+
+variable "cognito_oauth_scopes" {
+  description = "Allowed OAuth scopes for the Cognito App Client"
+  type        = list(string)
+  default     = ["openid", "email", "profile"]
+}
+
+variable "enable_google_identity_provider" {
+  description = "Whether to configure Google as a Cognito federated identity provider"
+  type        = bool
+  default     = false
+}
+
+variable "google_oauth_client_id" {
+  description = "Google OAuth 2.0 client ID used by Cognito"
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "google_oauth_client_secret" {
+  description = "Google OAuth 2.0 client secret used by Cognito"
+  type        = string
+  default     = null
+  nullable    = true
+  sensitive   = true
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention period in days"
   type        = number
   default     = 14
+}
+
+variable "sqs_visibility_timeout_seconds" {
+  description = "Time an in-flight analysis message remains hidden. 15 minutes covers the worker transcription timeout with a buffer."
+  type        = number
+  default     = 900
+
+  validation {
+    condition     = var.sqs_visibility_timeout_seconds >= 0 && var.sqs_visibility_timeout_seconds <= 43200
+    error_message = "sqs_visibility_timeout_seconds must be between 0 and 43200 seconds."
+  }
+}
+
+variable "sqs_receive_wait_time_seconds" {
+  description = "SQS long-polling wait time for worker receive requests."
+  type        = number
+  default     = 20
+
+  validation {
+    condition     = var.sqs_receive_wait_time_seconds >= 0 && var.sqs_receive_wait_time_seconds <= 20
+    error_message = "sqs_receive_wait_time_seconds must be between 0 and 20 seconds."
+  }
+}
+
+variable "alarm_actions" {
+  description = "Additional alarm action ARNs. Keep empty unless the team already owns a separate notification target."
+  type        = list(string)
+  default     = []
+}
+
+variable "alarm_email_endpoints" {
+  description = "Email addresses subscribed to the Terraform-managed SNS topic for CloudWatch alarm notifications. Each address must confirm the SNS subscription email."
+  type        = list(string)
+  default     = []
 }
 
 variable "api_container_image" {
@@ -195,10 +274,43 @@ variable "backend_embedding_mode" {
   default     = "mock"
 }
 
+variable "backend_transcription_dispatch_mode" {
+  description = "How backend dispatches audio transcription jobs. Use inline for MVP demo until the SQS worker consumer is ready."
+  type        = string
+  default     = "inline"
+
+  validation {
+    condition     = contains(["inline", "sqs"], var.backend_transcription_dispatch_mode)
+    error_message = "backend_transcription_dispatch_mode must be either inline or sqs."
+  }
+}
+
+variable "backend_transcribe_mode" {
+  description = "Backend audio transcription provider mode. Defaults to provider mode when empty."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = contains(["", "local", "aws"], var.backend_transcribe_mode)
+    error_message = "backend_transcribe_mode must be empty, local, or aws."
+  }
+}
+
 variable "worker_provider_mode" {
   description = "Worker provider mode"
   type        = string
   default     = "local"
+}
+
+variable "worker_transcribe_mode" {
+  description = "Worker audio transcription provider mode. Defaults to provider mode when empty."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = contains(["", "local", "aws"], var.worker_transcribe_mode)
+    error_message = "worker_transcribe_mode must be empty, local, or aws."
+  }
 }
 
 variable "worker_translate_mode" {

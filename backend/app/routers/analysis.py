@@ -182,8 +182,30 @@ def report(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_db))
 
     miss = "".join(f"<li>[{tr(m.get('item',''))}] {tr(m.get('reason',''))}</li>" for m in r.get("missing", []))
     gps = r.get("gps") or {}
-    gps_html = (f"<p>GPS 핑 {gps.get('tagged_count',0)}건 · 카톡-근무지 교차일치 <b>{gps.get('cross_matches',0)}건</b></p>"
-                if gps else "<p class='muted'>GPS 데이터 없음</p>")
+    if gps:
+        _gps_head = (f"<p>GPS 핑 {gps.get('tagged_count',0)}건 "
+                     f"(근무지 안 {gps.get('in_count',0)} · 밖 {gps.get('out_count',0)} · 배제 {gps.get('excluded_count',0)}) · "
+                     f"카톡-근무지 교차일치 <b>{gps.get('cross_matches',0)}건</b>"
+                     + (f" · 불일치 {gps.get('cross_mismatches',0)}건" if gps.get('cross_mismatches') else "")
+                     + "</p>")
+        _daily = gps.get("daily") or []
+        if _daily:
+            _rows = "".join(
+                f"<tr><td>{d.get('work_date','')}</td>"
+                f"<td style='text-align:center'>{d.get('in_count',0)}</td>"
+                f"<td>{(d.get('first_in') or '-')}</td>"
+                f"<td>{(d.get('last_out') or '-')}</td>"
+                f"<td style='text-align:right'>{d.get('estimated_hours',0)}h"
+                + ("" if d.get('hours_method')=='actual_intervals' else " <span class='muted'>(핑 부족)</span>")
+                + "</td></tr>"
+                for d in _daily)
+            _gps_table = (f"<table><tr><th>날짜</th><th>근무지 핑</th><th>최초 체류</th>"
+                          f"<th>최종 체류</th><th>추정 체류시간</th></tr>{_rows}</table>")
+        else:
+            _gps_table = ""
+        gps_html = _gps_head + _gps_table
+    else:
+        gps_html = "<p class='muted'>GPS 데이터 없음</p>"
 
     computable = wage.get("computable")
 
