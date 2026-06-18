@@ -137,7 +137,7 @@ SQS receive_wait_time_seconds  : 20
 Worker secret                  : DATABASE_URL
 Secret source                  : bada-dev/app-secrets의 database_url
 Current Worker Service         : desired=0, running=0
-Current Worker Task Definition : bada-dev-worker:4
+Current Worker Task Definition : bada-dev-worker:7
 ```
 
 - Visibility Timeout은 현재 전사 서비스의 최대 대기 시간 10분보다 5분 길게 잡아 처리 중 메시지가 조기에 재노출되는 위험을 줄인다.
@@ -160,6 +160,8 @@ Worker TRANSCRIBE_MODE             : aws
 - `TRANSCRIBE_MODE`를 생략하면 기존처럼 `PROVIDER_MODE`를 상속한다.
 - Backend는 현재 inline 전사 경로에서 실제 Amazon Transcribe를 호출한다.
 - Worker는 Consumer 실행 전이므로 설정만 준비하고 `desired_count=0`을 유지한다.
+- PR #36 머지 후 Backend `bada-dev-backend:20`, Worker `bada-dev-worker:7` 자동배포에 성공했다.
+- Backend Service는 `desired=1/running=1`, Worker Service는 `desired=0/running=0`, ALB `/health`는 200을 확인했다.
 
 Worker 자동배포 권한 반영 결과:
 
