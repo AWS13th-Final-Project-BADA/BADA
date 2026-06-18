@@ -12,7 +12,7 @@ import json
 import logging
 import time
 
-from config import PROVIDER_MODE
+from config import TRANSCRIBE_MODE
 from providers.transcribe import TranscriptionResult, get_transcriber
 
 logger = logging.getLogger(__name__)
@@ -93,21 +93,16 @@ def refine_transcript(raw_text: str) -> str:
 
     전화 통화 음성인식에서 흔한 오인식(도메인 용어 오류, 조사 누락)을 교정.
     실패 시 원문 그대로 반환 (graceful degradation).
-    PROVIDER_MODE=local이면 보정 건너뜀.
+    TRANSCRIBE_MODE=local이면 보정 건너뜀.
     """
-    if PROVIDER_MODE != "aws":
-        # 환경변수 직접 재확인 (ECS에서 import 순서 이슈 방어)
-        import os
-        if os.environ.get("PROVIDER_MODE", "local") != "aws":
-            return raw_text
+    if TRANSCRIBE_MODE != "aws":
+        return raw_text
 
     if not raw_text or len(raw_text.strip()) < 10:
         return raw_text
 
-    # 디버깅: 실제 PROVIDER_MODE 확인
-    import os
-    actual_mode = os.environ.get("PROVIDER_MODE", "local")
-    logger.info("refine_transcript called, PROVIDER_MODE=%s (config=%s), text_len=%d", actual_mode, PROVIDER_MODE, len(raw_text))
+    # 디버깅: 실제 모드 확인
+    logger.info("refine_transcript called, TRANSCRIBE_MODE=%s, text_len=%d", TRANSCRIBE_MODE, len(raw_text))
 
     try:
         from providers._bedrock import invoke, text_block
