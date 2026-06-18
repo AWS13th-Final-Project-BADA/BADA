@@ -186,11 +186,21 @@ SQS Analysis Backlog        : visible message 10개 이상
 SQS Analysis DLQ            : visible message 1개 이상
 ```
 
-- 기본값: `alarm_actions = []`
-- 의미: 알람 객체는 생성하되 SNS 이메일/Slack 알림은 아직 연결하지 않는다.
-- 확장: 알림이 필요하면 SNS Topic ARN을 `alarm_actions`에 추가한다.
+- 기본값: `alarm_email_endpoints = []`, `alarm_actions = []`
+- 의미: 이메일 주소를 넣기 전까지는 알람 객체만 생성하고 콘솔에서 상태를 확인한다.
+- 확장: `alarm_email_endpoints`에 이메일 주소를 넣으면 Terraform 관리 SNS Topic에 이메일 구독을 생성하고, CloudWatch Alarm action에 연결한다.
+- 주의: 이메일 구독자는 AWS SNS confirmation 메일을 반드시 승인해야 실제 알림을 받을 수 있다.
+- 별도 SNS Topic을 이미 운영 중이면 `alarm_actions`에 기존 action ARN을 추가할 수 있다.
 - 적용 결과: `terraform apply`로 8개 알람 생성 완료, 이후 `terraform plan` 기준 `No changes` 확인
 - 참고: 생성 직후에는 CloudWatch metric 데이터가 충분하지 않아 `INSUFFICIENT_DATA`로 보일 수 있다.
+
+알림 이메일 설정 예시:
+
+```hcl
+alarm_email_endpoints = [
+  "team-member@example.com"
+]
+```
 
 Well-Architected Tool 등록:
 

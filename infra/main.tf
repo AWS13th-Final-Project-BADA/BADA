@@ -10,6 +10,10 @@ locals {
     ? var.worker_container_image
     : "${aws_ecr_repository.worker.repository_url}:latest"
   )
+  alarm_action_arns = concat(
+    var.alarm_actions,
+    length(var.alarm_email_endpoints) > 0 ? [aws_sns_topic.alarms.arn] : []
+  )
 
   common_tags = {
     Project     = var.project_name
@@ -800,6 +804,20 @@ resource "aws_ecs_service" "worker" {
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-service" })
 }
 
+resource "aws_sns_topic" "alarms" {
+  name = "${local.name_prefix}-alarm-notifications"
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-alarm-notifications" })
+}
+
+resource "aws_sns_topic_subscription" "alarm_email" {
+  for_each = toset(var.alarm_email_endpoints)
+
+  topic_arn = aws_sns_topic.alarms.arn
+  protocol  = "email"
+  endpoint  = each.value
+}
+
 resource "aws_cloudwatch_metric_alarm" "alb_target_5xx" {
   alarm_name          = "${local.name_prefix}-alb-target-5xx"
   alarm_description   = "Backend target 5xx responses from ALB are above the MVP threshold."
@@ -811,8 +829,8 @@ resource "aws_cloudwatch_metric_alarm" "alb_target_5xx" {
   threshold           = 5
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = var.alarm_actions
-  ok_actions          = var.alarm_actions
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
 
   dimensions = {
     LoadBalancer = aws_lb.main.arn_suffix
@@ -833,8 +851,8 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets" {
   threshold           = 1
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = var.alarm_actions
-  ok_actions          = var.alarm_actions
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
 
   dimensions = {
     LoadBalancer = aws_lb.main.arn_suffix
@@ -855,8 +873,8 @@ resource "aws_cloudwatch_metric_alarm" "backend_cpu_high" {
   threshold           = 80
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = var.alarm_actions
-  ok_actions          = var.alarm_actions
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
 
   dimensions = {
     ClusterName = aws_ecs_cluster.main.name
@@ -877,8 +895,8 @@ resource "aws_cloudwatch_metric_alarm" "backend_memory_high" {
   threshold           = 80
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = var.alarm_actions
-  ok_actions          = var.alarm_actions
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
 
   dimensions = {
     ClusterName = aws_ecs_cluster.main.name
@@ -899,8 +917,8 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
   threshold           = 80
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = var.alarm_actions
-  ok_actions          = var.alarm_actions
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.postgres.identifier
@@ -920,8 +938,8 @@ resource "aws_cloudwatch_metric_alarm" "rds_free_storage_low" {
   threshold           = 5368709120
   comparison_operator = "LessThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = var.alarm_actions
-  ok_actions          = var.alarm_actions
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.postgres.identifier
@@ -941,8 +959,8 @@ resource "aws_cloudwatch_metric_alarm" "sqs_analysis_backlog" {
   threshold           = 10
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = var.alarm_actions
-  ok_actions          = var.alarm_actions
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
 
   dimensions = {
     QueueName = aws_sqs_queue.analysis.name
@@ -962,8 +980,8 @@ resource "aws_cloudwatch_metric_alarm" "sqs_analysis_dlq_messages" {
   threshold           = 1
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = var.alarm_actions
-  ok_actions          = var.alarm_actions
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
 
   dimensions = {
     QueueName = aws_sqs_queue.analysis_dlq.name

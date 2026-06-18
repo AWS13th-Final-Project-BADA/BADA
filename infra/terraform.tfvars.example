@@ -34,8 +34,12 @@ worker_task_cpu     = 256
 worker_task_memory  = 512
 ecs_cpu_architecture = "ARM64"
 
-# CloudWatch alarm actions.
-# Keep empty for console-only alarms. Add SNS topic ARNs later if notification is needed.
+# CloudWatch alarm notifications.
+# alarm_email_endpoints creates email subscriptions on the Terraform-managed SNS topic.
+# Each recipient must confirm the AWS SNS subscription email before notifications are delivered.
+alarm_email_endpoints = []
+
+# Optional: add existing SNS topic ARNs or other action ARNs if the team already owns one.
 alarm_actions = []
 
 # Cost-safe defaults. Switch to aws/bedrock modes only when the team is ready.

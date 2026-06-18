@@ -81,3 +81,7 @@ output "secrets_manager_secret_arn" {
 output "github_actions_deploy_role_arn" {
   value = aws_iam_role.github_actions_deploy.arn
 }
+
+output "alarm_sns_topic_arn" {
+  value = aws_sns_topic.alarms.arn
+}

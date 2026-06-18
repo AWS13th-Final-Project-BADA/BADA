@@ -101,7 +101,13 @@ variable "log_retention_days" {
 }
 
 variable "alarm_actions" {
-  description = "SNS topic ARNs or other alarm action ARNs. Keep empty for console-only alarms."
+  description = "Additional alarm action ARNs. Keep empty unless the team already owns a separate notification target."
+  type        = list(string)
+  default     = []
+}
+
+variable "alarm_email_endpoints" {
+  description = "Email addresses subscribed to the Terraform-managed SNS topic for CloudWatch alarm notifications. Each address must confirm the SNS subscription email."
   type        = list(string)
   default     = []
 }
