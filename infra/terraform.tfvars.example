@@ -18,6 +18,12 @@ db_apply_immediately         = true
 
 app_port             = 8000
 log_retention_days   = 14
+
+# Worker queue runtime settings.
+# 15-minute visibility timeout covers the current 10-minute transcription timeout with a buffer.
+sqs_visibility_timeout_seconds = 900
+sqs_receive_wait_time_seconds  = 20
+
 # Use "replace-me" to let Terraform use the ECR repositories created in this stack.
 api_container_image    = "replace-me"
 worker_container_image = "replace-me"

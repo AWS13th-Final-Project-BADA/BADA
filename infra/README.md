@@ -40,6 +40,8 @@ MVP 원칙:
 - Backend / Worker 이미지는 ECR `latest` 태그로 push 가능
 - Backend ECS Service는 수동 검증 기준 `desired_count = 1`로 기동 및 ALB `/health` 200 응답 확인
 - Worker ECS Service는 SQS consumer 검증 전까지 `desired_count = 0` 유지
+- Worker queue는 10분 전사 작업을 고려해 Visibility Timeout 15분, Long Polling 20초를 사용
+- Worker Task는 Secrets Manager의 `database_url`을 `DATABASE_URL`로 주입받도록 준비
 - Worker 자동배포 workflow는 준비하되, consumer 구현 전까지는 Task Definition revision 갱신과 Service 상태 확인 용도로만 사용
 - 오디오 전사는 Worker SQS consumer 완성 전까지 `TRANSCRIPTION_DISPATCH_MODE=inline`으로 Backend에서 직접 처리 가능하게 구성
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
@@ -107,6 +109,20 @@ develop push
 - Scope: Worker ECS Service 배포 준비
 - 현재 기준: Worker SQS consumer 구현 전이므로 `desired_count = 0` 유지
 - 의미: Worker consumer가 완성되면 image build, ECR push, task definition revision 갱신 흐름을 바로 사용할 수 있다.
+
+Worker runtime 사전 준비:
+
+```text
+SQS visibility_timeout_seconds : 900
+SQS receive_wait_time_seconds  : 20
+Worker secret                  : DATABASE_URL
+Secret source                  : bada-dev/app-secrets의 database_url
+Current Worker Service         : desired=0, running=0
+```
+
+- Visibility Timeout은 현재 전사 서비스의 최대 대기 시간 10분보다 5분 길게 잡아 처리 중 메시지가 조기에 재노출되는 위험을 줄인다.
+- Long Polling 20초는 빈 큐를 반복 조회하는 요청 수와 불필요한 비용을 줄인다.
+- Consumer 구현 전에는 Worker Docker CMD, `worker_desired_count`, `TRANSCRIPTION_DISPATCH_MODE`를 전환하지 않는다.
 
 Worker 자동배포 권한 반영 결과:
 

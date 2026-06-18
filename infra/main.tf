@@ -117,7 +117,9 @@ resource "aws_sqs_queue" "analysis_dlq" {
 }
 
 resource "aws_sqs_queue" "analysis" {
-  name = "${local.name_prefix}-analysis"
+  name                       = "${local.name_prefix}-analysis"
+  visibility_timeout_seconds = var.sqs_visibility_timeout_seconds
+  receive_wait_time_seconds  = var.sqs_receive_wait_time_seconds
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.analysis_dlq.arn
@@ -736,6 +738,13 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "STRUCTURED_ENGINE", value = var.worker_structured_engine },
         { name = "S3_BUCKET", value = aws_s3_bucket.evidence.bucket },
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.analysis.url }
+      ]
+
+      secrets = [
+        {
+          name      = "DATABASE_URL"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:database_url::"
+        }
       ]
 
       logConfiguration = {
