@@ -106,6 +106,14 @@ google_oauth_client_secret       = "your-client-secret"
 - Cognito는 Google의 `email`, `name`, `email_verified` 속성을 같은 이름의 User Pool 속성으로 매핑한다.
 - Google Client Secret은 Git, PR, 문서에 기록하지 않고 비추적 `terraform.tfvars`에서만 주입한다.
 
+Bedrock Anthropic 모델 접근:
+
+- 팀 AWS 계정에서 Anthropic First Time Use(FTU) use case details 제출을 완료했다.
+- `ap-northeast-2` Bedrock Playground에서 `global.anthropic.claude-sonnet-4-6` 호출을 검증했다.
+- FTU 제출은 계정 단위 최초 1회 운영 절차이며 Terraform 리소스로 관리하지 않는다.
+- ECS Task Role의 `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream` 권한은 Terraform으로 관리한다.
+- 다음 검증 단계는 실제 Backend/Worker Task Role을 통한 Claude 호출과 CloudWatch Logs 확인이다.
+
 GitHub Actions Backend 자동배포:
 
 ```text
