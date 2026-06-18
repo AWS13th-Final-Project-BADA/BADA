@@ -29,8 +29,8 @@
 | --- | --- |
 | Backend ECS Service | `desired=1`, `running=1` |
 | Worker ECS Service | `desired=0`, `running=0` |
-| Backend Task Definition | `bada-dev-backend:17` |
-| Worker Task Definition | `bada-dev-worker:4` |
+| Backend Task Definition | `bada-dev-backend:20` |
+| Worker Task Definition | `bada-dev-worker:7` |
 | Target Group | `healthy` |
 | ALB `/health` | `200 {"status":"ok"}` |
 | ALB `/version` | `200 {"name":"BADA","version":"0.1.0","auth_mode":"demo","storage_mode":"s3"}` |
@@ -223,7 +223,7 @@ workflow_dispatch
 | Worker SQS long-running consumer | 미구현 | 구현 후 Worker Service 기동 필요 |
 | Worker runtime 인프라 적용 | 완료 | SQS 설정, DB Secret, Service `:4` 연결 검증 |
 | Worker 자동배포 실행 검증 | 완료 | consumer 구현 후 실제 메시지 처리 검증은 별도 진행 |
-| Amazon Transcribe 독립 모드 | 적용 중 | `PROVIDER_MODE=local`, `TRANSCRIBE_MODE=aws`로 다른 provider와 분리 |
+| Amazon Transcribe 독립 모드 | 완료 | Backend `:20`, Worker `:7`에 `TRANSCRIBE_MODE=aws` 배포 및 ALB health 검증 |
 | Cognito Hosted UI/OAuth 인프라 | 완료 | PR #31, AWS 적용 및 Terraform `No changes` 확인 |
 | Cognito 애플리케이션 로그인 연동 | 개발 대기 | callback/code 교환, JWT 검증, `AUTH_MODE=cognito` 전환 필요 |
 | Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
