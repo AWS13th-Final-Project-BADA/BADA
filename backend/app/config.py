@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     parseur_api_key: str = ""
     cognito_user_pool_id: str = ""
     cognito_client_id: str = ""
+    cognito_domain: str = ""
+    cognito_redirect_uri: str = "http://localhost:8000/auth/cognito/callback"
+    cognito_logout_uri: str = "http://localhost:8000/"
+    cognito_scopes: str = "openid email profile"
     retention_days: int = 90
 
     # ── 소셜 로그인(JWT) ──

@@ -94,6 +94,30 @@ variable "app_port" {
   default     = 8000
 }
 
+variable "cognito_domain_prefix" {
+  description = "Globally unique Cognito Hosted UI domain prefix"
+  type        = string
+  default     = "bada-dev-165749212250"
+}
+
+variable "cognito_callback_urls" {
+  description = "Allowed OAuth callback URLs for the Cognito App Client"
+  type        = list(string)
+  default     = ["http://localhost:8000/auth/cognito/callback"]
+}
+
+variable "cognito_logout_urls" {
+  description = "Allowed sign-out URLs for the Cognito App Client"
+  type        = list(string)
+  default     = ["http://localhost:8000/"]
+}
+
+variable "cognito_oauth_scopes" {
+  description = "Allowed OAuth scopes for the Cognito App Client"
+  type        = list(string)
+  default     = ["openid", "email", "profile"]
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention period in days"
   type        = number

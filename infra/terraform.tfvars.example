@@ -19,6 +19,12 @@ db_apply_immediately         = true
 app_port             = 8000
 log_retention_days   = 14
 
+# Cognito Hosted UI / OAuth authorization code grant.
+cognito_domain_prefix = "bada-dev-165749212250"
+cognito_callback_urls = ["http://localhost:8000/auth/cognito/callback"]
+cognito_logout_urls   = ["http://localhost:8000/"]
+cognito_oauth_scopes  = ["openid", "email", "profile"]
+
 # Worker queue runtime settings.
 # 15-minute visibility timeout covers the current 10-minute transcription timeout with a buffer.
 sqs_visibility_timeout_seconds = 900

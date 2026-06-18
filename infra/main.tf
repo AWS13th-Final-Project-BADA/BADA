@@ -386,7 +386,19 @@ resource "aws_cognito_user_pool" "main" {
 }
 
 resource "aws_cognito_user_pool_client" "app" {
-  name         = "${local.name_prefix}-app-client"
+  name                                 = "${local.name_prefix}-app-client"
+  user_pool_id                         = aws_cognito_user_pool.main.id
+  callback_urls                        = var.cognito_callback_urls
+  logout_urls                          = var.cognito_logout_urls
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = var.cognito_oauth_scopes
+  allowed_oauth_flows_user_pool_client = true
+  supported_identity_providers         = ["COGNITO"]
+  prevent_user_existence_errors        = "ENABLED"
+}
+
+resource "aws_cognito_user_pool_domain" "main" {
+  domain       = var.cognito_domain_prefix
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
@@ -687,6 +699,10 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "TRANSCRIPTION_DISPATCH_MODE", value = var.backend_transcription_dispatch_mode },
         { name = "COGNITO_USER_POOL_ID", value = aws_cognito_user_pool.main.id },
         { name = "COGNITO_CLIENT_ID", value = aws_cognito_user_pool_client.app.id },
+        { name = "COGNITO_DOMAIN", value = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com/" },
+        { name = "COGNITO_REDIRECT_URI", value = var.cognito_callback_urls[0] },
+        { name = "COGNITO_LOGOUT_URI", value = var.cognito_logout_urls[0] },
+        { name = "COGNITO_SCOPES", value = join(" ", var.cognito_oauth_scopes) },
         { name = "RETENTION_DAYS", value = tostring(var.retention_days) }
       ]
 
@@ -1058,6 +1074,38 @@ resource "aws_ssm_parameter" "cognito_client_id" {
   name  = "/${local.name_prefix}/cognito/client_id"
   type  = "String"
   value = aws_cognito_user_pool_client.app.id
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_domain" {
+  name  = "/${local.name_prefix}/cognito/domain"
+  type  = "String"
+  value = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com/"
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_redirect_uri" {
+  name  = "/${local.name_prefix}/cognito/redirect_uri"
+  type  = "String"
+  value = var.cognito_callback_urls[0]
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_logout_uri" {
+  name  = "/${local.name_prefix}/cognito/logout_uri"
+  type  = "String"
+  value = var.cognito_logout_urls[0]
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_scopes" {
+  name  = "/${local.name_prefix}/cognito/scopes"
+  type  = "String"
+  value = join(" ", var.cognito_oauth_scopes)
 
   tags = local.common_tags
 }
