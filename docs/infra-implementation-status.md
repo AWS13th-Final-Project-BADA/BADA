@@ -12,14 +12,14 @@
 | 배포 대상 | ECS Fargate |
 | 기준 브랜치 | `develop` |
 | Backend 상태 | ECS Service 실행 중 |
-| Worker 상태 | SQS consumer 구현 전으로 미실행, runtime 인프라 변경안 검증 완료 |
+| Worker 상태 | SQS consumer 구현 전으로 미실행, runtime 인프라 적용 완료 |
 | DB | RDS PostgreSQL, private subnet |
 | 파일 저장소 | S3 Evidence / Report Bucket |
 | 비밀값 관리 | Secrets Manager |
 | 설정값 관리 | SSM Parameter Store |
 | 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 및 AWS 권한 반영 완료 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
-| 모니터링 | CloudWatch Logs / Alarms / SNS 알림 코드 준비 |
+| 모니터링 | CloudWatch Logs / Alarms / SNS Topic 적용, 이메일 구독 대기 |
 | Well-Architected | Workload 생성 및 초기 milestone 저장 완료 |
 
 ## 2. 현재 실행 상태
@@ -28,8 +28,8 @@
 | --- | --- |
 | Backend ECS Service | `desired=1`, `running=1` |
 | Worker ECS Service | `desired=0`, `running=0` |
-| Backend Task Definition | `bada-dev-backend:9` |
-| Worker Task Definition | `bada-dev-worker:2` |
+| Backend Task Definition | `bada-dev-backend:14` |
+| Worker Task Definition | `bada-dev-worker:4` |
 | Target Group | `healthy` |
 | ALB `/health` | `200 {"status":"ok"}` |
 | ALB `/version` | `200 {"name":"BADA","version":"0.1.0","auth_mode":"demo","storage_mode":"s3"}` |
@@ -69,7 +69,7 @@ SQS
 | --- | --- | --- |
 | ECS Cluster | 완료 | Backend / Worker 공용 |
 | Backend Task Definition | 완료 | GitHub Actions 배포 기준 최신 revision 사용 |
-| Worker Task Definition | 완료 | `DATABASE_URL` Secret 주입 변경안 검증, apply 대기 |
+| Worker Task Definition | 완료 | `DATABASE_URL` Secret 주입 및 Service `:4` 연결 완료 |
 | Backend ECS Service | 실행 중 | `desired_count=1` |
 | Worker ECS Service | 대기 | `desired_count=0` |
 | Backend ECR Repository | 완료 | Backend image 저장 |
@@ -89,7 +89,7 @@ SQS
 | S3 Evidence Bucket | 완료 | 증거 파일 저장 |
 | S3 Report Bucket | 완료 | 생성 리포트 저장 |
 | S3 SSE-KMS | 완료 | 버킷 암호화 |
-| SQS Analysis Queue | 완료 | Visibility Timeout 15분 / Long Polling 20초 변경안 검증, apply 대기 |
+| SQS Analysis Queue | 완료 | Visibility Timeout 15분 / Long Polling 20초 적용 |
 | SQS DLQ | 완료 | 실패 메시지 격리 |
 
 ### Auth / Config / Secret
@@ -108,7 +108,7 @@ SQS
 | --- | --- | --- |
 | CloudWatch Log Group | 완료 | Backend / Worker 로그 |
 | CloudWatch Alarm | 완료 | ALB, ECS, RDS, SQS 핵심 지표 8개 |
-| SNS Alarm Topic | 코드 준비 | 이메일 구독값 설정 후 알림 전송 가능 |
+| SNS Alarm Topic | 완료 | Topic 생성 완료, 이메일 구독은 아직 없음 |
 | AWS Budgets | 완료 | 팀 예산 추적 |
 | Well-Architected Tool | 초기 등록 완료 | Workload / Milestone 생성 |
 
@@ -154,7 +154,7 @@ develop push
 | 배포 대상 | Worker ECS Service |
 | 현재 실행 상태 | `desired_count=0` 유지 |
 | AWS 권한 반영 | 완료. Deploy Role이 Backend / Worker ECR push 가능 |
-| 실행 검증 | 대기. `worker/**` 변경 push 또는 workflow default branch 반영 후 검증 |
+| 실행 검증 | 완료. image / Task Definition revision 갱신과 Service 상태 출력 확인 |
 
 Worker는 아직 SQS long-running consumer가 구현되지 않았으므로, 배포 workflow는 이미지와 Task Definition revision을 갱신하는 용도로만 사용한다. Worker consumer가 완성되면 Terraform에서 `worker_desired_count`를 올려 실제 실행 상태로 전환한다.
 
@@ -165,7 +165,9 @@ SQS Visibility Timeout : 30초 -> 900초
 SQS Receive Wait Time   : 0초 -> 20초
 Worker DATABASE_URL     : Secrets Manager database_url 주입
 terraform validate      : Success
-terraform plan          : 예상 범위 확인, apply 대기
+terraform apply         : Success
+terraform plan          : No changes
+Worker Task Definition  : bada-dev-worker:4
 Worker Service          : desired=0, running=0 유지
 ```
 
@@ -202,10 +204,10 @@ workflow_dispatch
 | 항목 | 상태 | 비고 |
 | --- | --- | --- |
 | Worker SQS long-running consumer | 미구현 | 구현 후 Worker Service 기동 필요 |
-| Worker runtime 인프라 적용 | 코드/plan 완료 | PR 머지 후 Terraform apply 필요 |
-| Worker 자동배포 실행 검증 | 대기 | `worker/**` 변경 push 또는 workflow default branch 반영 후 가능 |
+| Worker runtime 인프라 적용 | 완료 | SQS 설정, DB Secret, Service `:4` 연결 검증 |
+| Worker 자동배포 실행 검증 | 완료 | consumer 구현 후 실제 메시지 처리 검증은 별도 진행 |
 | Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
-| SNS 기반 알림 전송 | 코드 준비 | `alarm_email_endpoints` 설정, apply, 이메일 구독 확인 필요 |
+| SNS 기반 알림 전송 | Topic 생성 완료 | `alarm_email_endpoints` 설정과 이메일 구독 확인 필요 |
 
 ## 7. Well-Architected Tool 현황
 

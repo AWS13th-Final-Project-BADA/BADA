@@ -41,7 +41,7 @@ MVP 원칙:
 - Backend ECS Service는 수동 검증 기준 `desired_count = 1`로 기동 및 ALB `/health` 200 응답 확인
 - Worker ECS Service는 SQS consumer 검증 전까지 `desired_count = 0` 유지
 - Worker queue는 10분 전사 작업을 고려해 Visibility Timeout 15분, Long Polling 20초를 사용
-- Worker Task는 Secrets Manager의 `database_url`을 `DATABASE_URL`로 주입받도록 준비
+- Worker Task는 Secrets Manager의 `database_url`을 `DATABASE_URL`로 주입
 - Worker 자동배포 workflow는 준비하되, consumer 구현 전까지는 Task Definition revision 갱신과 Service 상태 확인 용도로만 사용
 - 오디오 전사는 Worker SQS consumer 완성 전까지 `TRANSCRIPTION_DISPATCH_MODE=inline`으로 Backend에서 직접 처리 가능하게 구성
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
@@ -118,10 +118,14 @@ SQS receive_wait_time_seconds  : 20
 Worker secret                  : DATABASE_URL
 Secret source                  : bada-dev/app-secrets의 database_url
 Current Worker Service         : desired=0, running=0
+Current Worker Task Definition : bada-dev-worker:4
 ```
 
 - Visibility Timeout은 현재 전사 서비스의 최대 대기 시간 10분보다 5분 길게 잡아 처리 중 메시지가 조기에 재노출되는 위험을 줄인다.
 - Long Polling 20초는 빈 큐를 반복 조회하는 요청 수와 불필요한 비용을 줄인다.
+- Terraform apply와 AWS 속성 조회를 통해 SQS 설정과 Worker Secret 주입을 검증했다.
+- 새 Task Definition 등록 후 ECS Service가 이전 revision을 유지해, Service 참조를 `bada-dev-worker:4`로 갱신했다.
+- 최종 `terraform plan`은 `No changes`를 확인했다.
 - Consumer 구현 전에는 Worker Docker CMD, `worker_desired_count`, `TRANSCRIPTION_DISPATCH_MODE`를 전환하지 않는다.
 
 Worker 자동배포 권한 반영 결과:
@@ -136,8 +140,8 @@ Worker Service  : desired=0, running=0
 
 주의:
 
-- 현재 GitHub 기본 브랜치가 `main`이므로, `develop`에만 존재하는 신규 workflow는 `workflow_dispatch` 수동 실행 목록에 바로 보이지 않을 수 있다.
-- Worker workflow 실제 실행 검증은 `worker/**` 변경이 `develop`에 push될 때 자동 실행되거나, workflow가 default branch에 반영된 뒤 수동 실행으로 진행한다.
+- Worker workflow는 `worker/**` 변경이 포함된 `develop` push에서 실제 실행되어 image push, Task Definition revision 등록, Service update 흐름을 확인했다.
+- 현재 Worker Service는 consumer 구현 전이므로 workflow 실행 후에도 `desired_count = 0`을 유지한다.
 
 GitHub Actions 수동 롤백:
 
@@ -203,7 +207,8 @@ SQS Analysis DLQ            : visible message 1개 이상
 ```
 
 - 기본값: `alarm_email_endpoints = []`, `alarm_actions = []`
-- 의미: 이메일 주소를 넣기 전까지는 알람 객체만 생성하고 콘솔에서 상태를 확인한다.
+- SNS Topic `bada-dev-alarm-notifications`는 Terraform apply로 생성 완료했다.
+- 현재 구독은 0개이므로 이메일 주소를 넣기 전까지는 알람 객체를 콘솔에서 확인한다.
 - 확장: `alarm_email_endpoints`에 이메일 주소를 넣으면 Terraform 관리 SNS Topic에 이메일 구독을 생성하고, CloudWatch Alarm action에 연결한다.
 - 주의: 이메일 구독자는 AWS SNS confirmation 메일을 반드시 승인해야 실제 알림을 받을 수 있다.
 - 별도 SNS Topic을 이미 운영 중이면 `alarm_actions`에 기존 action ARN을 추가할 수 있다.
