@@ -61,7 +61,10 @@ backend_embedding_mode = "mock"
 # inline: backend task handles audio transcription directly.
 # sqs: backend sends transcription messages to SQS; requires a running worker consumer.
 backend_transcription_dispatch_mode = "inline"
+# Transcribe can use AWS independently while OCR/Bedrock remain local/mock.
+backend_transcribe_mode = "aws"
 worker_provider_mode     = "local"
+worker_transcribe_mode   = "aws"
 worker_translate_mode    = "local"
 worker_structured_engine = "vision"
 

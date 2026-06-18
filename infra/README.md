@@ -44,6 +44,7 @@ MVP 원칙:
 - Worker Task는 Secrets Manager의 `database_url`을 `DATABASE_URL`로 주입
 - Worker 자동배포 workflow는 준비하되, consumer 구현 전까지는 Task Definition revision 갱신과 Service 상태 확인 용도로만 사용
 - 오디오 전사는 Worker SQS consumer 완성 전까지 `TRANSCRIPTION_DISPATCH_MODE=inline`으로 Backend에서 직접 처리 가능하게 구성
+- `TRANSCRIBE_MODE=aws`를 별도로 사용해 `PROVIDER_MODE=local` 상태에서도 Amazon Transcribe만 실제 호출 가능
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
 - CloudWatch Alarm은 ALB/ECS/RDS/SQS 핵심 지표 기준으로 생성하며, 기본은 콘솔 확인용이다.
 - Cognito App Client는 Authorization Code Grant와 `openid email profile` scope를 사용한다.
@@ -145,6 +146,20 @@ Current Worker Task Definition : bada-dev-worker:4
 - 새 Task Definition 등록 후 ECS Service가 이전 revision을 유지해, Service 참조를 `bada-dev-worker:4`로 갱신했다.
 - 최종 `terraform plan`은 `No changes`를 확인했다.
 - Consumer 구현 전에는 Worker Docker CMD, `worker_desired_count`, `TRANSCRIPTION_DISPATCH_MODE`를 전환하지 않는다.
+
+Amazon Transcribe 독립 모드:
+
+```text
+Backend PROVIDER_MODE              : local
+Backend TRANSCRIBE_MODE            : aws
+Backend TRANSCRIPTION_DISPATCH_MODE: inline
+Worker PROVIDER_MODE               : local
+Worker TRANSCRIBE_MODE             : aws
+```
+
+- `TRANSCRIBE_MODE`를 생략하면 기존처럼 `PROVIDER_MODE`를 상속한다.
+- Backend는 현재 inline 전사 경로에서 실제 Amazon Transcribe를 호출한다.
+- Worker는 Consumer 실행 전이므로 설정만 준비하고 `desired_count=0`을 유지한다.
 
 Worker 자동배포 권한 반영 결과:
 
