@@ -224,9 +224,10 @@ SQS Analysis Backlog        : visible message 10개 이상
 SQS Analysis DLQ            : visible message 1개 이상
 ```
 
-- 기본값: `alarm_email_endpoints = []`, `alarm_actions = []`
+- 기본값은 `alarm_email_endpoints = []`, `alarm_actions = []`이며 실제 이메일 주소는 Git에서 제외되는 로컬 `terraform.tfvars`에만 저장한다.
 - SNS Topic `bada-dev-alarm-notifications`는 Terraform apply로 생성 완료했다.
-- 현재 구독은 0개이므로 이메일 주소를 넣기 전까지는 알람 객체를 콘솔에서 확인한다.
+- 팀 알림 이메일 `badajoa0710@gmail.com` 구독을 생성하고 CloudWatch Alarm 8개의 `alarm_actions`와 `ok_actions`에 SNS Topic을 연결했다.
+- 현재 구독 상태는 `PendingConfirmation`이다. 이메일의 AWS SNS confirmation 링크를 승인하기 전에는 실제 알림이 전달되지 않는다.
 - 확장: `alarm_email_endpoints`에 이메일 주소를 넣으면 Terraform 관리 SNS Topic에 이메일 구독을 생성하고, CloudWatch Alarm action에 연결한다.
 - 주의: 이메일 구독자는 AWS SNS confirmation 메일을 반드시 승인해야 실제 알림을 받을 수 있다.
 - 별도 SNS Topic을 이미 운영 중이면 `alarm_actions`에 기존 action ARN을 추가할 수 있다.
@@ -237,9 +238,21 @@ SQS Analysis DLQ            : visible message 1개 이상
 
 ```hcl
 alarm_email_endpoints = [
-  "team-member@example.com"
+  "badajoa0710@gmail.com"
 ]
 ```
+
+현재 적용 결과:
+
+```text
+SNS Topic        : bada-dev-alarm-notifications
+Email endpoint   : badajoa0710@gmail.com
+Subscription     : PendingConfirmation
+Connected alarms : 8
+Terraform plan   : No changes
+```
+
+confirmation 완료 후 SNS Topic에 테스트 메시지를 publish해 실제 수신까지 확인한다.
 
 Well-Architected Tool 등록:
 
