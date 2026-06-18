@@ -10,6 +10,8 @@ from __future__ import annotations
 import secrets
 import string
 
+import requests
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -18,10 +20,55 @@ from ..config import settings
 from ..db import get_db
 from ..deps import get_current_user
 from ..models import User
-from ..services import auth_service
+from ..services import auth_service, cognito_auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 _PROVIDERS = ("kakao", "google", "naver")
+
+
+@router.get("/cognito/login")
+def cognito_login():
+    if not cognito_auth_service.is_configured():
+        raise HTTPException(status_code=503, detail="Cognito 로그인 미설정")
+    state = secrets.token_urlsafe(16)
+    return RedirectResponse(cognito_auth_service.authorize_url(state))
+
+
+@router.get("/cognito/callback")
+def cognito_callback(
+    code: str | None = None,
+    state: str = "",
+    error: str | None = None,
+    error_description: str | None = None,
+    db: Session = Depends(get_db),
+):
+    _ = state
+    if error or error_description:
+        raise HTTPException(status_code=400, detail=f"Cognito 인증 거부: {error} / {error_description}")
+    if not code:
+        raise HTTPException(status_code=400, detail="code 누락(Cognito에서 돌아오지 못함)")
+    try:
+        tokens = cognito_auth_service.exchange_code(code)
+        token = tokens.get("id_token") or tokens.get("access_token")
+        if not token:
+            raise HTTPException(status_code=502, detail="Cognito token 응답 누락")
+        payload = cognito_auth_service.verify_cognito_token(token)
+        cognito_auth_service.get_or_create_user_from_claims(db, payload)
+    except cognito_auth_service.CognitoConfigError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except requests.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Cognito token 교환 실패: {exc.response.text}") from exc
+
+    app_base_url = settings.app_base_url.rstrip("/")
+    return RedirectResponse(f"{app_base_url}/#token={token}")
+
+
+@router.get("/cognito/logout")
+def cognito_logout():
+    if not cognito_auth_service.is_configured():
+        app_base_url = settings.app_base_url.rstrip("/")
+        return RedirectResponse(app_base_url)
+    return RedirectResponse(cognito_auth_service.logout_url())
 
 
 @router.get("/{provider}/login")
@@ -52,7 +99,8 @@ def social_callback(provider: str, request: Request, code: str | None = None,
                                email=info.get("email"), name=info.get("name"))
 
     jwt = auth_service.create_access_token(sub=user.id, email=user.email, name=user.name)
-    return RedirectResponse(f"{settings.app_base_url}/#token={jwt}")
+    app_base_url = settings.app_base_url.rstrip("/")
+    return RedirectResponse(f"{app_base_url}/#token={jwt}")
 
 
 @router.post("/kakao/link-code")

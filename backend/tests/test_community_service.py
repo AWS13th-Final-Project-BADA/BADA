@@ -10,6 +10,7 @@ from app.services.community_service import (
     create_report,
     delete_comment,
     delete_post,
+    list_posts,
     list_reports,
     safety_check,
     translate_text,
@@ -38,6 +39,36 @@ def test_community_safety_blocks_legal_judgment_questions():
     assert result.risk_level == "blocked"
     assert result.moderation_status == "blocked"
     assert result.suggested_text
+
+
+def test_community_safety_blocks_personal_information():
+    examples = [
+        "제 전화번호는 010-1234-5678이고 상담 가능한가요?",
+        "외국인등록번호 900101-5123456도 같이 올립니다.",
+        "답장은 worker@example.com 으로 주세요.",
+        "계좌번호 123-456789-01-234 입니다.",
+    ]
+
+    for content in examples:
+        result = safety_check(content, "ko")
+        assert result.allowed is False
+        assert result.risk_level == "privacy"
+        assert result.moderation_status == "blocked"
+        assert result.suggested_text
+
+
+def test_community_safety_allows_profanity_without_privacy_or_legal_judgment():
+    result = safety_check("사장이 진짜 짜증나고 욕 나오는데 입금내역은 어떻게 정리하면 좋을까요?", "ko")
+
+    assert result.allowed is True
+    assert result.risk_level in {"safe", "review"}
+
+
+def test_community_safety_blocks_direct_legal_advice_requests():
+    result = safety_check("이 상황에 대해 법률 조언 해주세요. 변호사처럼 판단해 주세요.", "ko")
+
+    assert result.allowed is False
+    assert result.risk_level == "blocked"
 
 
 def test_community_safety_allows_consultation_preparation_questions():
@@ -83,6 +114,26 @@ def test_community_post_update_and_delete():
     deleted = delete_post(db, user, post.id)
     assert deleted.status == "deleted"
     assert deleted.deleted_at is not None
+
+
+def test_community_list_posts_searches_title_and_content():
+    db, user = make_db()
+    create_post(
+        db,
+        user,
+        CommunityPostCreate(category="wage", title="입금내역 정리 질문", content="급여명세서와 통장 입금액을 비교하고 싶어요.", language="ko"),
+    )
+    create_post(
+        db,
+        user,
+        CommunityPostCreate(category="petition", title="진정서 준비", content="상담 전에 가져갈 자료를 정리합니다.", language="ko"),
+    )
+
+    by_title = list_posts(db, user, search_query="입금내역")
+    by_content = list_posts(db, user, search_query="통장")
+
+    assert [post.title for post in by_title] == ["입금내역 정리 질문"]
+    assert [post.title for post in by_content] == ["입금내역 정리 질문"]
 
 
 def test_community_comment_update_and_delete_decrements_count():
