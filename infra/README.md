@@ -103,8 +103,20 @@ google_oauth_client_secret       = "your-client-secret"
 ```
 
 - Google OAuth redirect URI는 `https://<cognito-domain>/oauth2/idpresponse`로 등록한다.
-- Cognito는 Google의 `email`, `name`, `email_verified` 속성을 같은 이름의 User Pool 속성으로 매핑한다.
+- Cognito는 Google의 `email`, `name`, `email_verified`, `sub`를 User Pool의 `email`, `name`, `email_verified`, `username`에 매핑한다.
 - Google Client Secret은 Git, PR, 문서에 기록하지 않고 비추적 `terraform.tfvars`에서만 주입한다.
+- 팀 AWS 계정에 Terraform apply를 완료했으며 기존 App Client ID를 유지한 채 `COGNITO`, `Google` provider가 활성화됐다.
+- Hosted UI authorize 요청이 Google OAuth endpoint로 HTTP `302` 리다이렉트되는 것을 확인했다.
+- AWS가 자동 보완하는 Google endpoint metadata와 `username = sub` 매핑은 Terraform에 명시해 후속 plan drift를 방지한다.
+- 실제 Google 사용자 로그인, callback code 교환과 JWT 검증은 인증 담당자가 검증한다.
+
+Bedrock Anthropic 모델 접근:
+
+- 팀 AWS 계정에서 Anthropic First Time Use(FTU) use case details 제출을 완료했다.
+- `ap-northeast-2` Bedrock Playground에서 `global.anthropic.claude-sonnet-4-6` 호출을 검증했다.
+- FTU 제출은 계정 단위 최초 1회 운영 절차이며 Terraform 리소스로 관리하지 않는다.
+- ECS Task Role의 `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream` 권한은 Terraform으로 관리한다.
+- 다음 검증 단계는 실제 Backend/Worker Task Role을 통한 Claude 호출과 CloudWatch Logs 확인이다.
 
 GitHub Actions Backend 자동배포:
 
