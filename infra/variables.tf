@@ -118,6 +118,27 @@ variable "cognito_oauth_scopes" {
   default     = ["openid", "email", "profile"]
 }
 
+variable "enable_google_identity_provider" {
+  description = "Whether to configure Google as a Cognito federated identity provider"
+  type        = bool
+  default     = false
+}
+
+variable "google_oauth_client_id" {
+  description = "Google OAuth 2.0 client ID used by Cognito"
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "google_oauth_client_secret" {
+  description = "Google OAuth 2.0 client secret used by Cognito"
+  type        = string
+  default     = null
+  nullable    = true
+  sensitive   = true
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention period in days"
   type        = number

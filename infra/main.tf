@@ -385,6 +385,41 @@ resource "aws_cognito_user_pool" "main" {
   tags = local.common_tags
 }
 
+resource "aws_cognito_identity_provider" "google" {
+  count = var.enable_google_identity_provider ? 1 : 0
+
+  user_pool_id  = aws_cognito_user_pool.main.id
+  provider_name = "Google"
+  provider_type = "Google"
+
+  provider_details = {
+    authorize_scopes = join(" ", var.cognito_oauth_scopes)
+    client_id        = var.google_oauth_client_id
+    client_secret    = var.google_oauth_client_secret
+  }
+
+  attribute_mapping = {
+    email          = "email"
+    email_verified = "email_verified"
+    name           = "name"
+  }
+
+  lifecycle {
+    precondition {
+      condition = (
+        !var.enable_google_identity_provider ||
+        (
+          var.google_oauth_client_id != null &&
+          var.google_oauth_client_secret != null &&
+          try(trimspace(var.google_oauth_client_id), "") != "" &&
+          try(trimspace(var.google_oauth_client_secret), "") != ""
+        )
+      )
+      error_message = "Google OAuth client ID and client secret are required when enable_google_identity_provider is true."
+    }
+  }
+}
+
 resource "aws_cognito_user_pool_client" "app" {
   name                                 = "${local.name_prefix}-app-client"
   user_pool_id                         = aws_cognito_user_pool.main.id
@@ -393,8 +428,13 @@ resource "aws_cognito_user_pool_client" "app" {
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = var.cognito_oauth_scopes
   allowed_oauth_flows_user_pool_client = true
-  supported_identity_providers         = ["COGNITO"]
-  prevent_user_existence_errors        = "ENABLED"
+  supported_identity_providers = concat(
+    ["COGNITO"],
+    var.enable_google_identity_provider ? ["Google"] : []
+  )
+  prevent_user_existence_errors = "ENABLED"
+
+  depends_on = [aws_cognito_identity_provider.google]
 }
 
 resource "aws_cognito_user_pool_domain" "main" {
