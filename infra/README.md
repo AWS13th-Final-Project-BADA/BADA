@@ -103,8 +103,12 @@ google_oauth_client_secret       = "your-client-secret"
 ```
 
 - Google OAuth redirect URI는 `https://<cognito-domain>/oauth2/idpresponse`로 등록한다.
-- Cognito는 Google의 `email`, `name`, `email_verified` 속성을 같은 이름의 User Pool 속성으로 매핑한다.
+- Cognito는 Google의 `email`, `name`, `email_verified`, `sub`를 User Pool의 `email`, `name`, `email_verified`, `username`에 매핑한다.
 - Google Client Secret은 Git, PR, 문서에 기록하지 않고 비추적 `terraform.tfvars`에서만 주입한다.
+- 팀 AWS 계정에 Terraform apply를 완료했으며 기존 App Client ID를 유지한 채 `COGNITO`, `Google` provider가 활성화됐다.
+- Hosted UI authorize 요청이 Google OAuth endpoint로 HTTP `302` 리다이렉트되는 것을 확인했다.
+- AWS가 자동 보완하는 Google endpoint metadata와 `username = sub` 매핑은 Terraform에 명시해 후속 plan drift를 방지한다.
+- 실제 Google 사용자 로그인, callback code 교환과 JWT 검증은 인증 담당자가 검증한다.
 
 Bedrock Anthropic 모델 접근:
 

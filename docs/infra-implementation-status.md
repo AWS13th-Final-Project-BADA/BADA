@@ -17,7 +17,7 @@
 | 파일 저장소 | S3 Evidence / Report Bucket |
 | 비밀값 관리 | Secrets Manager |
 | 설정값 관리 | SSM Parameter Store |
-| 인증 인프라 | Cognito Hosted UI / Authorization Code Grant 적용 완료 |
+| 인증 인프라 | Cognito Hosted UI / Authorization Code Grant / Google IdP 적용 완료 |
 | Bedrock 모델 접근 | Anthropic FTU 제출 및 Claude Sonnet 4.6 Playground 호출 완료 |
 | 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 및 AWS 권한 반영 완료 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
@@ -99,8 +99,9 @@ SQS
 | 리소스 | 상태 | 비고 |
 | --- | --- | --- |
 | Cognito User Pool | 완료 | `ap-northeast-2_5K39SlMFg` |
-| Cognito App Client | 완료 | Authorization Code Grant, callback/logout URL, `openid email profile` 적용 |
+| Cognito App Client | 완료 | Authorization Code Grant, callback/logout URL, `openid email profile`, `COGNITO`/`Google` provider 적용 |
 | Cognito Hosted UI Domain | 완료 | `https://bada-dev-165749212250.auth.ap-northeast-2.amazoncognito.com/` |
+| Cognito Google IdP | 완료 | Terraform apply 및 Google OAuth `302` redirect 검증 |
 | Secrets Manager | 완료 | DB 접속 정보와 앱 secret |
 | SSM Parameter Store | 완료 | Cognito domain/redirect/logout/scopes를 포함한 비민감 설정 |
 | IAM User / Role | 완료 | 팀원 접근 및 GitHub Actions 배포 역할 |
@@ -117,6 +118,9 @@ COGNITO_SCOPES=openid email profile
 ```
 
 - 기존 App Client를 인플레이스 수정해 Client ID를 유지했다.
+- Google IdP는 `email`, `email_verified`, `name`, `username(sub)` 속성 매핑을 사용한다.
+- Google Client Secret은 비추적 `infra/terraform.tfvars`와 암호화된 Terraform remote state에서만 관리한다.
+- Hosted UI에서 Google OAuth 진입까지 검증했으며 callback code 교환과 JWT 검증은 인증 담당 범위다.
 - 인프라 설정은 완료됐지만 Backend의 `AUTH_MODE`는 아직 `demo`다. 인증 담당자가 Cognito callback/code 교환과 JWT 검증을 구현한 뒤 `AUTH_MODE=cognito`로 전환해야 한다.
 
 ### AI / Bedrock
@@ -241,7 +245,9 @@ workflow_dispatch
 | Amazon Transcribe 독립 모드 | 완료 | Backend `:20`, Worker `:7`에 `TRANSCRIBE_MODE=aws` 배포 및 ALB health 검증 |
 | Anthropic Claude 계정 접근 | 완료 | FTU 제출 및 Global Claude Sonnet 4.6 Playground 호출 검증 |
 | ECS Bedrock 실제 호출 | 검증 대기 | Task Role 기반 호출과 CloudWatch Logs 확인 필요 |
-| Cognito Hosted UI/OAuth 인프라 | 완료 | PR #31, AWS 적용 및 Terraform `No changes` 확인 |
+| Cognito Hosted UI/OAuth 인프라 | 완료 | Hosted UI, Authorization Code Grant, callback/logout URL 적용 |
+| Cognito Google IdP | 완료 | PR #39 코드 반영 후 Terraform apply, App Client provider와 Google redirect 검증 |
+| Google IdP Terraform drift | 완료 | PR #45 merge, AWS 자동 보정값 명시 및 최종 plan `No changes` 검증 |
 | Cognito 애플리케이션 로그인 연동 | 개발 대기 | callback/code 교환, JWT 검증, `AUTH_MODE=cognito` 전환 필요 |
 | Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
 | SNS 기반 알림 전송 | 승인 대기 | 팀 이메일 구독 생성 및 Alarm 8개 연결 완료, confirmation 후 테스트 발송 필요 |
