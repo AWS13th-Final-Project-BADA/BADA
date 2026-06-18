@@ -61,7 +61,7 @@ worker/
 │  └─ transcribe.py        # Transcriber ABC, MockTranscriber, AmazonTranscriber, get_transcriber()
 ├─ services/
 │  └─ transcription.py     # process_transcription(), format_diarized_text(), refine_transcript()
-└─ config.py               # PROVIDER_MODE
+└─ config.py               # PROVIDER_MODE, TRANSCRIBE_MODE
 
 backend/app/routers/
 └─ evidences.py            # /upload 엔드포인트 (오디오 분기)
@@ -164,9 +164,18 @@ Speaker 0: 지난달에도 같은 문제가 있었는데, 이번에도 늦어지
 
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
-| `PROVIDER_MODE` | local | local=MockTranscriber(즉시 고정 텍스트), aws=AmazonTranscriber |
+| `PROVIDER_MODE` | local | OCR/LLM 등 공통 provider 모드 |
+| `TRANSCRIBE_MODE` | `PROVIDER_MODE` 상속 | local=MockTranscriber, aws=AmazonTranscriber |
 | `AWS_REGION` | ap-northeast-2 | Transcribe 리전 |
 | `S3_BUCKET` | | 오디오 파일 저장 버킷 (S3 모드 필수) |
+
+AWS dev 환경은 다른 provider의 비용과 동작에 영향을 주지 않도록 다음처럼 사용한다.
+
+```text
+PROVIDER_MODE=local
+TRANSCRIBE_MODE=aws
+TRANSCRIPTION_DISPATCH_MODE=inline
+```
 
 ---
 
@@ -188,7 +197,7 @@ cd worker && python -m pytest tests/ -v -k "transcri"
 ```
 
 - MockTranscriber: 100ms 이내 고정 응답 → 로컬 E2E 동작
-- 실제 전사: `PROVIDER_MODE=aws` + S3 버킷 설정 필요
+- 실제 전사: `TRANSCRIBE_MODE=aws` + S3 버킷 설정 필요
 - AWS 실측 결과: S3 업로드 ✅, Transcribe 잡 생성 ✅, 결과 가져오기 ✅
 
 ---

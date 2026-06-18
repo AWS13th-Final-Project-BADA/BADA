@@ -697,6 +697,7 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "KMS_KEY_ID", value = aws_kms_key.evidence.arn },
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.analysis.url },
         { name = "TRANSCRIPTION_DISPATCH_MODE", value = var.backend_transcription_dispatch_mode },
+        { name = "TRANSCRIBE_MODE", value = var.backend_transcribe_mode != "" ? var.backend_transcribe_mode : var.backend_provider_mode },
         { name = "COGNITO_USER_POOL_ID", value = aws_cognito_user_pool.main.id },
         { name = "COGNITO_CLIENT_ID", value = aws_cognito_user_pool_client.app.id },
         { name = "COGNITO_DOMAIN", value = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com/" },
@@ -750,6 +751,7 @@ resource "aws_ecs_task_definition" "worker" {
       environment = [
         { name = "AWS_REGION", value = var.aws_region },
         { name = "PROVIDER_MODE", value = var.worker_provider_mode },
+        { name = "TRANSCRIBE_MODE", value = var.worker_transcribe_mode != "" ? var.worker_transcribe_mode : var.worker_provider_mode },
         { name = "TRANSLATE_MODE", value = var.worker_translate_mode },
         { name = "STRUCTURED_ENGINE", value = var.worker_structured_engine },
         { name = "S3_BUCKET", value = aws_s3_bucket.evidence.bucket },

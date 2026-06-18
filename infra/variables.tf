@@ -264,10 +264,32 @@ variable "backend_transcription_dispatch_mode" {
   }
 }
 
+variable "backend_transcribe_mode" {
+  description = "Backend audio transcription provider mode. Defaults to provider mode when empty."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = contains(["", "local", "aws"], var.backend_transcribe_mode)
+    error_message = "backend_transcribe_mode must be empty, local, or aws."
+  }
+}
+
 variable "worker_provider_mode" {
   description = "Worker provider mode"
   type        = string
   default     = "local"
+}
+
+variable "worker_transcribe_mode" {
+  description = "Worker audio transcription provider mode. Defaults to provider mode when empty."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = contains(["", "local", "aws"], var.worker_transcribe_mode)
+    error_message = "worker_transcribe_mode must be empty, local, or aws."
+  }
 }
 
 variable "worker_translate_mode" {

@@ -3,7 +3,7 @@
 담당: 오디오 파일을 텍스트로 변환한다.
 AmazonTranscriber가 Amazon Transcribe API를 캡슐화하고,
 화자 분리(Speaker Diarization)를 활성화하여 최대 5명의 화자를 구분한다.
-PROVIDER_MODE에 따라 MockTranscriber(로컬) / AmazonTranscriber(AWS)로 분기한다.
+TRANSCRIBE_MODE에 따라 MockTranscriber(로컬) / AmazonTranscriber(AWS)로 분기한다.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from config import AWS_REGION, PROVIDER_MODE
+from config import AWS_REGION, TRANSCRIBE_MODE
 
 logger = logging.getLogger(__name__)
 
@@ -413,11 +413,11 @@ class AmazonTranscriber(Transcriber):
 
 
 def get_transcriber() -> Transcriber:
-    """PROVIDER_MODE에 따라 적절한 Transcriber를 반환한다.
+    """TRANSCRIBE_MODE에 따라 적절한 Transcriber를 반환한다.
 
-    - PROVIDER_MODE="local" → MockTranscriber
-    - PROVIDER_MODE="aws"   → AmazonTranscriber
+    - TRANSCRIBE_MODE="local" → MockTranscriber
+    - TRANSCRIBE_MODE="aws"   → AmazonTranscriber
     """
-    if PROVIDER_MODE == "aws":
+    if TRANSCRIBE_MODE == "aws":
         return AmazonTranscriber(region=AWS_REGION)
     return MockTranscriber()

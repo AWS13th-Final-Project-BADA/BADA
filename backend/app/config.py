@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     kms_key_id: str = ""
     sqs_queue_url: str = ""
     transcription_dispatch_mode: str = "inline"  # inline | sqs
+    transcribe_mode: str = ""  # 빈 값이면 provider_mode 상속, local | aws
     # Claude Sonnet 4.6 (Global 추론 프로파일, 비전 지원). 텍스트·비전 공용.
     bedrock_model_id: str = "global.anthropic.claude-sonnet-4-6"
     bedrock_vision_model_id: str = "global.anthropic.claude-sonnet-4-6"
@@ -77,6 +78,7 @@ settings = Settings()
 # .env 설정을 worker(providers)가 읽는 환경변수로 브리지.
 # → .env 한 곳에서 provider_mode=aws + 키만 넣으면 OCR·AI·번역이 실제로 전환됨.
 os.environ.setdefault("PROVIDER_MODE", settings.provider_mode)
+os.environ.setdefault("TRANSCRIBE_MODE", settings.transcribe_mode or settings.provider_mode)
 os.environ.setdefault("STRUCTURED_ENGINE", settings.structured_engine)
 os.environ.setdefault("AWS_REGION", settings.aws_region)
 os.environ.setdefault("BEDROCK_MODEL_ID", settings.bedrock_model_id)
