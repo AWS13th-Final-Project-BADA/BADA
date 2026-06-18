@@ -100,6 +100,28 @@ variable "log_retention_days" {
   default     = 14
 }
 
+variable "sqs_visibility_timeout_seconds" {
+  description = "Time an in-flight analysis message remains hidden. 15 minutes covers the worker transcription timeout with a buffer."
+  type        = number
+  default     = 900
+
+  validation {
+    condition     = var.sqs_visibility_timeout_seconds >= 0 && var.sqs_visibility_timeout_seconds <= 43200
+    error_message = "sqs_visibility_timeout_seconds must be between 0 and 43200 seconds."
+  }
+}
+
+variable "sqs_receive_wait_time_seconds" {
+  description = "SQS long-polling wait time for worker receive requests."
+  type        = number
+  default     = 20
+
+  validation {
+    condition     = var.sqs_receive_wait_time_seconds >= 0 && var.sqs_receive_wait_time_seconds <= 20
+    error_message = "sqs_receive_wait_time_seconds must be between 0 and 20 seconds."
+  }
+}
+
 variable "alarm_actions" {
   description = "Additional alarm action ARNs. Keep empty unless the team already owns a separate notification target."
   type        = list(string)
