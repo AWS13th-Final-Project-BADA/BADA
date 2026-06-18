@@ -19,7 +19,7 @@
 | 설정값 관리 | SSM Parameter Store |
 | 인증 인프라 | Cognito Hosted UI / Authorization Code Grant / Google IdP 적용 완료 |
 | Bedrock 모델 접근 | Anthropic FTU 제출 및 Claude Sonnet 4.6 Playground 호출 완료 |
-| 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스 계정 단위 전체 활성화 방식 / `BEDROCK_MODEL_ID` 전환 |
+| 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
 | 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 및 AWS 권한 반영 완료 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
 | 모니터링 | CloudWatch Logs / Alarms / SNS 이메일 구독 생성 완료, confirmation 대기 |
@@ -143,13 +143,14 @@ COGNITO_SCOPES=openid email profile
 | 항목 | 상태 | 비고 |
 | --- | --- | --- |
 | 팀원 IAM 호출 권한 | 완료 | `bada-hsw`, `bada-kjh`, `bada-ldk`, `bada-sjw` 모두 `bedrock:InvokeModel` 등 `allowed` (PowerUserAccess 상속) |
-| 계정 단위 모델 액세스 | 콘솔 작업 | Bedrock `Model access`에서 `ap-northeast-2` 전체 활성화 (계정·리전 단위 1회) |
+| 모델 액세스 방식 | 자동 | Bedrock `Model access` 페이지 폐지, 서버리스 모델은 첫 호출 시 자동 활성화 (통제는 IAM/SCP) |
 | 모델 전환 방식 | 완료 | 앱이 `BEDROCK_MODEL_ID` 환경변수로 모델 지정 (기본값 `global.anthropic.claude-sonnet-4-6`) |
 | 비용 안전망 | 권장 | AWS Budgets의 Bedrock 비용 알림으로 고가 모델 반복 호출 통제 |
 
 - OCR/음성인식 담당자가 후보를 미리 정하지 않고 여러 모델을 바꿔가며 테스트할 수 있도록 구성한다.
-- Bedrock 호출은 `IAM 권한`과 `계정 단위 모델 액세스` 두 층을 모두 통과해야 하며, IAM은 이미 충족되어 있다.
-- 모델 액세스는 계정·리전 단위라 인프라 담당자가 한 번 전체 활성화하면 팀원 전원이 공유한다.
+- Bedrock 호출은 `IAM 권한`과 `모델 액세스` 두 층을 통과해야 하며, IAM은 이미 충족되어 있다.
+- Bedrock `Model access` 수동 활성화 페이지는 폐지됐고, 서버리스 파운데이션 모델은 계정에서 처음 호출되는 순간 자동 활성화된다(Anthropic FTU 1회 완료, Marketplace 모델만 최초 1회 invoke 필요).
+- 모델 접근 통제는 콘솔 토글이 아니라 IAM 정책/SCP로 하며, 넓게 열려면 현재 PowerUserAccess로 충분하다.
 - 팀원은 로컬에서 `BEDROCK_MODEL_ID`만 바꿔 모델을 교체하며, `global.`/`apac.` cross-region profile보다 리전 내 on-demand 모델 ID 사용을 권장한다.
 
 ### Observability / Cost

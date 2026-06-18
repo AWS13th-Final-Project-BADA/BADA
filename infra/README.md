@@ -121,24 +121,24 @@ Bedrock Anthropic 모델 접근:
 팀원 Bedrock 모델 자유 테스트:
 
 - OCR/음성인식 담당자가 후보를 미리 정하지 않고 여러 모델을 바꿔가며 테스트할 수 있게 구성한다.
-- Bedrock 호출은 `IAM 권한`과 `계정 단위 모델 액세스` 두 층을 모두 통과해야 한다.
+- Bedrock 호출은 `IAM 권한`과 `모델 액세스` 두 층을 통과해야 한다.
 - 팀원 4명은 `BADA-Developers` 그룹의 `PowerUserAccess`로 `bedrock:InvokeModel` 등 호출 권한을 이미 충족한다(simulate-principal-policy로 검증).
-- 모델 액세스는 후보별로 여는 대신 Bedrock `Model access`에서 `ap-northeast-2` 기준으로 전체 활성화한다. 계정·리전 단위라 한 번 열면 팀원 전원이 공유한다.
+- Bedrock `Model access` 수동 활성화 페이지는 폐지됐고(`Model access page has been retired`), 서버리스 파운데이션 모델은 계정에서 처음 호출되는 순간 자동 활성화된다.
+- 예외는 Anthropic 모델의 first-time use case 제출(이미 완료)과 AWS Marketplace 경유 모델의 최초 1회 invoke뿐이다.
+- 모델 접근 통제는 콘솔 토글이 아니라 IAM 정책/SCP로 한다. 넓게 열려면 현재 PowerUserAccess로 충분하고, 좁히려면 모델 ARN 화이트리스트 IAM 정책이나 SCP를 사용한다.
 - 앱은 모델을 `BEDROCK_MODEL_ID` 환경변수로 지정하므로(`worker/config.py`, 기본값 `global.anthropic.claude-sonnet-4-6`), 팀원은 로컬에서 이 값만 바꿔 모델을 교체한다.
-- `global.` / `apac.` cross-region inference profile은 라우팅 대상 리전에도 액세스가 필요하므로 리전 내 on-demand 모델 ID 사용을 권장한다.
-- 전체 모델을 열면 고가 모델(예: Opus 계열) 반복 호출로 예산을 빠르게 소진할 수 있어 AWS Budgets의 Bedrock 비용 알림을 안전망으로 둔다.
+- `global.` / `apac.` cross-region inference profile은 라우팅 대상 리전에서도 모델이 사용 가능해야 하므로 리전 내 on-demand 모델 ID 사용을 권장한다.
+- 자동 활성화로 어떤 모델이든 쉽게 호출되므로 고가 모델(예: Opus 계열) 반복 호출에 대비해 AWS Budgets의 Bedrock 비용 알림을 안전망으로 둔다.
 
-모델 액세스 콘솔 작업 순서:
+모델 사용/검증 절차(현재 기준):
 
 ```text
 Amazon Bedrock (리전 ap-northeast-2)
-  -> Model access
-  -> Modify model access
-  -> 전체(또는 provider별) 모델 선택
-  -> use case 폼 (이미 제출된 Anthropic은 추가 입력 없이 포함)
-  -> Submit
-  -> 각 모델 상태 Access granted 확인
-  -> bedrock-runtime invoke-model로 대표 모델 호출 검증
+  -> 모델 카탈로그에서 모델 선택 후 Playground 실행
+     또는 bedrock-runtime invoke-model / Converse API로 직접 호출
+  -> 첫 호출 시 서버리스 모델 자동 활성화
+  -> 응답 확인으로 사용 가능 여부 검증
+  (Anthropic은 FTU 1회 완료, Marketplace 모델만 최초 1회 invoke 필요)
 ```
 
 GitHub Actions Backend 자동배포:
