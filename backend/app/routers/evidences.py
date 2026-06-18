@@ -97,8 +97,17 @@ async def upload_file(case_id: str, category: str = Form(...), file: UploadFile 
                    f"Received: {len(data) / (1024 * 1024):.1f}MB",
         )
 
-    # Store file
-    key = f"cases/{case_id}/{file.filename}"
+    # Store file — 경로에 날짜+사업장 축약 포함 (디버깅 편의)
+    from ..models import Case as _Case
+    _case = db.get(_Case, case_id)
+    _wp = ""
+    if _case and _case.workplace_name:
+        # 특수문자 제거, 6자 이내 축약
+        import re as _re
+        _wp = _re.sub(r"[^가-힣a-zA-Z0-9]", "", _case.workplace_name)[:6]
+    _date = time.strftime("%Y%m%d")
+    _prefix = f"{_date}_{_wp}_{case_id[:8]}" if _wp else f"{_date}_{case_id[:8]}"
+    key = f"cases/{_prefix}/{file.filename}"
     get_storage().save(key, data)
 
     # Create Evidence record
