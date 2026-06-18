@@ -48,6 +48,7 @@ MVP 원칙:
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
 - CloudWatch Alarm은 ALB/ECS/RDS/SQS 핵심 지표 기준으로 생성하며, 기본은 콘솔 확인용이다.
 - Cognito App Client는 Authorization Code Grant와 `openid email profile` scope를 사용한다.
+- Google 로그인을 사용할 때는 Cognito Federated Identity Provider와 App Client provider를 Terraform으로 함께 관리한다.
 - 프로젝트 운영 기간은 `2026-06-04 ~ 2026-07-10`, 팀 전체 AWS 총 예산은 `1,500달러`
 - IAM은 dev 계정에서는 개발 속도를 우선해 넓게 운영하고, 운영/프로덕션 전환 시 Access Advisor/CloudTrail 기반으로 최소권한을 재설계한다.
 
@@ -91,6 +92,19 @@ Scopes       : openid email profile
 - 기존 App Client를 인플레이스 수정해 Client ID를 유지했다.
 - 인프라 적용과 `terraform plan`의 `No changes` 검증은 완료됐다.
 - 애플리케이션 로그인 전환은 인증 담당자가 callback/code 교환과 JWT 검증을 구현한 뒤 `AUTH_MODE=cognito`로 수행한다.
+
+Google Identity Provider 활성화:
+
+```hcl
+# infra/terraform.tfvars (Git 추적 제외)
+enable_google_identity_provider = true
+google_oauth_client_id           = "your-client-id.apps.googleusercontent.com"
+google_oauth_client_secret       = "your-client-secret"
+```
+
+- Google OAuth redirect URI는 `https://<cognito-domain>/oauth2/idpresponse`로 등록한다.
+- Cognito는 Google의 `email`, `name`, `email_verified` 속성을 같은 이름의 User Pool 속성으로 매핑한다.
+- Google Client Secret은 Git, PR, 문서에 기록하지 않고 비추적 `terraform.tfvars`에서만 주입한다.
 
 GitHub Actions Backend 자동배포:
 

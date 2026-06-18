@@ -25,6 +25,13 @@ cognito_callback_urls = ["http://localhost:8000/auth/cognito/callback"]
 cognito_logout_urls   = ["http://localhost:8000/"]
 cognito_oauth_scopes  = ["openid", "email", "profile"]
 
+# Google OAuth credentials must stay in the ignored terraform.tfvars file.
+# Google redirect URI:
+# https://bada-dev-165749212250.auth.ap-northeast-2.amazoncognito.com/oauth2/idpresponse
+enable_google_identity_provider = false
+google_oauth_client_id           = "replace-me.apps.googleusercontent.com"
+google_oauth_client_secret       = "replace-me"
+
 # Worker queue runtime settings.
 # 15-minute visibility timeout covers the current 10-minute transcription timeout with a buffer.
 sqs_visibility_timeout_seconds = 900
