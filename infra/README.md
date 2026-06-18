@@ -118,6 +118,29 @@ Bedrock Anthropic 모델 접근:
 - ECS Task Role의 `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream` 권한은 Terraform으로 관리한다.
 - 다음 검증 단계는 실제 Backend/Worker Task Role을 통한 Claude 호출과 CloudWatch Logs 확인이다.
 
+팀원 Bedrock 모델 자유 테스트:
+
+- OCR/음성인식 담당자가 후보를 미리 정하지 않고 여러 모델을 바꿔가며 테스트할 수 있게 구성한다.
+- Bedrock 호출은 `IAM 권한`과 `계정 단위 모델 액세스` 두 층을 모두 통과해야 한다.
+- 팀원 4명은 `BADA-Developers` 그룹의 `PowerUserAccess`로 `bedrock:InvokeModel` 등 호출 권한을 이미 충족한다(simulate-principal-policy로 검증).
+- 모델 액세스는 후보별로 여는 대신 Bedrock `Model access`에서 `ap-northeast-2` 기준으로 전체 활성화한다. 계정·리전 단위라 한 번 열면 팀원 전원이 공유한다.
+- 앱은 모델을 `BEDROCK_MODEL_ID` 환경변수로 지정하므로(`worker/config.py`, 기본값 `global.anthropic.claude-sonnet-4-6`), 팀원은 로컬에서 이 값만 바꿔 모델을 교체한다.
+- `global.` / `apac.` cross-region inference profile은 라우팅 대상 리전에도 액세스가 필요하므로 리전 내 on-demand 모델 ID 사용을 권장한다.
+- 전체 모델을 열면 고가 모델(예: Opus 계열) 반복 호출로 예산을 빠르게 소진할 수 있어 AWS Budgets의 Bedrock 비용 알림을 안전망으로 둔다.
+
+모델 액세스 콘솔 작업 순서:
+
+```text
+Amazon Bedrock (리전 ap-northeast-2)
+  -> Model access
+  -> Modify model access
+  -> 전체(또는 provider별) 모델 선택
+  -> use case 폼 (이미 제출된 Anthropic은 추가 입력 없이 포함)
+  -> Submit
+  -> 각 모델 상태 Access granted 확인
+  -> bedrock-runtime invoke-model로 대표 모델 호출 검증
+```
+
 GitHub Actions Backend 자동배포:
 
 ```text
