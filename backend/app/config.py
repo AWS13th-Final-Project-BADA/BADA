@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     #   provider_mode: local=Mock / aws=실제 OCR·AI·번역(Bedrock/Upstage/Translate)
     provider_mode: str = "local"
     structured_engine: str = "vision"    # 정형문서 OCR: vision(기본) | upstage | parseur
-    auth_mode: str = "demo"        # demo | cognito
+    auth_mode: str = "demo"        # demo | oauth | cognito
     storage_mode: str = "local"    # local | s3
     upload_dir: str = "./uploads"
 
@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     parseur_api_key: str = ""
     cognito_user_pool_id: str = ""
     cognito_client_id: str = ""
+    cognito_client_secret: str = ""
     cognito_domain: str = ""
     cognito_redirect_uri: str = "http://localhost:8000/auth/cognito/callback"
     cognito_logout_uri: str = "http://localhost:8000/"
@@ -55,7 +56,7 @@ class Settings(BaseSettings):
     retention_days: int = 90
 
     # ── 소셜 로그인(JWT) ──
-    auth_jwt_enabled: bool = True   # Authorization: Bearer JWT 허용. 토큰 없으면 데모 유저 폴백.
+    auth_jwt_enabled: bool = True   # Authorization: Bearer JWT 허용.
     jwt_secret: str = "dev-insecure-change-me"   # 운영 시 .env로 반드시 교체
     jwt_expire_minutes: int = 60 * 24 * 7        # 7일
     app_base_url: str = "http://localhost:8000"  # 로그인 후 프론트 리다이렉트 대상

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -42,9 +44,31 @@ CATEGORY_LABELS = {
     "notice": "공지",
 }
 
+PERSONAL_INFO_PATTERNS = [
+    # Email.
+    r"\b[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}\b",
+    # Korean mobile/phone numbers.
+    r"(?<!\d)(?:01[016789]|02|0[3-6][1-5])[-.\s]?\d{3,4}[-.\s]?\d{4}(?!\d)",
+    # Korean resident registration / alien registration number shape.
+    r"(?<!\d)\d{6}[-\s]?[1-8]\d{6}(?!\d)",
+    # Explicit ID/passport/account-number contexts. Avoid blocking ordinary wage amounts.
+    r"(주민등록번호|외국인등록번호|등록번호|여권번호|신분증번호|passport\s*number|alien\s*registration|arc\s*number|id\s*number|số\s*(hộ\s*chiếu|đăng\s*ký|cmnd|cccd))[^0-9]{0,24}[a-z0-9\-]{5,}",
+    r"(계좌번호|은행\s*계좌|bank\s*account|account\s*number|số\s*tài\s*khoản)[^0-9]{0,24}[0-9\-\s]{8,}",
+]
+
 
 def safety_check(content: str, language: str = "auto") -> CommunitySafetyResponse:
     resolved_language = resolve_chat_language(language, content)
+    if _contains_personal_info(content):
+        return CommunitySafetyResponse(
+            allowed=False,
+            risk_level="privacy",
+            moderation_status="blocked",
+            language=resolved_language,
+            message=_privacy_message(resolved_language),
+            suggested_text=_privacy_rewrite_hint(resolved_language),
+        )
+
     risk_level, blocked = classify_legal_risk(content)
     moderation_status = "blocked" if blocked else ("review" if risk_level == "review" else "passed")
 
@@ -243,24 +267,27 @@ def list_posts(
     category: str | None = None,
     sort: str = "hot",
     language: str | None = None,
+    search_query: str | None = None,
     mine: bool = False,
     limit: int = 20,
 ) -> list[CommunityPostResponse]:
-    ensure_seed_posts(db, user)
-    query = db.query(CommunityPost).filter(CommunityPost.status == "published", CommunityPost.deleted_at.is_(None))
+    db_query = db.query(CommunityPost).filter(CommunityPost.status == "published", CommunityPost.deleted_at.is_(None))
     if mine:
-        query = query.filter(CommunityPost.user_id == user.id)
+        db_query = db_query.filter(CommunityPost.user_id == user.id)
     if category and category != "all":
-        query = query.filter(CommunityPost.category == category)
+        db_query = db_query.filter(CommunityPost.category == category)
     if language and language != "all":
-        query = query.filter(CommunityPost.language_code == normalize_language_code(language))
+        db_query = db_query.filter(CommunityPost.language_code == normalize_language_code(language))
+    if query_text := (search_query or "").strip():
+        keyword = f"%{query_text}%"
+        db_query = db_query.filter(or_(CommunityPost.title.ilike(keyword), CommunityPost.content.ilike(keyword)))
 
     if sort == "latest":
-        query = query.order_by(CommunityPost.created_at.desc())
+        db_query = db_query.order_by(CommunityPost.created_at.desc())
     else:
-        query = query.order_by((CommunityPost.like_count + CommunityPost.comment_count + CommunityPost.saved_count).desc(), CommunityPost.created_at.desc())
+        db_query = db_query.order_by((CommunityPost.like_count + CommunityPost.comment_count + CommunityPost.saved_count).desc(), CommunityPost.created_at.desc())
 
-    posts = query.limit(min(max(limit, 1), 50)).all()
+    posts = db_query.limit(min(max(limit, 1), 50)).all()
     return [serialize_post(db, post, user) for post in posts]
 
 
@@ -446,84 +473,6 @@ def serialize_comment(db: Session, comment: CommunityComment, user: User) -> Com
     )
 
 
-def ensure_seed_posts(db: Session, user: User) -> None:
-    if db.query(CommunityPost).count() > 0:
-        return
-
-    seed_posts = [
-        CommunityPost(
-            user_id=user.id,
-            anonymous_name="익명 근로자 147",
-            category="wage",
-            title="급여명세서와 실제 입금액이 달라요",
-            content="Tôi nhận được bảng lương ghi 2.300.000 KRW nhưng tài khoản chỉ vào 1.900.000 KRW. Tôi nên chuẩn bị những giấy tờ gì trước khi đi tư vấn?",
-            language_code="vi",
-            like_count=128,
-            comment_count=2,
-            saved_count=31,
-            view_count=420,
-            metadata_json={"seed": True},
-        ),
-        CommunityPost(
-            user_id=user.id,
-            anonymous_name="익명 근로자 052",
-            category="review",
-            title="고용노동부 상담 순서 공유",
-            content="고용노동부에 갈 때 근무기간, 약속 임금, 실제 입금액, 공제 항목 순서로 말하니까 상담이 훨씬 빨랐어요.",
-            language_code="ko",
-            like_count=76,
-            comment_count=1,
-            saved_count=18,
-            view_count=260,
-            metadata_json={"seed": True},
-        ),
-        CommunityPost(
-            user_id=user.id,
-            anonymous_name="anonymous worker 019",
-            category="petition",
-            title="What should I write in the complaint form?",
-            content="I want to prepare a complaint form before visiting a counseling center. What should I write first?",
-            language_code="en",
-            like_count=34,
-            comment_count=0,
-            saved_count=9,
-            view_count=130,
-            metadata_json={"seed": True},
-        ),
-    ]
-    db.add_all(seed_posts)
-    db.flush()
-    db.add_all(
-        [
-            CommunityComment(
-                post_id=seed_posts[0].id,
-                user_id=user.id,
-                anonymous_name="익명 82",
-                content="상담 갈 때 근로계약서랑 입금내역을 같은 달끼리 나란히 보여줬어요.",
-                language_code="ko",
-                like_count=12,
-            ),
-            CommunityComment(
-                post_id=seed_posts[0].id,
-                user_id=user.id,
-                anonymous_name="ẩn danh 31",
-                content="Bạn nên ghi lại tiền ký túc xá và tiền ăn bị trừ mỗi tháng.",
-                language_code="vi",
-                like_count=8,
-            ),
-            CommunityComment(
-                post_id=seed_posts[1].id,
-                user_id=user.id,
-                anonymous_name="worker_19",
-                content="This order is helpful. I saved it for my visit.",
-                language_code="en",
-                like_count=5,
-            ),
-        ]
-    )
-    db.commit()
-
-
 def _translate_with_bedrock(text: str, source_language: str, target_language: str) -> str:
     import boto3
 
@@ -620,6 +569,11 @@ def _has_reaction(db: Session, user_id: str, target_type: str, target_id: str, r
     )
 
 
+def _contains_personal_info(content: str) -> bool:
+    text = re.sub(r"\s+", " ", content.lower().strip())
+    return any(re.search(pattern, text, flags=re.IGNORECASE) for pattern in PERSONAL_INFO_PATTERNS)
+
+
 def _assert_owner(user: User, owner_id: str) -> None:
     if user.id != owner_id:
         raise HTTPException(status_code=403, detail="not your community content")
@@ -656,12 +610,28 @@ def _blocked_message(language: str) -> str:
     return "법률 판단이 필요한 표현이라 그대로 게시할 수 없어요."
 
 
+def _privacy_message(language: str) -> str:
+    if language == "vi":
+        return "Có vẻ có thông tin cá nhân. Hãy xóa hoặc che thông tin nhận dạng trước khi đăng."
+    if language == "en":
+        return "This appears to include personal information. Remove or mask identifying details before posting."
+    return "개인정보가 포함된 것 같아요. 게시 전에 식별 가능한 정보를 지우거나 가려 주세요."
+
+
 def _passed_message(language: str, risk_level: str) -> str:
     if language == "vi":
         return "Có thể đăng. Nếu nội dung quan trọng, hãy xác nhận lại khi tư vấn." if risk_level == "safe" else "Có thể đăng, nhưng nên giữ cách diễn đạt chuẩn bị tư vấn."
     if language == "en":
         return "Ready to post. Please confirm important details during consultation." if risk_level == "safe" else "Ready to post, but keep it framed as consultation preparation."
     return "게시할 수 있어요. 중요한 내용은 상담에서 다시 확인하세요." if risk_level == "safe" else "게시할 수 있지만 상담 준비형 표현을 유지하는 게 좋아요."
+
+
+def _privacy_rewrite_hint(language: str) -> str:
+    if language == "vi":
+        return "Ví dụ: tên, số điện thoại, số đăng ký, số hộ chiếu và số tài khoản nên được che như ***."
+    if language == "en":
+        return "Example: mask names, phone numbers, registration numbers, passport numbers, and account numbers as ***."
+    return "예: 이름, 전화번호, 등록번호, 여권번호, 계좌번호는 ***처럼 가리고 작성해 주세요."
 
 
 def _safe_rewrite_hint(language: str) -> str:

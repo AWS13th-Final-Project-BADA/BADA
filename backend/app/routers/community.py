@@ -59,12 +59,13 @@ def community_feed(
     category: str | None = Query(default=None),
     sort: str = Query(default="hot"),
     language: str | None = Query(default=None),
+    q: str | None = Query(default=None, max_length=80),
     mine: bool = Query(default=False),
     limit: int = Query(default=20, ge=1, le=50),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    return {"posts": list_posts(db, user, category=category, sort=sort, language=language, mine=mine, limit=limit)}
+    return {"posts": list_posts(db, user, category=category, sort=sort, language=language, search_query=q, mine=mine, limit=limit)}
 
 
 @router.post("/posts", response_model=CommunityPostResponse)

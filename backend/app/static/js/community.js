@@ -13,12 +13,12 @@ const COMMUNITY_LANG={ko:"한국어",vi:"Tiếng Việt",en:"English",id:"Indone
 
 const COMMUNITY_TEXT={
   ko:{
-    hero_label:"다국어 경험 공유",hero_title:"상담 준비 이야기를<br/>서로의 언어로 나눠요",hero_body:"게시글과 댓글은 원문 그대로 보고, 필요할 때 번역해서 확인할 수 있어요. AI가 개인정보와 법률 판단 표현을 먼저 점검합니다.",
-    stat_posts:"게시글",stat_comments:"댓글",stat_saved:"저장",tab_all:"인기글",tab_free:"자유",tab_wage:"임금",tab_petition:"진정서",tab_review:"후기",tab_mine:"내 글",
-    hot_title:"실시간 인기글",refresh:"새로고침",me:"나",compose_entry:"익명으로 질문 남기기 · AI 안전검사 포함",nav_community:"커뮤니티",
+    hero_label:"커뮤니티",hero_title:"궁금한 점을<br/>편하게 물어보세요",hero_body:"임금, 계약서, 공제, 진정서 준비처럼 혼자 정리하기 어려운 내용을 익명으로 묻고 답해요.",
+    search_placeholder:"비슷한 상황 검색",search_empty:"검색 결과가 없어요.<br/>다른 단어로 다시 찾아보세요.",stat_posts:"게시글",stat_comments:"댓글",stat_saved:"저장",tab_all:"인기글",tab_free:"자유",tab_wage:"임금",tab_petition:"진정서",tab_review:"후기",tab_mine:"내 글",
+    hot_title:"많이 본 글",refresh:"새로고침",me:"나",compose_entry:"익명으로 질문 남기기",nav_community:"커뮤니티",
     sheet_new:"익명 글쓰기",sheet_edit:"게시글 수정",close:"닫기",board_wage:"임금/공제",board_petition:"진정서",board_review:"상담 후기",board_free:"자유",
     title_placeholder:"제목을 입력하세요",content_placeholder:"상담 전 준비하고 싶은 내용을 적어주세요. 이름, 전화번호, 외국인등록번호는 올리지 않는 것이 안전해요.",
-    safety_default:"AI 안전검사로 개인정보와 법률 판단 표현을 확인할 수 있어요.",safety_edit:"수정한 내용도 AI 안전검사를 통과해야 저장돼요.",btn_safety:"AI 안전검사",btn_post:"게시하기",btn_update:"수정하기",
+    safety_default:"게시 전 개인정보와 단정적인 표현을 확인합니다.",safety_edit:"수정한 내용도 안전하게 작성됐는지 확인합니다.",btn_safety:"안전검사",btn_post:"게시하기",btn_update:"수정하기",
     loading:"커뮤니티를 불러오는 중...",load_error:"커뮤니티를 불러오지 못했어요.<br/>서버 연결과 마이그레이션 상태를 확인해 주세요.",empty_feed:"아직 게시글이 없어요.<br/>첫 질문을 익명으로 남겨보세요.",empty_hot:"인기글이 아직 없어요.",
     edit:"수정",delete:"삭제",more_comments:"댓글 {count}개 모두 보기",consult_tag:"상담준비",comment_placeholder:"댓글 달기 · 번역 보기 지원",comment_submit:"게시",
     translate_view:"번역 보기",translate_hide:"번역 접기",translating:"번역 중...",translation_empty:"번역 결과가 비어 있어요.",translation_error:"번역을 가져오지 못했어요.",
@@ -31,12 +31,12 @@ const COMMUNITY_TEXT={
     cat_all:"인기글",cat_free:"자유",cat_wage:"임금",cat_petition:"진정서",cat_review:"후기",cat_mine:"내 글",cat_translation:"번역",cat_notice:"공지"
   },
   en:{
-    hero_label:"Multilingual stories",hero_title:"Share consultation prep<br/>in each other's language",hero_body:"Read posts and comments in the original language, then translate when needed. AI checks privacy and legal-judgment wording first.",
-    stat_posts:"Posts",stat_comments:"Comments",stat_saved:"Saved",tab_all:"Hot",tab_free:"Free",tab_wage:"Wage",tab_petition:"Complaint",tab_review:"Reviews",tab_mine:"Mine",
-    hot_title:"Trending Now",refresh:"Refresh",me:"Me",compose_entry:"Ask anonymously · AI safety check included",nav_community:"Community",
+    hero_label:"Community",hero_title:"Ask what you need<br/>before consultation",hero_body:"Ask anonymously about wages, contracts, deductions, complaint forms, and other preparation details.",
+    search_placeholder:"Search similar cases",search_empty:"No matching posts.<br/>Try another keyword.",stat_posts:"Posts",stat_comments:"Comments",stat_saved:"Saved",tab_all:"Hot",tab_free:"Free",tab_wage:"Wage",tab_petition:"Complaint",tab_review:"Reviews",tab_mine:"Mine",
+    hot_title:"Popular Posts",refresh:"Refresh",me:"Me",compose_entry:"Ask anonymously",nav_community:"Community",
     sheet_new:"Write Anonymously",sheet_edit:"Edit Post",close:"Close",board_wage:"Wage/Deduction",board_petition:"Complaint",board_review:"Consult Review",board_free:"Free",
     title_placeholder:"Enter a title",content_placeholder:"Write what you want to prepare before consultation. It is safer not to post names, phone numbers, or registration numbers.",
-    safety_default:"AI safety check can review privacy and legal-judgment wording.",safety_edit:"Edited content must also pass the AI safety check before saving.",btn_safety:"AI Safety Check",btn_post:"Post",btn_update:"Update",
+    safety_default:"Before posting, check for personal information and overly certain wording.",safety_edit:"Please check that the edited content is written safely.",btn_safety:"Safety Check",btn_post:"Post",btn_update:"Update",
     loading:"Loading community...",load_error:"Could not load the community.<br/>Check the server connection and migration status.",empty_feed:"No posts yet.<br/>Leave the first anonymous question.",empty_hot:"No trending posts yet.",
     edit:"Edit",delete:"Delete",more_comments:"View all {count} comments",consult_tag:"consult-prep",comment_placeholder:"Write a comment · translation supported",comment_submit:"Post",
     translate_view:"Translate",translate_hide:"Hide translation",translating:"Translating...",translation_empty:"Translation result is empty.",translation_error:"Could not load translation.",
@@ -49,12 +49,12 @@ const COMMUNITY_TEXT={
     cat_all:"Hot",cat_free:"Free",cat_wage:"Wage",cat_petition:"Complaint",cat_review:"Review",cat_mine:"Mine",cat_translation:"Translation",cat_notice:"Notice"
   },
   vi:{
-    hero_label:"Chia sẻ đa ngôn ngữ",hero_title:"Chia sẻ chuẩn bị tư vấn<br/>bằng ngôn ngữ của nhau",hero_body:"Bạn có thể đọc bài viết và bình luận bằng nguyên văn, rồi dịch khi cần. AI kiểm tra thông tin cá nhân và cách diễn đạt phán đoán pháp lý trước.",
-    stat_posts:"Bài viết",stat_comments:"Bình luận",stat_saved:"Đã lưu",tab_all:"Nổi bật",tab_free:"Tự do",tab_wage:"Lương",tab_petition:"Đơn khiếu nại",tab_review:"Kinh nghiệm",tab_mine:"Bài của tôi",
-    hot_title:"Bài nổi bật",refresh:"Làm mới",me:"Tôi",compose_entry:"Đặt câu hỏi ẩn danh · có kiểm tra AI",nav_community:"Cộng đồng",
+    hero_label:"Cộng đồng",hero_title:"Hỏi điều bạn cần<br/>trước khi tư vấn",hero_body:"Hỏi ẩn danh về lương, hợp đồng, khoản khấu trừ, đơn khiếu nại và những nội dung cần chuẩn bị.",
+    search_placeholder:"Tìm trường hợp tương tự",search_empty:"Không có bài viết phù hợp.<br/>Hãy thử từ khóa khác.",stat_posts:"Bài viết",stat_comments:"Bình luận",stat_saved:"Đã lưu",tab_all:"Nổi bật",tab_free:"Tự do",tab_wage:"Lương",tab_petition:"Đơn khiếu nại",tab_review:"Kinh nghiệm",tab_mine:"Bài của tôi",
+    hot_title:"Bài được xem nhiều",refresh:"Làm mới",me:"Tôi",compose_entry:"Đặt câu hỏi ẩn danh",nav_community:"Cộng đồng",
     sheet_new:"Viết ẩn danh",sheet_edit:"Sửa bài viết",close:"Đóng",board_wage:"Lương/Khấu trừ",board_petition:"Đơn khiếu nại",board_review:"Kinh nghiệm tư vấn",board_free:"Tự do",
     title_placeholder:"Nhập tiêu đề",content_placeholder:"Viết nội dung muốn chuẩn bị trước tư vấn. Không đăng tên, số điện thoại hoặc số đăng ký người nước ngoài sẽ an toàn hơn.",
-    safety_default:"AI có thể kiểm tra thông tin cá nhân và cách diễn đạt phán đoán pháp lý.",safety_edit:"Nội dung sửa cũng cần vượt qua kiểm tra AI trước khi lưu.",btn_safety:"Kiểm tra AI",btn_post:"Đăng",btn_update:"Cập nhật",
+    safety_default:"Trước khi đăng, hãy kiểm tra thông tin cá nhân và cách viết quá khẳng định.",safety_edit:"Hãy kiểm tra nội dung sửa đã được viết an toàn chưa.",btn_safety:"Kiểm tra an toàn",btn_post:"Đăng",btn_update:"Cập nhật",
     loading:"Đang tải cộng đồng...",load_error:"Không thể tải cộng đồng.<br/>Hãy kiểm tra máy chủ và trạng thái migration.",empty_feed:"Chưa có bài viết.<br/>Hãy để lại câu hỏi ẩn danh đầu tiên.",empty_hot:"Chưa có bài nổi bật.",
     edit:"Sửa",delete:"Xóa",more_comments:"Xem tất cả {count} bình luận",consult_tag:"chuẩn-bị-tư-vấn",comment_placeholder:"Viết bình luận · hỗ trợ dịch",comment_submit:"Đăng",
     translate_view:"Dịch",translate_hide:"Ẩn bản dịch",translating:"Đang dịch...",translation_empty:"Kết quả dịch trống.",translation_error:"Không thể tải bản dịch.",
@@ -68,7 +68,7 @@ const COMMUNITY_TEXT={
   }
 };
 
-S.community=S.community||{category:"all",posts:[],loaded:false,loading:false,composingCategory:"wage",editingPostId:null};
+S.community=S.community||{category:"all",posts:[],loaded:false,loading:false,composingCategory:"wage",editingPostId:null,search:""};
 
 function cmt(key,vars){
   const lang=COMMUNITY_TEXT[S.lang]?S.lang:(S.lang==="ko"?"ko":"en");
@@ -120,9 +120,13 @@ async function loadCommunityFeed(){
     const mine=S.community.category==="mine";
     const cat=S.community.category&&S.community.category!=="all"&&!mine?"&category="+encodeURIComponent(S.community.category):"";
     const mineParam=mine?"&mine=true":"";
-    const res=await api("GET","/community/posts?sort=hot&limit=30"+cat+mineParam);
+    const search=(S.community.search||"").trim();
+    const searchParam=search?"&q="+encodeURIComponent(search):"";
+    const sort=search?"latest":"hot";
+    const res=await api("GET","/community/posts?sort="+sort+"&limit=30"+cat+mineParam+searchParam);
     S.community.posts=res.posts||[];
     S.community.loaded=true;
+    updateCommunitySearchUi();
     renderCommunityFeed();
   }catch(e){
     feed.innerHTML=`<div class="community-empty"><i class="ti ti-wifi-off"></i>${cmt("load_error")}</div>`;
@@ -138,7 +142,8 @@ function renderCommunityFeed(){
   const feed=document.getElementById("communityFeed");
   if(!feed)return;
   if(!posts.length){
-    feed.innerHTML=`<div class="community-empty"><i class="ti ti-message-circle-plus"></i>${cmt("empty_feed")}</div>`;
+    const searching=(S.community.search||"").trim().length>0;
+    feed.innerHTML=`<div class="community-empty"><i class="ti ${searching?"ti-search-off":"ti-message-circle-plus"}"></i>${searching?cmt("search_empty"):cmt("empty_feed")}</div>`;
     return;
   }
   feed.innerHTML=posts.map(renderCommunityPost).join("");
@@ -156,6 +161,8 @@ function renderCommunityStats(posts){
 function renderCommunityHot(posts){
   const box=document.getElementById("communityHotList");
   if(!box)return;
+  const panel=box.closest(".community-hot");
+  if(panel)panel.style.display=(S.community.search||"").trim()?"none":"";
   const hot=[...posts].sort((a,b)=>communityScore(b)-communityScore(a)).slice(0,3);
   if(!hot.length){
     box.innerHTML=`<div class="community-empty" style="padding:14px">${esc(cmt("empty_hot"))}</div>`;
@@ -270,6 +277,26 @@ function selectCommunityCategory(category){
   S.community.category=category||"all";
   document.querySelectorAll("#communityTabs button").forEach(btn=>btn.classList.toggle("on",btn.dataset.category===S.community.category));
   loadCommunityFeed();
+}
+
+function handleCommunitySearch(value){
+  S.community.search=String(value||"").trim();
+  updateCommunitySearchUi();
+  clearTimeout(window.__communitySearchTimer);
+  window.__communitySearchTimer=setTimeout(()=>loadCommunityFeed(),260);
+}
+
+function clearCommunitySearch(){
+  S.community.search="";
+  const input=document.getElementById("communitySearchInput");
+  if(input)input.value="";
+  updateCommunitySearchUi();
+  loadCommunityFeed();
+}
+
+function updateCommunitySearchUi(){
+  const clear=document.getElementById("communitySearchClear");
+  if(clear)clear.classList.toggle("show",Boolean((S.community.search||"").trim()));
 }
 
 function openCommunityComposer(postId){
@@ -546,4 +573,10 @@ function findCommunityComment(commentId){
       if(event.target===sheet)closeCommunityComposer();
     });
   }
+  const search=document.getElementById("communitySearchInput");
+  if(search){
+    search.addEventListener("input",event=>handleCommunitySearch(event.target.value));
+    search.addEventListener("search",event=>handleCommunitySearch(event.target.value));
+  }
+  updateCommunitySearchUi();
 })();

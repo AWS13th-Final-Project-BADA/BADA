@@ -20,6 +20,8 @@ BLOCKED_PATTERNS = [
     r"고소\s*(해야|가능|할까|해도)",
     r"신고\s*(해야|가능|할까|해도)",
     r"사업주.*(처벌|벌금|감옥|형사)",
+    r"(법률|법적)\s*(조언|자문)\s*(해\s*줘|해주세요|부탁|가능)",
+    r"(변호사|노무사)처럼\s*(판단|답변|조언)",
     # English.
     r"\bis\s+this\s+illegal\b",
     r"\bis\s+it\s+illegal\b",
@@ -32,6 +34,8 @@ BLOCKED_PATTERNS = [
     r"\bshould\s+i\s+(sue|report|file\s+a\s+complaint)\b",
     r"\bcan\s+i\s+(sue|report|file\s+a\s+complaint)\b",
     r"\bpunish(?:ed|ment)?\b.*\bemployer\b",
+    r"\blegal\s+advice\b",
+    r"\badvise\s+me\s+legally\b",
     # Vietnamese.
     r"có\s+(bất\s+hợp\s+pháp|trái\s+pháp\s+luật)\s+không",
     r"có\s+vi\s+phạm\s+pháp\s+luật\s+không",
@@ -44,6 +48,8 @@ BLOCKED_PATTERNS = [
     r"có\s+nên\s+(kiện|tố\s+cáo|báo\s+cáo)",
     r"phải\s+(kiện|tố\s+cáo|báo\s+cáo)\s+ngay",
     r"chủ.*(bị\s+phạt|bị\s+trừng\s+phạt|đi\s+tù)",
+    r"tư\s+vấn\s+pháp\s+lý",
+    r"lời\s+khuyên\s+pháp\s+lý",
 ]
 
 

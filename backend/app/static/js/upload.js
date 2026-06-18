@@ -310,15 +310,6 @@ async function runExtract(){
     setTimeout(poll,1200);
   }catch(e){ st.textContent="추출 실패: "+e.message; }
 }
-function fillDemo(){
-  document.getElementById("n_hrs").value="174,168,180,176";
-  document.getElementById("n_dep").value="2026-01-15, 1500000\n2026-02-15, 1600000\n2026-03-15, 1550000\n2026-04-15, 1600000";
-  document.getElementById("n_ded").value="기숙사비, 250000\n식비, 150000\n작업복비, 80000\n관리비 명목, 50000";
-  document.getElementById("n_gchk").checked=true;document.getElementById("gbox").style.display="block";
-  document.getElementById("n_wp").value="37.5000,127.0000,50";
-  document.getElementById("n_png").value="2026-01-15T09:05:00, 37.50003, 127.00003, false\n2026-01-15T13:00:00, 37.50300, 127.00300, false\n2026-01-15T09:00:00, 37.50003, 127.00003, true";
-  document.getElementById("n_arr").value="2026-01-15T09:00:00";
-}
 document.getElementById("n_gchk").addEventListener("change",e=>{document.getElementById("gbox").style.display=e.target.checked?"block":"none";});
 
 

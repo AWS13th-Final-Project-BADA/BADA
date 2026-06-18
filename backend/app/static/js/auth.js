@@ -6,6 +6,7 @@ function setToken(t){ try{ localStorage.setItem(BADA_TOKEN_KEY, t); }catch(e){} 
 function clearToken(){ try{ localStorage.removeItem(BADA_TOKEN_KEY); }catch(e){} }
 
 // 소셜 로그인 시작
+function cognitoLogin(){ location.href = apiUrl("/auth/cognito/login"); }
 function kakaoLogin(){ location.href = apiUrl("/auth/kakao/login"); }
 function naverLogin(){ location.href = apiUrl("/auth/naver/login"); }
 function googleLogin(){ location.href = apiUrl("/auth/google/login"); }
