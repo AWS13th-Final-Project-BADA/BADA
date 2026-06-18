@@ -617,6 +617,8 @@ resource "aws_iam_role_policy" "ecs_task_app_access" {
           "transcribe:GetTranscriptionJob",
           "transcribe:DeleteTranscriptionJob",
           "transcribe:ListTranscriptionJobs",
+          "transcribe:GetVocabulary",
+          "transcribe:CreateVocabulary",
           "translate:TranslateText"
         ]
         Resource = "*"
