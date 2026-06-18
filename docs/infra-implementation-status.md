@@ -17,6 +17,7 @@
 | 파일 저장소 | S3 Evidence / Report Bucket |
 | 비밀값 관리 | Secrets Manager |
 | 설정값 관리 | SSM Parameter Store |
+| 인증 인프라 | Cognito Hosted UI / Authorization Code Grant 적용 완료 |
 | 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 및 AWS 권한 반영 완료 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
 | 모니터링 | CloudWatch Logs / Alarms / SNS Topic 적용, 이메일 구독 대기 |
@@ -28,7 +29,7 @@
 | --- | --- |
 | Backend ECS Service | `desired=1`, `running=1` |
 | Worker ECS Service | `desired=0`, `running=0` |
-| Backend Task Definition | `bada-dev-backend:14` |
+| Backend Task Definition | `bada-dev-backend:17` |
 | Worker Task Definition | `bada-dev-worker:4` |
 | Target Group | `healthy` |
 | ALB `/health` | `200 {"status":"ok"}` |
@@ -96,11 +97,26 @@ SQS
 
 | 리소스 | 상태 | 비고 |
 | --- | --- | --- |
-| Cognito User Pool | 완료 | 사용자 인증 기반 |
-| Cognito App Client | 완료 | 앱 클라이언트 |
+| Cognito User Pool | 완료 | `ap-northeast-2_5K39SlMFg` |
+| Cognito App Client | 완료 | Authorization Code Grant, callback/logout URL, `openid email profile` 적용 |
+| Cognito Hosted UI Domain | 완료 | `https://bada-dev-165749212250.auth.ap-northeast-2.amazoncognito.com/` |
 | Secrets Manager | 완료 | DB 접속 정보와 앱 secret |
-| SSM Parameter Store | 완료 | S3, SQS, Cognito, Region 등 비민감 설정 |
+| SSM Parameter Store | 완료 | Cognito domain/redirect/logout/scopes를 포함한 비민감 설정 |
 | IAM User / Role | 완료 | 팀원 접근 및 GitHub Actions 배포 역할 |
+
+Cognito 연동값:
+
+```text
+COGNITO_USER_POOL_ID=ap-northeast-2_5K39SlMFg
+COGNITO_CLIENT_ID=2n7fd1lbtifh3d3269i400es1f
+COGNITO_DOMAIN=https://bada-dev-165749212250.auth.ap-northeast-2.amazoncognito.com/
+COGNITO_REDIRECT_URI=http://localhost:8000/auth/cognito/callback
+COGNITO_LOGOUT_URI=http://localhost:8000/
+COGNITO_SCOPES=openid email profile
+```
+
+- 기존 App Client를 인플레이스 수정해 Client ID를 유지했다.
+- 인프라 설정은 완료됐지만 Backend의 `AUTH_MODE`는 아직 `demo`다. 인증 담당자가 Cognito callback/code 교환과 JWT 검증을 구현한 뒤 `AUTH_MODE=cognito`로 전환해야 한다.
 
 ### Observability / Cost
 
@@ -206,6 +222,8 @@ workflow_dispatch
 | Worker SQS long-running consumer | 미구현 | 구현 후 Worker Service 기동 필요 |
 | Worker runtime 인프라 적용 | 완료 | SQS 설정, DB Secret, Service `:4` 연결 검증 |
 | Worker 자동배포 실행 검증 | 완료 | consumer 구현 후 실제 메시지 처리 검증은 별도 진행 |
+| Cognito Hosted UI/OAuth 인프라 | 완료 | PR #31, AWS 적용 및 Terraform `No changes` 확인 |
+| Cognito 애플리케이션 로그인 연동 | 개발 대기 | callback/code 교환, JWT 검증, `AUTH_MODE=cognito` 전환 필요 |
 | Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
 | SNS 기반 알림 전송 | Topic 생성 완료 | `alarm_email_endpoints` 설정과 이메일 구독 확인 필요 |
 

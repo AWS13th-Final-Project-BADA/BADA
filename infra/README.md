@@ -46,6 +46,7 @@ MVP 원칙:
 - 오디오 전사는 Worker SQS consumer 완성 전까지 `TRANSCRIPTION_DISPATCH_MODE=inline`으로 Backend에서 직접 처리 가능하게 구성
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
 - CloudWatch Alarm은 ALB/ECS/RDS/SQS 핵심 지표 기준으로 생성하며, 기본은 콘솔 확인용이다.
+- Cognito App Client는 Authorization Code Grant와 `openid email profile` scope를 사용한다.
 - 프로젝트 운영 기간은 `2026-06-04 ~ 2026-07-10`, 팀 전체 AWS 총 예산은 `1,500달러`
 - IAM은 dev 계정에서는 개발 속도를 우선해 넓게 운영하고, 운영/프로덕션 전환 시 Access Advisor/CloudTrail 기반으로 최소권한을 재설계한다.
 
@@ -72,6 +73,23 @@ ALB /version       : 200 {"name":"BADA","version":"0.1.0","auth_mode":"demo","st
 S3 Evidence object : SSE-KMS 저장 확인
 RDS schema         : alembic_version=20260616_0004, community tables/provider columns/timeline confidence 확인
 ```
+
+Cognito Hosted UI / OAuth:
+
+```text
+User Pool ID : ap-northeast-2_5K39SlMFg
+Client ID    : 2n7fd1lbtifh3d3269i400es1f
+Domain       : https://bada-dev-165749212250.auth.ap-northeast-2.amazoncognito.com/
+Callback URL : http://localhost:8000/auth/cognito/callback
+Sign-out URL : http://localhost:8000/
+OAuth Flow   : Authorization code grant
+Scopes       : openid email profile
+```
+
+- Terraform은 Hosted UI Domain, App Client OAuth 설정, Backend ECS 환경변수, SSM Parameter를 관리한다.
+- 기존 App Client를 인플레이스 수정해 Client ID를 유지했다.
+- 인프라 적용과 `terraform plan`의 `No changes` 검증은 완료됐다.
+- 애플리케이션 로그인 전환은 인증 담당자가 callback/code 교환과 JWT 검증을 구현한 뒤 `AUTH_MODE=cognito`로 수행한다.
 
 GitHub Actions Backend 자동배포:
 
@@ -163,10 +181,10 @@ Rollback Dev Backend workflow_dispatch
 자동배포 검증 결과:
 
 ```text
-PR #24 merge 이후 develop push 기준 실행 성공
+PR #31 merge 이후 develop push 기준 실행 성공
 CI workflow     : success
 Deploy workflow : success
-Backend task def: bada-dev-backend:9
+Backend task def: bada-dev-backend:17
 ECS state       : desired=1, running=1, rolloutState=COMPLETED
 ALB /health     : 200 {"status":"ok"}
 ```
