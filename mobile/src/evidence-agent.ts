@@ -267,3 +267,53 @@ export async function runEvidenceAgent(input: PipelineInput): Promise<AgentResul
     duration_ms: Date.now() - startTime,
   };
 }
+
+
+// ── 4단계: 승인된 파일을 서버로 전송 ─────────────────
+
+export interface UploadResult {
+  uploaded: number;
+  files: Array<{ file_name: string; category: string; file_key: string }>;
+  next_step: string;
+}
+
+/**
+ * 사용자가 승인한 후보 파일들을 서버에 일괄 업로드(agent-upload).
+ * 이 함수 호출 전에 반드시 사용자 승인(HITL)을 거쳐야 함.
+ *
+ * @param candidates - runEvidenceAgent 결과 중 사용자가 체크한 후보
+ * @param readFileFn - 파일 경로 → Blob/ArrayBuffer 읽기 콜백 (네이티브 브릿지)
+ * @param config - AgentConfig (caseId, apiBaseUrl 사용)
+ * @returns 서버 응답 (업로드 수 + next_step 안내)
+ */
+export async function uploadApproved(
+  candidates: ScanCandidate[],
+  readFileFn: (filePath: string) => Promise<Blob>,
+  config: AgentConfig,
+): Promise<UploadResult> {
+  const formData = new FormData();
+  for (const c of candidates) {
+    const blob = await readFileFn(c.filePath);
+    formData.append("files", blob, c.fileName);
+  }
+
+  const url = `${config.apiBaseUrl}/cases/${config.caseId}/evidences/agent-upload`;
+  const res = await fetch(url, { method: "POST", body: formData });
+  if (!res.ok) {
+    throw new Error(`agent-upload 실패: ${res.status} ${await res.text()}`);
+  }
+  return res.json() as Promise<UploadResult>;
+}
+
+/**
+ * 업로드 후 OCR 추출 시작(extract). agent-upload → extract 체인의 마지막.
+ * 비동기(기본): 즉시 반환, 프론트에서 폴링으로 완료 확인.
+ */
+export async function triggerExtract(config: AgentConfig): Promise<unknown> {
+  const url = `${config.apiBaseUrl}/cases/${config.caseId}/evidences/extract`;
+  const res = await fetch(url, { method: "POST" });
+  if (!res.ok) {
+    throw new Error(`extract 시작 실패: ${res.status} ${await res.text()}`);
+  }
+  return res.json();
+}
