@@ -20,7 +20,7 @@
 | 인증 인프라 | Cognito Hosted UI / Authorization Code Grant 적용 완료 |
 | 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 및 AWS 권한 반영 완료 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
-| 모니터링 | CloudWatch Logs / Alarms / SNS Topic 적용, 이메일 구독 대기 |
+| 모니터링 | CloudWatch Logs / Alarms / SNS 이메일 구독 생성 완료, confirmation 대기 |
 | Well-Architected | Workload 생성 및 초기 milestone 저장 완료 |
 
 ## 2. 현재 실행 상태
@@ -124,7 +124,8 @@ COGNITO_SCOPES=openid email profile
 | --- | --- | --- |
 | CloudWatch Log Group | 완료 | Backend / Worker 로그 |
 | CloudWatch Alarm | 완료 | ALB, ECS, RDS, SQS 핵심 지표 8개 |
-| SNS Alarm Topic | 완료 | Topic 생성 완료, 이메일 구독은 아직 없음 |
+| SNS Alarm Topic | 완료 | Alarm 8개 action 연결 완료 |
+| SNS Email Subscription | 승인 대기 | `badajoa0710@gmail.com`, `PendingConfirmation` |
 | AWS Budgets | 완료 | 팀 예산 추적 |
 | Well-Architected Tool | 초기 등록 완료 | Workload / Milestone 생성 |
 
@@ -225,7 +226,7 @@ workflow_dispatch
 | Cognito Hosted UI/OAuth 인프라 | 완료 | PR #31, AWS 적용 및 Terraform `No changes` 확인 |
 | Cognito 애플리케이션 로그인 연동 | 개발 대기 | callback/code 교환, JWT 검증, `AUTH_MODE=cognito` 전환 필요 |
 | Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
-| SNS 기반 알림 전송 | Topic 생성 완료 | `alarm_email_endpoints` 설정과 이메일 구독 확인 필요 |
+| SNS 기반 알림 전송 | 승인 대기 | 팀 이메일 구독 생성 및 Alarm 8개 연결 완료, confirmation 후 테스트 발송 필요 |
 
 ## 7. Well-Architected Tool 현황
 
@@ -268,7 +269,7 @@ Pillar별 리스크:
 | 우선순위 | 개선 항목 | 관련 Pillar | 상태 |
 | --- | --- | --- | --- |
 | P0 | ALB HTTPS/ACM 적용 및 HTTP -> HTTPS redirect 검토 | Security | 대기 |
-| P0 | CloudWatch Alarm에 SNS 이메일 또는 Slack 알림 연결 | Operational Excellence / Reliability | 코드 준비 |
+| P0 | CloudWatch Alarm SNS 이메일 수신 검증 | Operational Excellence / Reliability | 구독 생성 완료, confirmation/테스트 대기 |
 | P0 | Worker SQS consumer 구현 후 Worker Service 기동 검증 | Reliability / Cost | 개발 대기 |
 | P1 | RTO/RPO와 RDS restore rehearsal 절차 정의 | Reliability | 대기 |
 | P1 | ECR image scan, dependency scan, CI 보안 검증 강화 | Security | 대기 |
