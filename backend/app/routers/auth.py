@@ -27,11 +27,11 @@ _PROVIDERS = ("kakao", "google", "naver")
 
 
 @router.get("/cognito/login")
-def cognito_login():
+def cognito_login(identity_provider: str | None = None, prompt: str | None = None):
     if not cognito_auth_service.is_configured():
         raise HTTPException(status_code=503, detail="Cognito 로그인 미설정")
     state = secrets.token_urlsafe(16)
-    return RedirectResponse(cognito_auth_service.authorize_url(state))
+    return RedirectResponse(cognito_auth_service.authorize_url(state, identity_provider=identity_provider, prompt=prompt))
 
 
 @router.get("/cognito/callback")

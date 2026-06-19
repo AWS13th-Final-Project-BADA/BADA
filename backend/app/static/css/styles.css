@@ -238,7 +238,6 @@ details.numbox summary::-webkit-details-marker{display:none}
 .login-sub{font-size:13px;color:#666;line-height:1.6;margin:0 0 22px}
 .social-btn{width:100%;max-width:300px;height:48px;border:0;border-radius:12px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;cursor:pointer}
 .social-btn i{font-size:20px}
-.social-cognito{background:#111827;color:#fff}
 .social-kakao{background:#FEE500;color:#191600}
 .social-naver{background:#03C75A;color:#fff}
 .naver-n{font-weight:800;font-size:17px}
