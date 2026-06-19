@@ -251,7 +251,8 @@ def _publish_transcription_message(ev: Evidence, case_id: str, s3_key: str, lang
 def _run_local_transcription(db: Session, ev: Evidence, s3_key: str, language_code: str | None) -> None:
     """Run transcription in background using worker's process_transcription.
 
-    채널 식별 + Custom Vocabulary + Claude 후처리가 모두 적용된다.
+    채널 식별(스테레오) + Speaker Diarization(모노) + Custom Vocabulary가 적용된다.
+    증거 무결성을 위해 Transcribe 원문을 그대로 저장한다 (AI 보정 없음).
     """
     import sys
     from pathlib import Path
