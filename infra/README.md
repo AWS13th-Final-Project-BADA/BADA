@@ -47,6 +47,7 @@ MVP 원칙:
 - `TRANSCRIBE_MODE=aws`를 별도로 사용해 `PROVIDER_MODE=local` 상태에서도 Amazon Transcribe만 실제 호출 가능
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
 - CloudWatch Alarm은 ALB/ECS/RDS/SQS 핵심 지표 기준으로 생성하며, 기본은 콘솔 확인용이다.
+- CloudWatch MCP는 Terraform 관리 최소권한 AssumeRole을 통해서만 AWS에 접근한다.
 - Cognito App Client는 Authorization Code Grant와 `openid email profile` scope를 사용한다.
 - Google 로그인을 사용할 때는 Cognito Federated Identity Provider와 App Client provider를 Terraform으로 함께 관리한다.
 - 프로젝트 운영 기간은 `2026-06-04 ~ 2026-07-10`, 팀 전체 AWS 총 예산은 `1,500달러`
@@ -293,12 +294,28 @@ SQS Analysis DLQ            : visible message 1개 이상
 - 기본값은 `alarm_email_endpoints = []`, `alarm_actions = []`이며 실제 이메일 주소는 Git에서 제외되는 로컬 `terraform.tfvars`에만 저장한다.
 - SNS Topic `bada-dev-alarm-notifications`는 Terraform apply로 생성 완료했다.
 - 팀 알림 이메일 `badajoa0710@gmail.com` 구독을 생성하고 CloudWatch Alarm 8개의 `alarm_actions`와 `ok_actions`에 SNS Topic을 연결했다.
-- 현재 구독 상태는 `PendingConfirmation`이다. 이메일의 AWS SNS confirmation 링크를 승인하기 전에는 실제 알림이 전달되지 않는다.
+- 이메일 구독 confirmation, SNS 테스트 메시지, CloudWatch Alarm/OK 알림 수신 경로를 검증했다.
 - 확장: `alarm_email_endpoints`에 이메일 주소를 넣으면 Terraform 관리 SNS Topic에 이메일 구독을 생성하고, CloudWatch Alarm action에 연결한다.
 - 주의: 이메일 구독자는 AWS SNS confirmation 메일을 반드시 승인해야 실제 알림을 받을 수 있다.
 - 별도 SNS Topic을 이미 운영 중이면 `alarm_actions`에 기존 action ARN을 추가할 수 있다.
 - 적용 결과: `terraform apply`로 8개 알람 생성 완료, 이후 `terraform plan` 기준 `No changes` 확인
 - 참고: 생성 직후에는 CloudWatch metric 데이터가 충분하지 않아 `INSUFFICIENT_DATA`로 보일 수 있다.
+
+CloudWatch MCP 운영:
+
+```text
+IAM Role    : bada-dev-mcp-cloudwatch-readonly-role
+AWS Profile : bada-mcp-readonly
+Region      : ap-northeast-2
+Runtime     : uvx + Python 3.10
+Server      : awslabs.cloudwatch-mcp-server 1.28.0 (검증 시점)
+```
+
+- MCP Role은 CloudWatch Alarm/Metric 조회와 CloudWatch Logs 조회·Insights Query에 필요한 작업만 허용한다.
+- 전용 profile의 CloudWatch 조회 성공과 S3 `AccessDenied`를 함께 확인해 최소권한 경계를 검증했다.
+- Logs Insights는 읽기 작업이지만 사용량 비용이 발생할 수 있으므로 Codex 도구 기본 승인은 `prompt`로 유지한다.
+- MCP 검증 결과 Backend/Worker Log Group 조회와 활성 Alarm 0개 확인에 성공했다.
+- Terraform 적용 결과는 `2 added, 0 changed, 0 destroyed`, 후속 plan은 `No changes`였다.
 
 알림 이메일 설정 예시:
 
@@ -343,7 +360,7 @@ Risk summary      : HIGH 30 / MEDIUM 24 / NONE 3 / UNANSWERED 0
 우선 개선 항목:
 
 - P0: ALB HTTPS/ACM 적용 및 HTTP -> HTTPS redirect 검토
-- P0: CloudWatch Alarm에 SNS 이메일 또는 Slack 알림 연결
+- P0: CloudWatch Alarm SNS 이메일 수신 검증 완료
 - P0: Worker SQS consumer 구현 후 Worker Service 기동 검증
 - P1: RTO/RPO와 RDS restore rehearsal 절차 정의
 - P1: ECR image scan, dependency scan, CI 보안 검증 강화

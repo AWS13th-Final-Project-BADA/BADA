@@ -22,7 +22,7 @@
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
 | 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 및 AWS 권한 반영 완료 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
-| 모니터링 | CloudWatch Logs / Alarms / SNS 이메일 구독 생성 완료, confirmation 대기 |
+| 모니터링 | CloudWatch Logs / Alarms / SNS 이메일 수신 검증 / CloudWatch MCP 최소권한 연결 완료 |
 | Well-Architected | Workload 생성 및 초기 milestone 저장 완료 |
 
 ## 2. 현재 실행 상태
@@ -105,7 +105,7 @@ SQS
 | Cognito Google IdP | 완료 | Terraform apply 및 Google OAuth `302` redirect 검증 |
 | Secrets Manager | 완료 | DB 접속 정보와 앱 secret |
 | SSM Parameter Store | 완료 | Cognito domain/redirect/logout/scopes를 포함한 비민감 설정 |
-| IAM User / Role | 완료 | 팀원 접근 및 GitHub Actions 배포 역할 |
+| IAM User / Role | 완료 | 팀원 접근, GitHub Actions 배포 역할, CloudWatch MCP 읽기 전용 역할 |
 
 Cognito 연동값:
 
@@ -160,7 +160,8 @@ COGNITO_SCOPES=openid email profile
 | CloudWatch Log Group | 완료 | Backend / Worker 로그 |
 | CloudWatch Alarm | 완료 | ALB, ECS, RDS, SQS 핵심 지표 8개 |
 | SNS Alarm Topic | 완료 | Alarm 8개 action 연결 완료 |
-| SNS Email Subscription | 승인 대기 | `badajoa0710@gmail.com`, `PendingConfirmation` |
+| SNS Email Subscription | 완료 | `badajoa0710@gmail.com`, 테스트 메시지 및 Alarm/OK 경로 검증 |
+| CloudWatch MCP | 완료 | 전용 AssumeRole 최소권한, 서버 1.28.0, Backend/Worker Log Group 및 활성 Alarm 조회 검증 |
 | AWS Budgets | 완료 | 팀 예산 추적 |
 | Well-Architected Tool | 초기 등록 완료 | Workload / Milestone 생성 |
 
@@ -266,7 +267,8 @@ workflow_dispatch
 | Google IdP Terraform drift | 완료 | PR #45 merge, AWS 자동 보정값 명시 및 최종 plan `No changes` 검증 |
 | Cognito 애플리케이션 로그인 연동 | 개발 대기 | callback/code 교환, JWT 검증, `AUTH_MODE=cognito` 전환 필요 |
 | Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
-| SNS 기반 알림 전송 | 승인 대기 | 팀 이메일 구독 생성 및 Alarm 8개 연결 완료, confirmation 후 테스트 발송 필요 |
+| SNS 기반 알림 전송 | 완료 | 구독 확인, 테스트 메시지, Alarm → SNS 및 OK 복구 알림 경로 검증 |
+| CloudWatch MCP | 완료 | `bada-mcp-readonly` 프로필로 Log Group/Alarm 실제 조회 및 S3 접근 거부 확인 |
 
 ## 7. Well-Architected Tool 현황
 
@@ -309,7 +311,7 @@ Pillar별 리스크:
 | 우선순위 | 개선 항목 | 관련 Pillar | 상태 |
 | --- | --- | --- | --- |
 | P0 | ALB HTTPS/ACM 적용 및 HTTP -> HTTPS redirect 검토 | Security | 대기 |
-| P0 | CloudWatch Alarm SNS 이메일 수신 검증 | Operational Excellence / Reliability | 구독 생성 완료, confirmation/테스트 대기 |
+| P0 | CloudWatch Alarm SNS 이메일 수신 검증 | Operational Excellence / Reliability | 완료 |
 | P0 | Worker SQS consumer 구현 후 Worker Service 기동 검증 | Reliability / Cost | 개발 대기 |
 | P1 | RTO/RPO와 RDS restore rehearsal 절차 정의 | Reliability | 대기 |
 | P1 | ECR image scan, dependency scan, CI 보안 검증 강화 | Security | 대기 |
