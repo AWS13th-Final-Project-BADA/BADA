@@ -16,6 +16,17 @@ variable "aws_region" {
   default     = "ap-northeast-2"
 }
 
+variable "mcp_operator_principal_arns" {
+  description = "IAM principal ARNs allowed to assume the read-only CloudWatch MCP role"
+  type        = list(string)
+  default     = ["arn:aws:iam::165749212250:user/awsuser"]
+
+  validation {
+    condition     = length(var.mcp_operator_principal_arns) > 0
+    error_message = "mcp_operator_principal_arns must contain at least one trusted IAM principal ARN."
+  }
+}
+
 variable "vpc_cidr" {
   description = "CIDR block for the main VPC"
   type        = string

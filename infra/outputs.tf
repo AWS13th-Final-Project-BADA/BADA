@@ -98,6 +98,10 @@ output "github_actions_deploy_role_arn" {
   value = aws_iam_role.github_actions_deploy.arn
 }
 
+output "mcp_cloudwatch_readonly_role_arn" {
+  value = aws_iam_role.mcp_cloudwatch_readonly.arn
+}
+
 output "alarm_sns_topic_arn" {
   value = aws_sns_topic.alarms.arn
 }
