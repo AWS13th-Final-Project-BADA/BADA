@@ -29,6 +29,28 @@ _SYSTEM = (
 
 def _instruction(category: str) -> str:
     from llm.prompts import load
+    if category == "audio":
+        return (
+            "카테고리: 음성 녹음 전사본 (전화 통화 또는 대면 대화).\n"
+            "아래 텍스트는 음성인식(STT)으로 전사된 대화 원문입니다. "
+            "Speaker 0, Speaker 1 등의 화자 라벨이 있을 수 있습니다.\n\n"
+            "이 대화에서 다음 엔티티를 추출하세요:\n"
+            "- 금액(amounts: label+value) — 언급된 급여, 입금액, 공제 금액 등\n"
+            "- 시급(hourly_wage) / 월급(monthly_wage)\n"
+            "- 공제항목(deductions: name+amount)\n"
+            "- 날짜(dates), 지급일(pay_date)\n"
+            "- 근무일수(work_days), 연장근로(overtime_hours), 야간근로(night_hours), 휴일근로(holiday_hours)\n"
+            "- 사업장명(workplace_name), 사업주명(employer_name)\n"
+            "- 발화 분류(utterances: speaker, text, kind)\n"
+            "  kind: wage_promise(지급약속) / work_order(근무지시) / "
+            "underpayment_admit(미지급 인정) / evasive(회피) / other\n"
+            "- 계약기간(contract_start, contract_end), 서명(signed=null)\n\n"
+            "규칙:\n"
+            "- raw_text는 전사 원문의 핵심 발화를 800자 이내로 요약하세요.\n"
+            "- 금액은 콤마·'원'을 제거한 정수로. 불확실하면 confidence='low'.\n"
+            "- 대화에서 직접 언급되지 않은 값은 지어내지 마세요(null).\n"
+            "- 반드시 유효한 JSON만 출력하세요."
+        )
     try:
         return load("extraction").replace("{{category}}", category)
     except Exception:

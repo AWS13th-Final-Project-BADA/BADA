@@ -4,11 +4,12 @@
 완료를 대기한 뒤, 화자 분리 결과를 포맷팅하여 반환한다.
 Worker는 결과를 반환하고, DB 기록은 호출자(Backend)가 담당한다.
 
-후처리: Transcribe 원문을 Bedrock Claude로 보정하여 오인식/누락을 복원한다.
+증거 무결성 원칙: Transcribe 원문을 그대로 보존한다. AI 보정(텍스트 교정·화자 재분리)은
+적용하지 않는다 — 음성 녹음은 "증거"이므로, 원문 변형 시 증거 가치가 훼손된다.
+화자 분리는 Transcribe의 채널 식별(스테레오) 또는 Speaker Diarization(모노)에 의존한다.
 """
 from __future__ import annotations
 
-import json
 import logging
 import time
 
@@ -24,45 +25,6 @@ logger = logging.getLogger(__name__)
 _DEFAULT_LANGUAGE_CODE = "ko-KR"
 _POLL_INTERVAL_SECONDS = 5
 _TIMEOUT_SECONDS = 600  # 10분
-
-# Claude 보정 프롬프트 (전화 통화 전사 후처리 + 화자 분리)
-_REFINE_SYSTEM = (
-    "당신은 한국어 전화 통화 전사본을 교정하고 화자를 분리하는 도우미입니다. "
-    "임금체불 상담 맥락에서 음성 인식 오류를 교정하고, "
-    "대화 내용을 기반으로 '사업주(고용주)'와 '노동자(근로자)'를 구분하세요. "
-    "단, 없는 내용을 지어내지 마세요. 원래 말한 내용만 복원합니다."
-)
-
-_REFINE_PROMPT = """아래는 전화 통화 음성인식(STT) 결과입니다. 임금체불 관련 사업주와 노동자 간 대화입니다.
-
-[전사 원문]
-{transcript}
-
-다음을 수행하세요:
-
-## 1. 화자 분리 (가장 중요)
-- 대화 맥락을 분석하여 각 문장이 누구의 발화인지 판별하세요.
-- "사업주": 지시하는 쪽, 급여를 주는 쪽, "처리하겠다/확인하겠다" 등의 표현
-- "노동자": 요청하는 쪽, 급여를 받는 쪽, "안 들어왔다/언제 주나" 등의 표현
-- 원문에 "Speaker 0"만 있어도, 문맥상 화자가 바뀌는 지점을 찾아서 분리하세요.
-
-## 2. 텍스트 교정
-- 음성인식 오타 교정 (예: "원금" → "월급")
-- 도메인 용어: 월급, 시급, 공제, 기숙사비, 야근, 잔업, 수당, 계약서, 명세서, 급여, 입금, 퇴직금
-- 빠진 조사/어미 복원
-
-## 출력 형식 (반드시 이 형식으로)
-```
-사업주: 발화 내용
-노동자: 발화 내용
-사업주: 발화 내용
-```
-
-규칙:
-- 화자 라벨은 반드시 "사업주:" 또는 "노동자:"로 표기
-- 화자를 구분할 수 없는 문장은 "화자미상:"으로 표기
-- 절대 없는 내용을 추가하지 마세요
-- 교정된 대화만 출력하세요 (설명 없이)"""
 
 
 # ---------------------------------------------------------------------------
@@ -86,37 +48,6 @@ def format_diarized_text(result: TranscriptionResult) -> str:
 
     lines = [f"{seg.speaker_label}: {seg.text}" for seg in result.segments]
     return "\n".join(lines)
-
-
-def refine_transcript(raw_text: str) -> str:
-    """Transcribe 원문을 Bedrock Claude로 보정한다.
-
-    전화 통화 음성인식에서 흔한 오인식(도메인 용어 오류, 조사 누락)을 교정.
-    실패 시 원문 그대로 반환 (graceful degradation).
-    TRANSCRIBE_MODE=local이면 보정 건너뜀.
-    """
-    if TRANSCRIBE_MODE != "aws":
-        return raw_text
-
-    if not raw_text or len(raw_text.strip()) < 10:
-        return raw_text
-
-    # 디버깅: 실제 모드 확인
-    logger.info("refine_transcript called, TRANSCRIBE_MODE=%s, text_len=%d", TRANSCRIBE_MODE, len(raw_text))
-
-    try:
-        from providers._bedrock import invoke, text_block
-        prompt = _REFINE_PROMPT.format(transcript=raw_text)
-        blocks = [text_block(prompt)]
-        refined = invoke(_REFINE_SYSTEM, blocks, max_tokens=4000)
-        # 기본 검증: 보정 결과가 원문보다 극단적으로 짧으면(50% 미만) 원문 유지
-        if refined and len(refined.strip()) >= len(raw_text.strip()) * 0.5:
-            return refined.strip()
-        logger.warning("Refined text too short, keeping original")
-        return raw_text
-    except Exception as e:
-        logger.warning("Transcript refinement failed, keeping original: %s", e)
-        return raw_text
 
 
 def process_transcription(
@@ -184,9 +115,6 @@ def process_transcription(
 
             # 4. 포맷팅
             text = format_diarized_text(result)
-
-            # 5. Claude 보정 (전화 통화 오인식 교정)
-            text = refine_transcript(text)
 
             logger.info("Transcription completed: %s (%d segments)", job_name, len(result.segments))
             return {"status": "done", "text": text, "error": None}

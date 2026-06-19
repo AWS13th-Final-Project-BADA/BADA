@@ -251,7 +251,11 @@ def _publish_transcription_message(ev: Evidence, case_id: str, s3_key: str, lang
 def _run_local_transcription(db: Session, ev: Evidence, s3_key: str, language_code: str | None) -> None:
     """Run transcription in background using worker's process_transcription.
 
-    채널 식별 + Custom Vocabulary + Claude 후처리가 모두 적용된다.
+    채널 식별(스테레오) + Speaker Diarization(모노) + Custom Vocabulary가 적용된다.
+    증거 무결성을 위해 Transcribe 원문을 그대로 저장한다 (AI 보정 없음).
+
+    전사 완료 후 엔티티 추출(Claude Text)을 실행하여 시급/월급/공제 등을 구조화한다.
+    원문(ocr_text)은 변형 없이 보존되고, 추출 결과는 extracted_entities에 별도 저장.
     """
     import sys
     from pathlib import Path
@@ -273,6 +277,11 @@ def _run_local_transcription(db: Session, ev: Evidence, s3_key: str, language_co
             ev.ocr_text = result["text"] or ""
             ev.ocr_status = "done"
             logger.info("Transcription done: %s (%d chars)", job_name, len(ev.ocr_text))
+
+            # 엔티티 추출: 전사 텍스트에서 시급/월급/공제/발화 등을 구조화 (Claude Text)
+            # 원문(ocr_text)은 변형 없이 보존됨. extracted_entities는 분석용 별도 레이어.
+            if ev.ocr_text.strip():
+                _extract_entities_from_text(ev)
         else:
             ev.ocr_status = "failed"
             logger.error("Transcription failed: %s error=%s", job_name, result.get("error"))
@@ -282,6 +291,27 @@ def _run_local_transcription(db: Session, ev: Evidence, s3_key: str, language_co
         ev.ocr_status = "failed"
         logger.error("Transcription error for %s: %s", ev.id, e)
         db.commit()
+
+
+def _extract_entities_from_text(ev: Evidence) -> None:
+    """전사된 텍스트에서 엔티티를 추출하여 extracted_entities에 저장.
+
+    ocr.py의 _structure_text()와 동일 패턴: 텍스트 → Claude Text → OcrResult(Pydantic).
+    실패 시 extracted_entities는 비워두고 로그만 남긴다 (전사 자체는 성공으로 유지).
+    """
+    from config import PROVIDER_MODE
+    if PROVIDER_MODE != "aws":
+        # 로컬 모드: 엔티티 추출 스킵 (Mock에서는 의미 없음)
+        return
+
+    try:
+        from providers.ocr import _structure_text
+        result = _structure_text(ev.ocr_text, "audio")
+        ev.extracted_entities = result.get("entities", {})
+        logger.info("Entity extraction done for audio evidence %s", ev.id)
+    except Exception as e:
+        logger.warning("Entity extraction failed for audio evidence %s: %s (transcription preserved)", ev.id, e)
+        ev.extracted_entities = {}
 
 
 @router.post("/extract")
