@@ -176,9 +176,30 @@ cases/20260618_○○제조_85cace2f/녹음파일.wav
 ## 7. 기존 파이프라인 통합
 
 - `Evidence.ocr_text`에 전사 텍스트 저장 → 이미지/PDF OCR과 **동일 필드**
+- 전사 완료 후 **엔티티 추출**(Claude Text)이 자동 실행 → `extracted_entities`에 저장
 - `process_case` 실행 시 오디오 Evidence도 분석 컨텍스트에 포함
 - DB 스키마 변경 없음 — `file_type="audio"` 값만 새로 사용
 - 카테고리는 `audio` (프론트 업로드 카드에서 선택)
+
+### 2단계 저장 구조 (증거 무결성 + 분석 활용)
+
+```
+Evidence
+├─ ocr_text            ← Transcribe 원문 (변형 없음, 증거)
+├─ extracted_entities  ← Claude가 원문에서 구조화한 엔티티 (분석용)
+│   ├─ amounts: [{label, value, confidence}]
+│   ├─ hourly_wage, monthly_wage
+│   ├─ deductions: [{name, amount}]
+│   ├─ utterances: [{speaker, text, kind}]
+│   ├─ dates, pay_date, work_days
+│   ├─ overtime_hours, night_hours, holiday_hours
+│   └─ workplace_name, employer_name
+└─ ocr_status = "done"
+```
+
+- 원문은 증거로 보존, 추출 결과는 규칙 엔진(차액 계산, 공제 분류 등)의 입력
+- 엔티티 추출 실패 시 `extracted_entities={}`로 두고 전사 자체는 성공 유지
+- 사용자가 HITL로 추출값을 수정 가능 (PATCH /evidences/{eid}/entities)
 
 ---
 
