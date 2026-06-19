@@ -22,7 +22,7 @@ def is_configured() -> bool:
     return bool(settings.cognito_user_pool_id and settings.cognito_client_id and settings.cognito_domain)
 
 
-def authorize_url(state: str) -> str:
+def authorize_url(state: str, *, identity_provider: str | None = None, prompt: str | None = None) -> str:
     _require_config()
     params = {
         "client_id": settings.cognito_client_id,
@@ -31,6 +31,10 @@ def authorize_url(state: str) -> str:
         "redirect_uri": settings.cognito_redirect_uri,
         "state": state,
     }
+    if identity_provider:
+        params["identity_provider"] = identity_provider
+    if prompt:
+        params["prompt"] = prompt
     return f"{_domain()}/oauth2/authorize?{urlencode(params)}"
 
 

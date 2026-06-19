@@ -35,6 +35,15 @@ def test_cognito_authorize_url_uses_hosted_ui(monkeypatch):
     assert "state=state-1" in url
 
 
+def test_cognito_authorize_url_can_force_google_account_selection(monkeypatch):
+    configure_cognito(monkeypatch)
+
+    url = cognito_auth_service.authorize_url("state-1", identity_provider="Google", prompt="select_account")
+
+    assert "identity_provider=Google" in url
+    assert "prompt=select_account" in url
+
+
 def test_cognito_claims_create_user():
     db = make_db()
 

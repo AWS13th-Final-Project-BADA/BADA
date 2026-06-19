@@ -78,7 +78,6 @@
         <h1 class="login-title">로그인하고<br/>내 사건을 안전하게 관리하세요</h1>
         <p class="login-sub">업로드한 자료와 분석 결과를<br/>내 계정에 안전하게 보관해요</p>
 
-        <button class="social-btn social-cognito" onclick="cognitoLogin()"><i class="ti ti-shield-lock" aria-hidden="true"></i> 계정으로 로그인</button>
         <button class="social-btn social-kakao" onclick="kakaoLogin()"><i class="ti ti-message-circle-2" aria-hidden="true"></i> 카카오로 시작하기</button>
         <button class="social-btn social-naver" onclick="naverLogin()"><span class="naver-n">N</span> 네이버로 시작하기</button>
         <button class="social-btn social-google" onclick="googleLogin()"><i class="ti ti-brand-google" aria-hidden="true"></i> 구글로 시작하기</button>
@@ -344,7 +343,15 @@
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+    let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloading) return;
+      reloading = true;
+      window.location.reload();
+    });
+    navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })
+      .then((registration) => registration.update().catch(() => {}))
+      .catch(() => {});
   });
 }
 </script>
