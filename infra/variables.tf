@@ -379,3 +379,16 @@ variable "monitoring_enabled" {
   type        = bool
   default     = false
 }
+
+variable "grafana_admin_password" {
+  description = "Grafana administrator password. Required only when monitoring_enabled is true."
+  type        = string
+  default     = null
+  nullable    = true
+  sensitive   = true
+
+  validation {
+    condition     = !var.monitoring_enabled || (var.grafana_admin_password != null && length(var.grafana_admin_password) >= 12)
+    error_message = "grafana_admin_password must contain at least 12 characters when monitoring_enabled is true."
+  }
+}

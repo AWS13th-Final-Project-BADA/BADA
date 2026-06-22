@@ -521,9 +521,10 @@ resource "aws_iam_role_policy" "ecs_task_execution_config_read" {
         Action = [
           "secretsmanager:GetSecretValue"
         ]
-        Resource = [
-          aws_secretsmanager_secret.app.arn
-        ]
+        Resource = concat(
+          [aws_secretsmanager_secret.app.arn],
+          var.monitoring_enabled ? [aws_secretsmanager_secret.grafana_admin_password[0].arn] : []
+        )
       },
       {
         Effect = "Allow"
