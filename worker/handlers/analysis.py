@@ -1,58 +1,170 @@
-"""분석 handler — analyze_case 메시지 처리.
+"""분석 handler — analyze_case 메시지 처리 (2단계: DB 직접 접근).
 
 메시지 형식:
     {"type": "analyze_case", "case_id": "..."}
 
-[1단계 — 현재] 백엔드 분석 API(POST /cases/{case_id}/analyze)를 호출한다.
-    분석·DB 저장은 백엔드가 수행하므로 worker에 DB 연결이 없어도 동작한다.
-    멱등성: 백엔드 /analyze 가 기존 결과를 삭제 후 재삽입하므로 중복 수신해도 안전.
-
-[2단계 — 추후] worker가 DB에 직접 연결되면, 이 handle() 내부만 교체하여
-    백엔드를 거치지 않고 직접 분석 + DB 저장한다. (consumer/인터페이스는 불변)
-
-환경변수:
-    BACKEND_BASE_URL  분석 API 베이스 URL (기본: http://localhost:8000)
-    ANALYZE_HTTP_TIMEOUT  요청 타임아웃 초 (기본: 300)
+DB에서 Case + Evidence를 조회하고, pipeline.process_case()로 분석한 뒤 결과를 직접 저장한다.
+멱등성: 기존 AnalysisResult를 삭제 후 재생성하므로 중복 수신에 안전하다.
 """
 from __future__ import annotations
 
-import json
 import logging
-import os
-import urllib.error
-import urllib.request
+import sys
+from datetime import datetime
+from pathlib import Path
+
+# Backend models 접근을 위해 path 추가
+_BACKEND = Path(__file__).resolve().parents[2] / "backend"
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
+
+from db import get_session  # noqa: E402
+from pipeline import process_case  # noqa: E402
+from services.extract import aggregate  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
-BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://localhost:8000").rstrip("/")
-HTTP_TIMEOUT = int(os.environ.get("ANALYZE_HTTP_TIMEOUT", "300"))
-
 
 def handle(message: dict) -> None:
-    """analyze_case 메시지를 처리한다. 실패 시 예외를 올려 consumer가 재시도/DLQ 하게 한다."""
+    """analyze_case 메시지 처리. 실패 시 예외 → consumer가 재시도/DLQ."""
     case_id = message.get("case_id")
     if not case_id:
         raise ValueError("analyze_case: 'case_id' is required")
 
-    url = f"{BACKEND_BASE_URL}/cases/{case_id}/analyze"
-    logger.info("analyze_case 시작: case_id=%s → POST %s", case_id, url)
+    logger.info("analyze_case 시작 (2단계 DB 직접): case_id=%s", case_id)
 
-    req = urllib.request.Request(
-        url,
-        data=b"{}",  # 빈 본문 → 백엔드가 기본 AnalyzeRequest 로 처리
-        method="POST",
-        headers={"Content-Type": "application/json"},
-    )
+    session = get_session()
     try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
-            status = getattr(resp, "status", resp.getcode())
-            resp.read()  # 응답 본문 소비(연결 정리)
-            if status >= 400:
-                raise RuntimeError(f"backend returned HTTP {status}")
-    except urllib.error.HTTPError as e:
-        body = e.read()[:300]
-        raise RuntimeError(f"backend HTTP {e.code}: {body!r}") from e
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"backend unreachable: {e.reason}") from e
+        _run(session, case_id)
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
-    logger.info("analyze_case 완료: case_id=%s (백엔드가 DB 저장)", case_id)
+    logger.info("analyze_case 완료: case_id=%s", case_id)
+
+
+def _run(session, case_id: str) -> None:
+    from app.models import AnalysisResult, Case, Evidence, TimelineEvent, TranslationPair
+
+    case = session.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise ValueError(f"Case not found: {case_id}")
+
+    evs = session.query(Evidence).filter(Evidence.case_id == case_id).all()
+    present = {e.category for e in evs}
+
+    # OCR 추출값 집계
+    collected = [{"category": e.category, "entities": e.extracted_entities or {}}
+                 for e in evs if e.extracted_entities]
+    ocr = aggregate(collected)
+
+    # 카톡 발화
+    chat_utts = []
+    for e in evs:
+        if e.category in ("chat", "other") and e.extracted_entities:
+            ents = e.extracted_entities
+            date = (ents.get("dates") or [None])[0]
+            for u in ents.get("utterances", []) or []:
+                chat_utts.append({
+                    "date": date, "speaker": u.get("speaker"), "text": u.get("text"),
+                    "kind": u.get("kind"), "confidence": u.get("confidence", "low"),
+                    "source_evidence_id": e.id,
+                })
+
+    # GPS 로그 조회
+    from app.models import GpsLog, Workplace
+    gps_logs_db = session.query(GpsLog).filter(GpsLog.case_id == case_id).all()
+    workplace = session.query(Workplace).filter(Workplace.case_id == case_id).first()
+
+    gps_logs = [
+        {"ts": g.ts, "lat": float(g.lat), "lng": float(g.lng),
+         "is_mocked": g.is_mocked, "is_delayed_upload": g.is_delayed_upload}
+        for g in gps_logs_db
+    ]
+    wp = {"lat": float(workplace.center_lat), "lng": float(workplace.center_lng),
+          "radius_m": workplace.radius_m} if workplace else None
+
+    ctx = {
+        "agreed_hourly_wage": case.agreed_hourly_wage or ocr.get("agreed_hourly_wage"),
+        "worked_hours": ocr.get("worked_hours") or [],
+        "deposits": ocr.get("deposit_amounts") or [],
+        "deposit_events": ocr.get("deposits") or [],
+        "raw_deductions": ocr.get("deductions") or [],
+        "present_categories": present,
+        "evidence_entities": collected,
+        "chat_utterances": chat_utts,
+        "gps_logs": gps_logs,
+        "workplace": wp,
+        "chat_arrivals": [],
+        "work_start_date": str(case.work_start_date) if case.work_start_date else None,
+        "workplace_name": case.workplace_name or ocr.get("workplace_name"),
+        "target_lang": case.primary_language or "ko",
+    }
+
+    result = process_case(case_id, ctx)
+
+    # 기존 결과 삭제 (멱등성)
+    session.query(AnalysisResult).filter(AnalysisResult.case_id == case_id).delete()
+    session.query(TimelineEvent).filter(TimelineEvent.case_id == case_id).delete()
+    session.query(TranslationPair).filter(TranslationPair.case_id == case_id).delete()
+
+    # 결과 저장
+    ar = AnalysisResult(
+        case_id=case_id,
+        total_expected_wage=result.get("total_expected_wage"),
+        total_received_wage=result.get("total_received_wage"),
+        suspected_unpaid=result.get("suspected_unpaid"),
+        deduction_items=result.get("deduction_items"),
+        calculation_detail=result.get("calculation_detail"),
+        timeline_summary=result.get("timeline_summary"),
+        missing_evidences=result.get("missing_evidences"),
+    )
+    session.add(ar)
+
+    # 타임라인 이벤트 저장
+    for ev in result.get("timeline", []):
+        te = TimelineEvent(
+            case_id=case_id,
+            event_type=ev.get("type", "unknown"),
+            title=ev.get("title", ""),
+            description=ev.get("description", ""),
+            description_translated=ev.get("description_translated"),
+            event_date=ev.get("date"),
+            confidence=ev.get("confidence", "medium"),
+            source="ai",
+            source_evidence_id=ev.get("source_evidence_id"),
+        )
+        session.add(te)
+
+    # 번역 대조표 저장
+    for tp in result.get("translation_pairs", []):
+        session.add(TranslationPair(
+            case_id=case_id,
+            source_text=tp.get("source", ""),
+            translated_text=tp.get("translated", ""),
+            evidence_type=tp.get("evidence_type"),
+            related_issue=tp.get("related_issue"),
+            source_evidence_id=tp.get("source_evidence_id"),
+        ))
+
+    # 사건 상태 업데이트
+    case.status = "completed"
+    session.commit()
+
+    # PDF Evidence Pack 생성 (실패해도 분석 자체는 성공 처리)
+    try:
+        from services.pdf_generator import generate_evidence_pack
+        case_info = {
+            "workplace_name": case.workplace_name,
+            "employer_name": case.employer_name,
+            "work_start_date": str(case.work_start_date) if case.work_start_date else None,
+            "work_end_date": str(case.work_end_date) if case.work_end_date else None,
+        }
+        s3_key = generate_evidence_pack(case_id, result, case_info, lang="ko")
+        ar.pdf_ko_s3_key = s3_key
+        session.commit()
+        logger.info("PDF 생성 완료: case_id=%s, key=%s", case_id, s3_key)
+    except Exception:
+        logger.exception("PDF 생성 실패 (분석 결과는 저장됨): case_id=%s", case_id)

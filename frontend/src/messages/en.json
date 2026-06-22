@@ -1,0 +1,54 @@
+{
+  "common": {
+    "appName": "BADA",
+    "tagline": "Evidence organizer for labor consultation",
+    "login": "Login",
+    "logout": "Logout",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back"
+  },
+  "nav": {
+    "cases": "My Cases",
+    "community": "Community",
+    "chat": "AI Chat"
+  },
+  "cases": {
+    "title": "My Cases",
+    "create": "Create New Case",
+    "workplace": "Workplace",
+    "employer": "Employer",
+    "period": "Work Period",
+    "wage": "Hourly Wage",
+    "issueType": "Issue Type",
+    "status": "Status"
+  },
+  "upload": {
+    "title": "Upload Evidence",
+    "dropzone": "Drop files here or click to browse",
+    "category": "Category",
+    "categories": {
+      "contract": "Contract",
+      "schedule": "Work Schedule",
+      "payment": "Bank Statement",
+      "chat": "KakaoTalk/Messages",
+      "statement": "Pay Slip",
+      "other": "Other"
+    }
+  },
+  "analysis": {
+    "title": "Analysis Results",
+    "run": "Run Analysis",
+    "expected": "Expected Wage",
+    "received": "Received",
+    "suspected": "Suspected Unpaid",
+    "deductions": "Deductions",
+    "timeline": "Timeline",
+    "missing": "Missing Evidence",
+    "download": "Download PDF"
+  },
+  "disclaimer": "This document is not legal advice. It is an evidence preparation tool for consultation. Please confirm with authorities."
+}

@@ -221,6 +221,14 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "HTTPS from internet"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -656,6 +664,12 @@ resource "aws_lb" "main" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = aws_subnet.public[*].id
 
+  access_logs {
+    bucket  = aws_s3_bucket.alb_logs.id
+    prefix  = "alb"
+    enabled = true
+  }
+
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-alb" })
 }
 
@@ -685,9 +699,171 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# ─── HTTPS / ACM / Route 53 / Host Routing ───────────────────────────────────
+
+data "aws_route53_zone" "main" {
+  count = var.domain_name != "" ? 1 : 0
+  name  = var.domain_name
+}
+
+resource "aws_acm_certificate" "main" {
+  count                     = var.domain_name != "" ? 1 : 0
+  domain_name               = var.domain_name
+  subject_alternative_names = ["*.${var.domain_name}"]
+  validation_method         = "DNS"
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-cert" })
+
+  lifecycle { create_before_destroy = true }
+}
+
+resource "aws_route53_record" "cert_validation" {
+  for_each = var.domain_name != "" ? {
+    for dvo in aws_acm_certificate.main[0].domain_validation_options : dvo.domain_name => dvo
+  } : {}
+
+  zone_id = data.aws_route53_zone.main[0].zone_id
+  name    = each.value.resource_record_name
+  type    = each.value.resource_record_type
+  records = [each.value.resource_record_value]
+  ttl     = 60
+}
+
+resource "aws_acm_certificate_validation" "main" {
+  count                   = var.domain_name != "" ? 1 : 0
+  certificate_arn         = aws_acm_certificate.main[0].arn
+  validation_record_fqdns = [for r in aws_route53_record.cert_validation : r.fqdn]
+}
+
+resource "aws_lb_listener" "https" {
+  count             = var.domain_name != "" ? 1 : 0
+  load_balancer_arn = aws_lb.main.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate_validation.main[0].certificate_arn
+
+  default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.backend.arn
   }
+}
+
+resource "aws_lb_listener_rule" "api" {
+  count        = var.domain_name != "" ? 1 : 0
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 20
+
+  condition {
+    host_header { values = ["api.${var.domain_name}"] }
+  }
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "frontend" {
+  count        = var.domain_name != "" && var.frontend_enabled ? 1 : 0
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 10
+
+  condition {
+    host_header { values = [var.domain_name, "www.${var.domain_name}"] }
+  }
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.frontend[0].arn
+  }
+}
+
+# Route 53 DNS records → ALB
+resource "aws_route53_record" "root" {
+  count   = var.domain_name != "" ? 1 : 0
+  zone_id = data.aws_route53_zone.main[0].zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.main.dns_name
+    zone_id                = aws_lb.main.zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "api" {
+  count   = var.domain_name != "" ? 1 : 0
+  zone_id = data.aws_route53_zone.main[0].zone_id
+  name    = "api.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.main.dns_name
+    zone_id                = aws_lb.main.zone_id
+    evaluate_target_health = true
+  }
+}
+
+# ─── Frontend ECR + Target Group (준비, 유닛 5에서 ECS Service 생성) ──────────
+
+resource "aws_ecr_repository" "frontend" {
+  count = var.frontend_enabled ? 1 : 0
+  name  = "${local.name_prefix}-frontend"
+
+  image_scanning_configuration { scan_on_push = true }
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-frontend" })
+}
+
+resource "aws_lb_target_group" "frontend" {
+  count       = var.frontend_enabled ? 1 : 0
+  name        = "${local.name_prefix}-fe-tg"
+  port        = 3000
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = aws_vpc.main.id
+
+  health_check {
+    enabled             = true
+    path                = "/"
+    matcher             = "200"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    interval            = 30
+    timeout             = 5
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-fe-tg" })
+}
+
+# ─── ALB Access Logging ──────────────────────────────────────────────────────
+
+resource "aws_s3_bucket" "alb_logs" {
+  bucket = "${local.name_prefix}-alb-logs"
+  tags   = merge(local.common_tags, { Name = "${local.name_prefix}-alb-logs" })
+}
+
+resource "aws_s3_bucket_policy" "alb_logs" {
+  bucket = aws_s3_bucket.alb_logs.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::600734575887:root" } # ap-northeast-2 ELB account
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.alb_logs.arn}/alb/*"
+      }
+    ]
+  })
 }
 
 resource "aws_cloudwatch_log_group" "backend" {

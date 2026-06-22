@@ -1,0 +1,52 @@
+name: Deploy Frontend (dev)
+
+on:
+  push:
+    branches: [develop]
+    paths: ['frontend/**']
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPO: bada-dev-frontend
+  ECS_CLUSTER: bada-dev-cluster
+  ECS_SERVICE: bada-dev-frontend
+  TASK_FAMILY: bada-dev-frontend
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f frontend/Dockerfile -t $REGISTRY/$ECR_REPO:$IMAGE_TAG -t $REGISTRY/$ECR_REPO:latest .
+          docker push $REGISTRY/$ECR_REPO:$IMAGE_TAG
+          docker push $REGISTRY/$ECR_REPO:latest
+
+      - name: Update ECS service
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition $TASK_FAMILY --query taskDefinition)
+          NEW_IMAGE="${{ steps.ecr.outputs.registry }}/$ECR_REPO:${{ github.sha }}"
+          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMG "$NEW_IMAGE" '.containerDefinitions[0].image = $IMG | del(.taskDefinitionArn,.revision,.status,.registeredAt,.registeredBy,.requiresAttributes,.compatibilities)')
+          aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF"
+          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment
+          echo "Frontend deployment initiated"

@@ -1,0 +1,54 @@
+{
+  "common": {
+    "appName": "BADA",
+    "tagline": "Công cụ chuẩn bị bằng chứng để tư vấn",
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "loading": "Đang tải...",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "confirm": "Xác nhận",
+    "back": "Quay lại"
+  },
+  "nav": {
+    "cases": "Vụ việc",
+    "community": "Cộng đồng",
+    "chat": "Tư vấn AI"
+  },
+  "cases": {
+    "title": "Danh sách vụ việc",
+    "create": "Tạo vụ mới",
+    "workplace": "Nơi làm việc",
+    "employer": "Người sử dụng lao động",
+    "period": "Thời gian làm việc",
+    "wage": "Lương giờ",
+    "issueType": "Loại vấn đề",
+    "status": "Trạng thái"
+  },
+  "upload": {
+    "title": "Tải lên bằng chứng",
+    "dropzone": "Kéo thả file hoặc nhấn vào đây",
+    "category": "Loại",
+    "categories": {
+      "contract": "Hợp đồng",
+      "schedule": "Lịch làm việc",
+      "payment": "Sao kê ngân hàng",
+      "chat": "KakaoTalk/Tin nhắn",
+      "statement": "Phiếu lương",
+      "other": "Khác"
+    }
+  },
+  "analysis": {
+    "title": "Kết quả phân tích",
+    "run": "Chạy phân tích",
+    "expected": "Lương dự kiến",
+    "received": "Thực nhận",
+    "suspected": "Nghi ngờ chưa trả",
+    "deductions": "Khoản khấu trừ",
+    "timeline": "Dòng thời gian",
+    "missing": "Bằng chứng cần bổ sung",
+    "download": "Tải PDF"
+  },
+  "disclaimer": "Tài liệu này không phải tư vấn pháp lý mà là công cụ chuẩn bị bằng chứng để tham vấn. Vui lòng xác nhận với cơ quan chuyên môn."
+}

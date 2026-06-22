@@ -359,3 +359,16 @@ variable "github_deploy_branch" {
   type        = string
   default     = "develop"
 }
+
+
+variable "domain_name" {
+  description = "Root domain name (e.g., badasoft.com). Leave empty to skip HTTPS/Route53 setup."
+  type        = string
+  default     = ""
+}
+
+variable "frontend_enabled" {
+  description = "Enable frontend ECR, target group, and ALB routing. Set true when frontend is ready to deploy."
+  type        = bool
+  default     = false
+}
