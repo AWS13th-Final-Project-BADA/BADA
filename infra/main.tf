@@ -727,15 +727,18 @@ resource "aws_acm_certificate" "main" {
 }
 
 resource "aws_route53_record" "cert_validation" {
+  # apex(badasoft.com)와 wildcard(*.badasoft.com)는 동일한 검증 CNAME을 공유한다.
+  # 도메인명으로 키를 유지하되 allow_overwrite로 동일 레코드 중복 생성 충돌을 방지한다.
   for_each = var.domain_name != "" ? {
     for dvo in aws_acm_certificate.main[0].domain_validation_options : dvo.domain_name => dvo
   } : {}
 
-  zone_id = data.aws_route53_zone.main[0].zone_id
-  name    = each.value.resource_record_name
-  type    = each.value.resource_record_type
-  records = [each.value.resource_record_value]
-  ttl     = 60
+  zone_id         = data.aws_route53_zone.main[0].zone_id
+  name            = each.value.resource_record_name
+  type            = each.value.resource_record_type
+  records         = [each.value.resource_record_value]
+  ttl             = 60
+  allow_overwrite = true
 }
 
 resource "aws_acm_certificate_validation" "main" {
@@ -858,7 +861,7 @@ resource "aws_s3_bucket_policy" "alb_logs" {
     Statement = [
       {
         Effect    = "Allow"
-        Principal = { AWS = "arn:aws:iam::600734575887:root" } # ap-northeast-2 ELB account
+        Principal = { Service = "logdelivery.elasticloadbalancing.amazonaws.com" }
         Action    = "s3:PutObject"
         Resource  = "${aws_s3_bucket.alb_logs.arn}/alb/*"
       }
