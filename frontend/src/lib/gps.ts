@@ -21,9 +21,8 @@ export async function startGpsTracking(caseId: string) {
   // 네이티브: 백그라운드 플러그인 (런타임에만 로드, 빌드 타임에는 무시)
   let BackgroundGeolocation: any;
   try {
-    BackgroundGeolocation = (
-      await import(/* webpackIgnore: true */ "@transistorsoft/capacitor-background-geolocation")
-    ).default;
+    const mod = "@transistorsoft/capacitor-background-geolocation";
+    BackgroundGeolocation = (await import(/* webpackIgnore: true */ mod as any)).default;
   } catch {
     // 패키지 없으면 웹 fallback
     return startWebGps(caseId);
