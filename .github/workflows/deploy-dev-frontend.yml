@@ -9,6 +9,7 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
+  AWS_ROLE_ARN: arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role
   ECR_REPO: bada-dev-frontend
   ECS_CLUSTER: bada-dev-cluster
   ECS_SERVICE: bada-dev-frontend
@@ -27,7 +28,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to ECR
