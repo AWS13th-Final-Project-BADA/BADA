@@ -1,0 +1,73 @@
+{
+  "uid": "bada-overview",
+  "title": "BADA Overview",
+  "tags": ["bada"],
+  "timezone": "Asia/Seoul",
+  "panels": [
+    {
+      "id": 1,
+      "title": "총 요청수 (5분)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [{"expr": "sum(rate(http_requests_total[5m]))", "legendFormat": "req/s"}]
+    },
+    {
+      "id": 2,
+      "title": "에러율 (5xx)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "targets": [{"expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100", "legendFormat": "% error"}]
+    },
+    {
+      "id": 3,
+      "title": "P95 응답시간",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P95"}]
+    },
+    {
+      "id": 4,
+      "title": "분석 실행 (성공/실패)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [
+        {"expr": "sum(analysis_runs_total{status=\"success\"})", "legendFormat": "성공"},
+        {"expr": "sum(analysis_runs_total{status=\"failed\"})", "legendFormat": "실패"}
+      ]
+    },
+    {
+      "id": 5,
+      "title": "요청수 추이",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [{"expr": "sum(rate(http_requests_total[1m])) by (method)", "legendFormat": "{{method}}"}]
+    },
+    {
+      "id": 6,
+      "title": "응답시간 히스토그램",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P99"}
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Worker 메시지 처리량",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "targets": [{"expr": "sum(rate(worker_messages_processed_total[5m])) by (handler)", "legendFormat": "{{handler}}"}]
+    },
+    {
+      "id": 8,
+      "title": "상태코드 분포",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "targets": [{"expr": "sum(http_requests_total) by (status)", "legendFormat": "{{status}}"}]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

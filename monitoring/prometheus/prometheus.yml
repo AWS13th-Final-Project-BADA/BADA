@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "bada-backend"
+    metrics_path: /metrics
+    # ECS Service Discovery — Backend 태스크 IP는 ECS 내부 DNS 또는 static으로 지정
+    # 운영 시 file_sd_configs 또는 aws_ecs_sd로 교체 권장
+    static_configs:
+      - targets: ["bada-dev-backend.local:8000"]
+        labels:
+          service: "backend"
+
+  - job_name: "bada-worker"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["bada-dev-worker.local:9090"]
+        labels:
+          service: "worker"

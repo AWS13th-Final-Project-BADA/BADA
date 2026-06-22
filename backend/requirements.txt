@@ -16,6 +16,7 @@ PyJWT[crypto]==2.10.1   # Cognito JWT verification (RS256 + JWKS)
 # Tests (pytest + FastAPI TestClient needs httpx)
 pytest==8.3.3
 httpx==0.27.2
+prometheus_client==0.21.0  # /metrics 엔드포인트 (Prometheus scrape)
 
 # RDS Postgres + pgvector RAG.
 psycopg[binary]==3.2.3

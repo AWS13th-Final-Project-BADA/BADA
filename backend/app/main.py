@@ -12,6 +12,7 @@ from .db import check_db_connection, init_db
 from .errors import register_error_handlers
 from .middleware import SecurityHeadersMiddleware
 from .middleware.rate_limit import RateLimitMiddleware
+from .middleware.prometheus import PrometheusMiddleware
 from .routers import ai_chat, analysis, auth, cases, community, evidences, gps, kakao
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -42,6 +43,7 @@ app.add_middleware(
 )
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware)
+app.add_middleware(PrometheusMiddleware)
 register_error_handlers(app)
 
 app.include_router(cases.router)

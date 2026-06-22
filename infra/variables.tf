@@ -372,3 +372,10 @@ variable "frontend_enabled" {
   type        = bool
   default     = false
 }
+
+
+variable "monitoring_enabled" {
+  description = "Enable Prometheus + Grafana monitoring stack"
+  type        = bool
+  default     = false
+}
