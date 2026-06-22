@@ -117,3 +117,11 @@ output "mcp_cloudwatch_readonly_role_arn" {
 output "alarm_sns_topic_arn" {
   value = aws_sns_topic.alarms.arn
 }
+
+output "monitoring_url" {
+  value = var.monitoring_enabled && var.domain_name != "" ? "https://monitor.${var.domain_name}" : null
+}
+
+output "prometheus_private_dns_name" {
+  value = var.monitoring_enabled ? "prometheus.${local.monitoring_service_discovery_namespace}" : null
+}

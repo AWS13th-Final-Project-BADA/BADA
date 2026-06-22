@@ -24,7 +24,7 @@
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
 | 배포 자동화 | Backend/Worker/Frontend GitHub Actions OIDC 배포 workflow 및 AWS 권한 반영 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
-| 모니터링 | CloudWatch Logs / Alarms / SNS 이메일 수신 검증 / CloudWatch MCP 최소권한 연결 완료 |
+| 모니터링 | Prometheus + Grafana ECS 배포, `monitor.badasoft.com`, Backend target UP, CloudWatch datasource, Logs / Alarms / SNS / CloudWatch MCP 연결 완료 |
 | Well-Architected | Workload 생성 및 초기 milestone 저장 완료 |
 
 ## 2. 현재 실행 상태
@@ -34,6 +34,9 @@
 | Backend ECS Service | `desired=1`, `running=1` |
 | Frontend ECS Service | `desired=1`, `running=1` |
 | Worker ECS Service | `desired=0`, `running=0` |
+| Prometheus ECS Service | `desired=1`, `running=1`, Backend/Prometheus target UP |
+| Grafana ECS Service | `desired=1`, `running=1`, Target Group healthy |
+| Grafana URL | `https://monitor.badasoft.com`, `/api/health` 200 |
 | Frontend Task Definition | `bada-dev-frontend:1` |
 | Frontend Target Group | `healthy`, port `3000`, health path `/api/health` |
 | Frontend URL | `https://badasoft.com` → `/ko`, `/api/health` 200 |

@@ -84,8 +84,8 @@ worker_transcribe_mode   = "aws"
 worker_translate_mode    = "local"
 worker_structured_engine = "vision"
 
-# Optional Prometheus + Grafana stack. Keep disabled until the custom
-# Prometheus/Grafana images and DNS route are ready.
+# Optional Prometheus + Grafana stack.
+# When password is null, Terraform generates it and stores it in Secrets Manager.
 monitoring_enabled      = false
 grafana_admin_password  = null
 
