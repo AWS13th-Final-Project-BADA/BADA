@@ -1,9 +1,10 @@
 name: Deploy Frontend (dev)
 
 on:
-  push:
-    branches: [develop]
-    paths: ['frontend/**']
+  # frontend/** 변경 시 자동 배포는 인프라(ECR/ECS) 준비 후 주석 해제
+  # push:
+  #   branches: [develop]
+  #   paths: ['frontend/**']
   workflow_dispatch:
 
 env:
