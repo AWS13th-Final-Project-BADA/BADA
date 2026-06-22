@@ -12,6 +12,7 @@
 | 배포 대상 | ECS Fargate |
 | 기준 브랜치 | `develop` |
 | Backend 상태 | ECS Service 실행 중 |
+| Frontend 상태 | Next.js ECS Service 실행 중, `https://badasoft.com` 연결 완료 |
 | Worker 상태 | SQS consumer 구현 전으로 미실행, runtime 인프라 적용 완료 |
 | DB | RDS PostgreSQL, private subnet |
 | 파일 저장소 | S3 Evidence / Report Bucket |
@@ -21,7 +22,7 @@
 | HTTPS/도메인 | `badasoft.com` ACM 인증서(ISSUED), ALB 443 리스너(TLS1.3), HTTP→HTTPS 301, Route 53 적용 완료 |
 | Bedrock 모델 접근 | Anthropic FTU 제출 및 Claude Sonnet 4.6 Playground 호출 완료 |
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
-| 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 및 AWS 권한 반영 완료 |
+| 배포 자동화 | Backend/Worker/Frontend GitHub Actions OIDC 배포 workflow 및 AWS 권한 반영 |
 | 롤백 | GitHub Actions 수동 롤백 workflow |
 | 모니터링 | CloudWatch Logs / Alarms / SNS 이메일 수신 검증 / CloudWatch MCP 최소권한 연결 완료 |
 | Well-Architected | Workload 생성 및 초기 milestone 저장 완료 |
@@ -31,7 +32,11 @@
 | 구분 | 상태 |
 | --- | --- |
 | Backend ECS Service | `desired=1`, `running=1` |
+| Frontend ECS Service | `desired=1`, `running=1` |
 | Worker ECS Service | `desired=0`, `running=0` |
+| Frontend Task Definition | `bada-dev-frontend:1` |
+| Frontend Target Group | `healthy`, port `3000`, health path `/api/health` |
+| Frontend URL | `https://badasoft.com` → `/ko`, `/api/health` 200 |
 | Backend Task Definition | `bada-dev-backend:20` |
 | Worker Task Definition | `bada-dev-worker:7` |
 | Target Group | `healthy` |
@@ -43,7 +48,8 @@
 ```text
 Users
   -> ALB
-  -> ECS Fargate Backend
+      -> badasoft.com -> ECS Fargate Frontend
+      -> api.badasoft.com -> ECS Fargate Backend
   -> RDS PostgreSQL / S3 / SQS / Cognito / Secrets Manager / SSM / CloudWatch
 
 SQS
@@ -73,13 +79,16 @@ SQS
 | --- | --- | --- |
 | ECS Cluster | 완료 | Backend / Worker 공용 |
 | Backend Task Definition | 완료 | GitHub Actions 배포 기준 최신 revision 사용 |
+| Frontend Task Definition | 완료 | ARM64, port 3000, Next.js standalone |
 | Worker Task Definition | 완료 | `DATABASE_URL` Secret 주입 및 Service `:4` 연결 완료 |
 | Backend ECS Service | 실행 중 | `desired_count=1` |
+| Frontend ECS Service | 실행 중 | `desired_count=1`, Target healthy |
 | Worker ECS Service | 대기 | `desired_count=0` |
 | Backend ECR Repository | 완료 | Backend image 저장 |
+| Frontend ECR Repository | 완료 | Frontend ARM64 image 저장 |
 | Worker ECR Repository | 완료 | Worker image 저장 |
-| ALB | 완료 | Backend 진입점 |
-| Target Group | 완료 | Backend health check 연결 |
+| ALB | 완료 | Host 기반 Frontend/Backend 진입점 |
+| Target Group | 완료 | Backend `/health`, Frontend `/api/health` 연결 |
 
 ### Data / Storage / Queue
 
@@ -236,6 +245,30 @@ Worker service  : desired=0, running=0
 
 주의: 현재 GitHub 기본 브랜치가 `main`이므로, `develop`에만 존재하는 신규 workflow는 GitHub Actions 수동 실행 목록에 바로 노출되지 않을 수 있다. Worker workflow 실제 실행 검증은 `worker/**` 변경이 `develop`에 push될 때 자동 실행되거나, workflow가 default branch에 반영된 뒤 수동 실행으로 진행한다.
 
+### Frontend 자동배포
+
+```text
+frontend/** develop push
+  -> GitHub Actions OIDC Role Assume
+  -> ARM64 Next.js image build
+  -> Frontend ECR push
+  -> ECS Task Definition 새 revision 등록
+  -> ECS Service update
+  -> https://badasoft.com/api/health 검증
+```
+
+| 항목 | 상태 |
+| --- | --- |
+| Workflow | `.github/workflows/deploy-dev-frontend.yml` |
+| Trigger | `frontend/**` 변경이 포함된 `develop` push 또는 수동 실행 |
+| 인증 방식 | GitHub Actions OIDC |
+| 배포 대상 | `bada-dev-frontend` ECS Service |
+| 이미지 아키텍처 | `linux/arm64` |
+| 실행 상태 | `desired=1`, `running=1`, Target healthy |
+| 배포 후 검증 | `https://badasoft.com/api/health` 200 |
+
+최초 배포는 ECR/Task Definition/Service를 `desired=0`으로 먼저 생성하고, 이미지 push 성공 후 `desired=1`로 전환하는 2단계로 수행했다. 빈 ECR 상태에서 Service가 반복 실패하거나 빈 Target Group으로 트래픽이 전달되는 것을 방지하기 위한 순서다.
+
 ### Backend 수동 롤백
 
 ```text
@@ -270,6 +303,7 @@ workflow_dispatch
 | Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
 | SNS 기반 알림 전송 | 완료 | 구독 확인, 테스트 메시지, Alarm → SNS 및 OK 복구 알림 경로 검증 |
 | CloudWatch MCP | 완료 | `bada-mcp-readonly` 프로필로 Log Group/Alarm 실제 조회 및 S3 접근 거부 확인 |
+| Frontend ECS 배포 | 완료 | Next.js 15.5.19, ECR/Task/Service/ALB host routing, `/api/health` 200 |
 
 ## 7. Well-Architected Tool 현황
 
@@ -328,4 +362,5 @@ Pillar별 리스크:
 | `docs/OWNERSHIP.md` | 파트별 담당 영역 |
 | `.github/workflows/deploy-dev.yml` | Backend 자동배포 workflow |
 | `.github/workflows/deploy-dev-worker.yml` | Worker 자동배포 workflow |
+| `.github/workflows/deploy-dev-frontend.yml` | Frontend 자동배포 workflow |
 | `.github/workflows/rollback-dev-backend.yml` | Backend 수동 롤백 workflow |

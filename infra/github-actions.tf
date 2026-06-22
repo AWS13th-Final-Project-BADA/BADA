@@ -62,10 +62,13 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
           "ecr:PutImage",
           "ecr:UploadLayerPart"
         ]
-        Resource = [
-          aws_ecr_repository.backend.arn,
-          aws_ecr_repository.worker.arn
-        ]
+        Resource = concat(
+          [
+            aws_ecr_repository.backend.arn,
+            aws_ecr_repository.worker.arn
+          ],
+          var.frontend_enabled ? [aws_ecr_repository.frontend[0].arn] : []
+        )
       },
       {
         Sid    = "BackendEcsDeploy"

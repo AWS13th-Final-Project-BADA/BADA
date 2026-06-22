@@ -74,6 +74,10 @@ output "worker_ecs_service_name" {
   value = aws_ecs_service.worker.name
 }
 
+output "frontend_ecs_service_name" {
+  value = try(aws_ecs_service.frontend[0].name, null)
+}
+
 output "backend_task_definition_arn" {
   value = aws_ecs_task_definition.backend.arn
 }
@@ -82,12 +86,20 @@ output "worker_task_definition_arn" {
   value = aws_ecs_task_definition.worker.arn
 }
 
+output "frontend_task_definition_arn" {
+  value = try(aws_ecs_task_definition.frontend[0].arn, null)
+}
+
 output "backend_ecr_repository_url" {
   value = aws_ecr_repository.backend.repository_url
 }
 
 output "worker_ecr_repository_url" {
   value = aws_ecr_repository.worker.repository_url
+}
+
+output "frontend_ecr_repository_url" {
+  value = try(aws_ecr_repository.frontend[0].repository_url, null)
 }
 
 output "secrets_manager_secret_arn" {

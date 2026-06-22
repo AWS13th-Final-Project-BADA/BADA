@@ -202,6 +202,12 @@ variable "worker_container_image" {
   default     = "replace-me"
 }
 
+variable "frontend_container_image" {
+  description = "Frontend container image URI"
+  type        = string
+  default     = "replace-me"
+}
+
 variable "backend_task_cpu" {
   description = "Backend ECS task CPU units"
   type        = number
@@ -234,6 +240,24 @@ variable "worker_task_memory" {
 
 variable "worker_desired_count" {
   description = "Initial desired count for worker ECS service. Keep 0 until the queue consumer is ready."
+  type        = number
+  default     = 0
+}
+
+variable "frontend_task_cpu" {
+  description = "Frontend ECS task CPU units"
+  type        = number
+  default     = 256
+}
+
+variable "frontend_task_memory" {
+  description = "Frontend ECS task memory in MiB"
+  type        = number
+  default     = 512
+}
+
+variable "frontend_desired_count" {
+  description = "Desired count for the frontend ECS service. Keep 0 until the first image is pushed."
   type        = number
   default     = 0
 }

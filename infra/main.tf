@@ -10,6 +10,11 @@ locals {
     ? var.worker_container_image
     : "${aws_ecr_repository.worker.repository_url}:latest"
   )
+  frontend_image = (
+    var.frontend_container_image != "replace-me"
+    ? var.frontend_container_image
+    : try("${aws_ecr_repository.frontend[0].repository_url}:latest", "frontend-disabled")
+  )
   alarm_action_arns = concat(
     var.alarm_actions,
     length(var.alarm_email_endpoints) > 0 ? [aws_sns_topic.alarms.arn] : []
@@ -250,6 +255,17 @@ resource "aws_security_group" "ecs" {
     to_port         = var.app_port
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
+  }
+
+  dynamic "ingress" {
+    for_each = var.frontend_enabled ? [1] : []
+    content {
+      description     = "Frontend traffic from ALB"
+      from_port       = 3000
+      to_port         = 3000
+      protocol        = "tcp"
+      security_groups = [aws_security_group.alb.id]
+    }
   }
 
   egress {
@@ -817,7 +833,7 @@ resource "aws_route53_record" "api" {
   }
 }
 
-# ─── Frontend ECR + Target Group (준비, 유닛 5에서 ECS Service 생성) ──────────
+# ─── Frontend ECR + Target Group ─────────────────────────────────────────────
 
 resource "aws_ecr_repository" "frontend" {
   count = var.frontend_enabled ? 1 : 0
@@ -837,7 +853,7 @@ resource "aws_lb_target_group" "frontend" {
 
   health_check {
     enabled             = true
-    path                = "/"
+    path                = "/api/health"
     matcher             = "200"
     healthy_threshold   = 2
     unhealthy_threshold = 2
@@ -882,6 +898,14 @@ resource "aws_cloudwatch_log_group" "worker" {
   retention_in_days = var.log_retention_days
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-logs" })
+}
+
+resource "aws_cloudwatch_log_group" "frontend" {
+  count             = var.frontend_enabled ? 1 : 0
+  name              = "/aws/ecs/${local.name_prefix}/frontend"
+  retention_in_days = var.log_retention_days
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-frontend-logs" })
 }
 
 resource "aws_ecs_task_definition" "backend" {
@@ -1008,6 +1032,54 @@ resource "aws_ecs_task_definition" "worker" {
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-task" })
 }
 
+resource "aws_ecs_task_definition" "frontend" {
+  count                    = var.frontend_enabled ? 1 : 0
+  family                   = "${local.name_prefix}-frontend"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = tostring(var.frontend_task_cpu)
+  memory                   = tostring(var.frontend_task_memory)
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = var.ecs_cpu_architecture
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = "frontend"
+      image     = local.frontend_image
+      essential = true
+
+      portMappings = [
+        {
+          containerPort = 3000
+          hostPort      = 3000
+          protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        { name = "HOSTNAME", value = "0.0.0.0" },
+        { name = "PORT", value = "3000" },
+        { name = "NEXT_PUBLIC_API_URL", value = "https://api.${var.domain_name}" }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.frontend[0].name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "frontend"
+        }
+      }
+    }
+  ])
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-frontend-task" })
+}
+
 resource "aws_ecs_service" "backend" {
   name            = "${local.name_prefix}-backend"
   cluster         = aws_ecs_cluster.main.id
@@ -1058,6 +1130,39 @@ resource "aws_ecs_service" "worker" {
   }
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-service" })
+}
+
+resource "aws_ecs_service" "frontend" {
+  count           = var.frontend_enabled ? 1 : 0
+  name            = "${local.name_prefix}-frontend"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.frontend[0].arn
+  desired_count   = var.frontend_desired_count
+  launch_type     = "FARGATE"
+
+  enable_execute_command = false
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.frontend[0].arn
+    container_name   = "frontend"
+    container_port   = 3000
+  }
+
+  health_check_grace_period_seconds = 60
+
+  depends_on = [aws_lb_listener_rule.frontend]
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-frontend-service" })
 }
 
 resource "aws_sns_topic" "alarms" {
