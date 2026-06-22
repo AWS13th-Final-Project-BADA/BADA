@@ -658,6 +658,16 @@ resource "aws_iam_role_policy" "ecs_task_app_access" {
       {
         Effect = "Allow"
         Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "ssm:GetParameter",
           "ssm:GetParameters"
         ]
@@ -952,6 +962,9 @@ resource "aws_ecs_task_definition" "backend" {
       environment = [
         { name = "AWS_REGION", value = var.aws_region },
         { name = "PROVIDER_MODE", value = var.backend_provider_mode },
+        { name = "AUTH_MODE", value = var.backend_auth_mode },
+        { name = "APP_BASE_URL", value = var.backend_app_base_url },
+        { name = "CORS_ALLOWED_ORIGINS", value = join(",", var.backend_cors_allowed_origins) },
         { name = "AI_CHAT_MODE", value = var.backend_ai_chat_mode },
         { name = "EMBEDDING_MODE", value = var.backend_embedding_mode },
         { name = "DATABASE_AUTO_CREATE", value = tostring(var.database_auto_create) },
@@ -1021,6 +1034,8 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "TRANSLATE_MODE", value = var.worker_translate_mode },
         { name = "STRUCTURED_ENGINE", value = var.worker_structured_engine },
         { name = "S3_BUCKET", value = aws_s3_bucket.evidence.bucket },
+        { name = "S3_REPORT_BUCKET", value = aws_s3_bucket.report.bucket },
+        { name = "DATABASE_SSL_MODE", value = "require" },
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.analysis.url }
       ]
 
@@ -1102,6 +1117,11 @@ resource "aws_ecs_service" "backend" {
 
   enable_execute_command = true
 
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
   network_configuration {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.ecs.id]
@@ -1113,6 +1133,8 @@ resource "aws_ecs_service" "backend" {
     container_name   = "backend"
     container_port   = var.app_port
   }
+
+  health_check_grace_period_seconds = 60
 
   depends_on = [aws_lb_listener.http]
 
@@ -1131,6 +1153,11 @@ resource "aws_ecs_service" "worker" {
   launch_type     = "FARGATE"
 
   enable_execute_command = true
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
 
   network_configuration {
     subnets          = aws_subnet.public[*].id
@@ -1154,6 +1181,11 @@ resource "aws_ecs_service" "frontend" {
   launch_type     = "FARGATE"
 
   enable_execute_command = false
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
 
   network_configuration {
     subnets          = aws_subnet.public[*].id
@@ -1280,6 +1312,119 @@ resource "aws_cloudwatch_metric_alarm" "backend_memory_high" {
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-backend-memory-high" })
 }
 
+resource "aws_cloudwatch_metric_alarm" "frontend_unhealthy_targets" {
+  count               = var.frontend_enabled ? 1 : 0
+  alarm_name          = "${local.name_prefix}-frontend-unhealthy-targets"
+  alarm_description   = "At least one frontend target is unhealthy behind the ALB."
+  namespace           = "AWS/ApplicationELB"
+  metric_name         = "UnHealthyHostCount"
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 2
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    LoadBalancer = aws_lb.main.arn_suffix
+    TargetGroup  = aws_lb_target_group.frontend[0].arn_suffix
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-frontend-unhealthy-targets" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "frontend_cpu_high" {
+  count               = var.frontend_enabled ? 1 : 0
+  alarm_name          = "${local.name_prefix}-frontend-cpu-high"
+  alarm_description   = "Frontend ECS service CPU utilization is high."
+  namespace           = "AWS/ECS"
+  metric_name         = "CPUUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.frontend[0].name
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-frontend-cpu-high" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "frontend_memory_high" {
+  count               = var.frontend_enabled ? 1 : 0
+  alarm_name          = "${local.name_prefix}-frontend-memory-high"
+  alarm_description   = "Frontend ECS service memory utilization is high."
+  namespace           = "AWS/ECS"
+  metric_name         = "MemoryUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.frontend[0].name
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-frontend-memory-high" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "worker_cpu_high" {
+  alarm_name          = "${local.name_prefix}-worker-cpu-high"
+  alarm_description   = "Worker ECS service CPU utilization is high."
+  namespace           = "AWS/ECS"
+  metric_name         = "CPUUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.worker.name
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-cpu-high" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "worker_memory_high" {
+  alarm_name          = "${local.name_prefix}-worker-memory-high"
+  alarm_description   = "Worker ECS service memory utilization is high."
+  namespace           = "AWS/ECS"
+  metric_name         = "MemoryUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.worker.name
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-memory-high" })
+}
+
 resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
   alarm_name          = "${local.name_prefix}-rds-cpu-high"
   alarm_description   = "RDS PostgreSQL CPU utilization is high."
@@ -1362,6 +1507,27 @@ resource "aws_cloudwatch_metric_alarm" "sqs_analysis_dlq_messages" {
   }
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-sqs-analysis-dlq-messages" })
+}
+
+resource "aws_cloudwatch_metric_alarm" "sqs_analysis_oldest_message" {
+  alarm_name          = "${local.name_prefix}-sqs-analysis-oldest-message"
+  alarm_description   = "The oldest analysis message has waited for at least 10 minutes."
+  namespace           = "AWS/SQS"
+  metric_name         = "ApproximateAgeOfOldestMessage"
+  statistic           = "Maximum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 600
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_action_arns
+  ok_actions          = local.alarm_action_arns
+
+  dimensions = {
+    QueueName = aws_sqs_queue.analysis.name
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-sqs-analysis-oldest-message" })
 }
 
 resource "aws_secretsmanager_secret" "app" {

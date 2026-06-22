@@ -40,10 +40,10 @@ MVP 원칙:
 - RDS 생성 후 `bada` DB에 `postgis` extension 활성화
 - Backend / Worker 이미지는 ECR `latest` 태그로 push 가능
 - Backend ECS Service는 수동 검증 기준 `desired_count = 1`로 기동 및 ALB `/health` 200 응답 확인
-- Worker ECS Service는 SQS consumer 검증 전까지 `desired_count = 0` 유지
+- Worker ECS Service는 SQS consumer 검증 완료 후 `desired_count = 1`로 상시 실행
 - Worker queue는 10분 전사 작업을 고려해 Visibility Timeout 15분, Long Polling 20초를 사용
 - Worker Task는 Secrets Manager의 `database_url`을 `DATABASE_URL`로 주입
-- Worker 자동배포 workflow는 준비하되, consumer 구현 전까지는 Task Definition revision 갱신과 Service 상태 확인 용도로만 사용
+- Worker 자동배포 workflow는 Task Definition revision 갱신과 Service 안정화에 사용
 - 오디오 전사는 Worker SQS consumer 완성 전까지 `TRANSCRIPTION_DISPATCH_MODE=inline`으로 Backend에서 직접 처리 가능하게 구성
 - `TRANSCRIBE_MODE=aws`를 별도로 사용해 `PROVIDER_MODE=local` 상태에서도 Amazon Transcribe만 실제 호출 가능
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
@@ -54,7 +54,8 @@ MVP 원칙:
 - Grafana 관리자 비밀번호는 Terraform이 생성해 Secrets Manager `bada-dev/grafana-admin-password`에 저장한다.
 - Cognito App Client는 Authorization Code Grant와 `openid email profile` scope를 사용한다.
 - Google 로그인을 사용할 때는 Cognito Federated Identity Provider와 App Client provider를 Terraform으로 함께 관리한다.
-- 프로젝트 운영 기간은 `2026-06-04 ~ 2026-07-10`, 팀 전체 AWS 총 예산은 `1,500달러`
+- 프로젝트 운영 기간은 `2026-06-04 ~ 2026-07-10`, 팀 합의 예산은 `1,500달러`이며 현재 AWS Budget 가드레일은 `1,000달러`
+- 기존 RDS는 `StorageEncrypted=false`다. 암호화 적용은 암호화 스냅샷 복사와 신규 RDS 복원·전환 작업으로 별도 수행한다.
 - IAM은 dev 계정에서는 개발 속도를 우선해 넓게 운영하고, 운영/프로덕션 전환 시 Access Advisor/CloudTrail 기반으로 최소권한을 재설계한다.
 
 IAM 운영 기준:
@@ -74,9 +75,9 @@ IAM 운영 기준:
 
 ```text
 Backend ECS Service: desired=1, running=1
-Worker ECS Service : desired=0, running=0
+Worker ECS Service : desired=1, running=1
 ALB /health        : 200 {"status":"ok"}
-ALB /version       : 200 {"name":"BADA","version":"0.1.0","auth_mode":"demo","storage_mode":"s3"}
+ALB /version       : 200 {"name":"BADA","version":"0.1.0","auth_mode":"cognito","storage_mode":"s3"}
 S3 Evidence object : SSE-KMS 저장 확인
 RDS schema         : alembic_version=20260616_0004, community tables/provider columns/timeline confidence 확인
 ```
@@ -87,8 +88,8 @@ Cognito Hosted UI / OAuth:
 User Pool ID : ap-northeast-2_5K39SlMFg
 Client ID    : 2n7fd1lbtifh3d3269i400es1f
 Domain       : https://bada-dev-165749212250.auth.ap-northeast-2.amazoncognito.com/
-Callback URL : http://localhost:8000/auth/cognito/callback
-Sign-out URL : http://localhost:8000/
+Callback URL : https://api.badasoft.com/auth/cognito/callback
+Sign-out URL : https://badasoft.com/
 OAuth Flow   : Authorization code grant
 Scopes       : openid email profile
 ```
@@ -96,7 +97,7 @@ Scopes       : openid email profile
 - Terraform은 Hosted UI Domain, App Client OAuth 설정, Backend ECS 환경변수, SSM Parameter를 관리한다.
 - 기존 App Client를 인플레이스 수정해 Client ID를 유지했다.
 - 인프라 적용과 `terraform plan`의 `No changes` 검증은 완료됐다.
-- 애플리케이션 로그인 전환은 인증 담당자가 callback/code 교환과 JWT 검증을 구현한 뒤 `AUTH_MODE=cognito`로 수행한다.
+- Backend는 callback/code 교환, PKCE, JWT/JWKS 검증 코드와 `AUTH_MODE=cognito`가 배포됐다. 실제 사용자 로그인과 모바일 앱 복귀는 팀 통합 테스트에서 확인한다.
 
 Google Identity Provider 활성화:
 
@@ -180,8 +181,8 @@ develop push
 - Deploy Role: `arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role`
 - Trigger: `worker/**` 변경이 포함된 `develop` push 또는 수동 실행
 - Scope: Worker ECS Service 배포 준비
-- 현재 기준: Worker SQS consumer 구현 전이므로 `desired_count = 0` 유지
-- 의미: Worker consumer가 완성되면 image build, ECR push, task definition revision 갱신 흐름을 바로 사용할 수 있다.
+- 현재 기준: Worker SQS consumer 검증 완료, `desired_count = 1`
+- 의미: image build, ECR push, task definition revision 갱신 후 상시 Worker Service로 배포한다.
 
 Worker runtime 사전 준비:
 
@@ -190,8 +191,8 @@ SQS visibility_timeout_seconds : 900
 SQS receive_wait_time_seconds  : 20
 Worker secret                  : DATABASE_URL
 Secret source                  : bada-dev/app-secrets의 database_url
-Current Worker Service         : desired=0, running=0
-Current Worker Task Definition : bada-dev-worker:7
+Current Worker Service         : desired=1, running=1
+Current Worker Task Definition : bada-dev-worker:17
 ```
 
 - Visibility Timeout은 현재 전사 서비스의 최대 대기 시간 10분보다 5분 길게 잡아 처리 중 메시지가 조기에 재노출되는 위험을 줄인다.
@@ -199,7 +200,7 @@ Current Worker Task Definition : bada-dev-worker:7
 - Terraform apply와 AWS 속성 조회를 통해 SQS 설정과 Worker Secret 주입을 검증했다.
 - 새 Task Definition 등록 후 ECS Service가 이전 revision을 유지해, Service 참조를 `bada-dev-worker:4`로 갱신했다.
 - 최종 `terraform plan`은 `No changes`를 확인했다.
-- Consumer 구현 전에는 Worker Docker CMD, `worker_desired_count`, `TRANSCRIPTION_DISPATCH_MODE`를 전환하지 않는다.
+- Worker Docker CMD는 SQS consumer를 실행하고, `worker_desired_count=1`, `TRANSCRIPTION_DISPATCH_MODE=sqs`를 사용한다.
 
 Amazon Transcribe 독립 모드:
 
@@ -215,7 +216,7 @@ Worker TRANSCRIBE_MODE             : aws
 - Backend는 현재 inline 전사 경로에서 실제 Amazon Transcribe를 호출한다.
 - Worker는 Consumer 실행 전이므로 설정만 준비하고 `desired_count=0`을 유지한다.
 - PR #36 머지 후 Backend `bada-dev-backend:20`, Worker `bada-dev-worker:7` 자동배포에 성공했다.
-- Backend Service는 `desired=1/running=1`, Worker Service는 `desired=0/running=0`, ALB `/health`는 200을 확인했다.
+- Backend와 Worker Service는 모두 `desired=1/running=1`, ALB `/health`는 200을 확인했다.
 
 Worker 자동배포 권한 반영 결과:
 
@@ -224,13 +225,13 @@ Terraform apply : success
 Changed         : GitHub Actions Deploy Role policy 1개
 ECR push scope  : bada-dev-backend, bada-dev-worker
 Terraform plan  : No changes
-Worker Service  : desired=0, running=0
+Worker Service  : desired=1, running=1
 ```
 
 주의:
 
 - Worker workflow는 `worker/**` 변경이 포함된 `develop` push에서 실제 실행되어 image push, Task Definition revision 등록, Service update 흐름을 확인했다.
-- 현재 Worker Service는 consumer 구현 전이므로 workflow 실행 후에도 `desired_count = 0`을 유지한다.
+- Worker Service는 consumer 검증 완료 후 `desired_count = 1`을 유지한다.
 
 GitHub Actions 수동 롤백:
 
@@ -297,7 +298,16 @@ SQS Analysis DLQ            : visible message 1개 이상
 
 - 기본값은 `alarm_email_endpoints = []`, `alarm_actions = []`이며 실제 이메일 주소는 Git에서 제외되는 로컬 `terraform.tfvars`에만 저장한다.
 - SNS Topic `bada-dev-alarm-notifications`는 Terraform apply로 생성 완료했다.
-- 팀 알림 이메일 `badajoa0710@gmail.com` 구독을 생성하고 CloudWatch Alarm 8개의 `alarm_actions`와 `ok_actions`에 SNS Topic을 연결했다.
+- 팀 알림 이메일 `badajoa0710@gmail.com` 구독을 생성하고 CloudWatch Alarm 14개의 `alarm_actions`와 `ok_actions`에 SNS Topic을 연결했다.
+- Backend·Frontend·Worker ECS Service는 deployment circuit breaker와 자동 rollback을 사용한다.
+- SQS 메시지 수뿐 아니라 `ApproximateAgeOfOldestMessage >= 600초`도 감시해 적은 수의 정체 메시지를 탐지한다.
+
+컨테이너 이미지 보안 확인:
+
+- ECR 3개 저장소는 `scan_on_push = true`다.
+- Frontend 최신 이미지 스캔에서 Alpine OpenSSL 계열 Critical 1건과 High 8건이 확인됐으며, ECR 결과상 fixed version은 아직 없다.
+- Backend/Worker 최신 수동 배포 이미지는 OCI image index라 ECR Basic Scan이 지원하지 않는다.
+- GitHub Actions build는 `--provenance=false`를 사용한다. 다음 CD 배포에서 Docker v2 manifest와 스캔 결과를 재확인한다.
 - 이메일 구독 confirmation, SNS 테스트 메시지, CloudWatch Alarm/OK 알림 수신 경로를 검증했다.
 - 확장: `alarm_email_endpoints`에 이메일 주소를 넣으면 Terraform 관리 SNS Topic에 이메일 구독을 생성하고, CloudWatch Alarm action에 연결한다.
 - 주의: 이메일 구독자는 AWS SNS confirmation 메일을 반드시 승인해야 실제 알림을 받을 수 있다.
