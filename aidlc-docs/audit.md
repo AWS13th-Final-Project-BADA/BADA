@@ -177,3 +177,12 @@
 **Context**: CONSTRUCTION Phase 완료. 코드 develop 푸시 완료. 이후 인프라 apply + Frontend 배포는 팀 진행.
 
 ---
+
+
+## 모니터링 기능 추가 시작
+**Timestamp**: 2026-06-22T12:15:15+09:00
+**User Input**: "ㅇㅇ 그것도 문서화 하면서 진행하자."
+**AI Response**: Prometheus + Grafana 모니터링 구현 시작 (문서화 병행)
+**Context**: 팀 협의로 모니터링 기능 추가 결정. 오픈소스(Prometheus+Grafana) 기반. 인프라 apply 완료 상태.
+
+---
