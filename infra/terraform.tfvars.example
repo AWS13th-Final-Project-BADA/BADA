@@ -21,8 +21,8 @@ log_retention_days   = 14
 
 # Cognito Hosted UI / OAuth authorization code grant.
 cognito_domain_prefix = "bada-dev-165749212250"
-cognito_callback_urls = ["http://localhost:8000/auth/cognito/callback"]
-cognito_logout_urls   = ["http://localhost:8000/"]
+cognito_callback_urls = ["https://api.badasoft.com/auth/cognito/callback"]
+cognito_logout_urls   = ["https://badasoft.com/"]
 cognito_oauth_scopes  = ["openid", "email", "profile"]
 
 # Google OAuth credentials must stay in the ignored terraform.tfvars file.
@@ -45,14 +45,14 @@ frontend_container_image = "replace-me"
 # ECS service desired count.
 # Keep 0 until backend/worker images are pushed to ECR.
 backend_desired_count = 0
-worker_desired_count  = 0
+worker_desired_count  = 1
 frontend_desired_count = 0
 
 # Minimum Fargate task size for dev/MVP.
 backend_task_cpu    = 256
 backend_task_memory = 512
-worker_task_cpu     = 256
-worker_task_memory  = 512
+worker_task_cpu     = 512
+worker_task_memory  = 1024
 frontend_task_cpu   = 256
 frontend_task_memory = 512
 ecs_cpu_architecture = "ARM64"
@@ -71,17 +71,23 @@ alarm_email_endpoints = []
 alarm_actions = []
 
 # Cost-safe defaults. Switch to aws/bedrock modes only when the team is ready.
-backend_provider_mode  = "local"
-backend_ai_chat_mode   = "mock"
+backend_provider_mode  = "aws"
+backend_auth_mode      = "cognito"
+backend_app_base_url   = "https://badasoft.com/ko"
+backend_cors_allowed_origins = [
+  "https://badasoft.com",
+  "https://www.badasoft.com",
+]
+backend_ai_chat_mode   = "bedrock"
 backend_embedding_mode = "mock"
 # inline: backend task handles audio transcription directly.
 # sqs: backend sends transcription messages to SQS; requires a running worker consumer.
-backend_transcription_dispatch_mode = "inline"
+backend_transcription_dispatch_mode = "sqs"
 # Transcribe can use AWS independently while OCR/Bedrock remain local/mock.
 backend_transcribe_mode = "aws"
-worker_provider_mode     = "local"
+worker_provider_mode     = "aws"
 worker_transcribe_mode   = "aws"
-worker_translate_mode    = "local"
+worker_translate_mode    = "aws"
 worker_structured_engine = "vision"
 
 # Optional Prometheus + Grafana stack.

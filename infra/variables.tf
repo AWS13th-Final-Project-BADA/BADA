@@ -297,6 +297,29 @@ variable "backend_provider_mode" {
   default     = "local"
 }
 
+variable "backend_auth_mode" {
+  description = "Backend authentication mode"
+  type        = string
+  default     = "demo"
+
+  validation {
+    condition     = contains(["demo", "oauth", "cognito"], var.backend_auth_mode)
+    error_message = "backend_auth_mode must be demo, oauth, or cognito."
+  }
+}
+
+variable "backend_app_base_url" {
+  description = "Frontend URL used after authentication callbacks"
+  type        = string
+  default     = "http://localhost:3000"
+}
+
+variable "backend_cors_allowed_origins" {
+  description = "Origins allowed to call the Backend API"
+  type        = list(string)
+  default     = ["http://localhost:3000", "http://localhost:8000"]
+}
+
 variable "backend_ai_chat_mode" {
   description = "Backend AI chat mode"
   type        = string

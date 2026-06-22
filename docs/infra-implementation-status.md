@@ -13,12 +13,12 @@
 | 기준 브랜치 | `develop` |
 | Backend 상태 | ECS Service 실행 중 |
 | Frontend 상태 | Next.js ECS Service 실행 중, `https://badasoft.com` 연결 완료 |
-| Worker 상태 | SQS consumer 구현 전으로 미실행, runtime 인프라 적용 완료 |
+| Worker 상태 | SQS consumer 상시 실행, 분석·STT·PDF E2E 처리 완료 |
 | DB | RDS PostgreSQL, private subnet |
 | 파일 저장소 | S3 Evidence / Report Bucket |
 | 비밀값 관리 | Secrets Manager |
 | 설정값 관리 | SSM Parameter Store |
-| 인증 인프라 | Cognito Hosted UI / Authorization Code Grant / Google IdP 적용 완료 |
+| 인증 인프라 | Cognito Hosted UI / Authorization Code Grant + PKCE / Google IdP / 운영 HTTPS callback 적용 완료 |
 | HTTPS/도메인 | `badasoft.com` ACM 인증서(ISSUED), ALB 443 리스너(TLS1.3), HTTP→HTTPS 301, Route 53 적용 완료 |
 | Bedrock 모델 접근 | Anthropic FTU 제출 및 Claude Sonnet 4.6 Playground 호출 완료 |
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
@@ -33,18 +33,18 @@
 | --- | --- |
 | Backend ECS Service | `desired=1`, `running=1` |
 | Frontend ECS Service | `desired=1`, `running=1` |
-| Worker ECS Service | `desired=0`, `running=0` |
+| Worker ECS Service | `desired=1`, `running=1` |
 | Prometheus ECS Service | `desired=1`, `running=1`, Backend/Prometheus target UP |
 | Grafana ECS Service | `desired=1`, `running=1`, Target Group healthy |
 | Grafana URL | `https://monitor.badasoft.com`, `/api/health` 200 |
 | Frontend Task Definition | `bada-dev-frontend:1` |
 | Frontend Target Group | `healthy`, port `3000`, health path `/api/health` |
 | Frontend URL | `https://badasoft.com` → `/ko`, `/api/health` 200 |
-| Backend Task Definition | `bada-dev-backend:20` |
-| Worker Task Definition | `bada-dev-worker:7` |
+| Backend Task Definition | `bada-dev-backend:39` |
+| Worker Task Definition | `bada-dev-worker:17` |
 | Target Group | `healthy` |
 | ALB `/health` | `200 {"status":"ok"}` |
-| ALB `/version` | `200 {"name":"BADA","version":"0.1.0","auth_mode":"demo","storage_mode":"s3"}` |
+| ALB `/version` | `200 {"name":"BADA","version":"0.1.0","auth_mode":"cognito","storage_mode":"s3"}` |
 
 ## 3. 아키텍처 흐름
 
@@ -61,7 +61,7 @@ SQS
   -> RDS PostgreSQL / S3
 ```
 
-현재 Worker는 인프라만 준비되어 있으며, 장기 실행 SQS consumer 구현 전까지 실행하지 않는다.
+Worker는 장기 실행 SQS consumer로 상시 실행되며 분석, 음성 전사, PDF 생성 메시지를 처리한다.
 
 ## 4. 리소스 구현 현황
 
@@ -83,10 +83,10 @@ SQS
 | ECS Cluster | 완료 | Backend / Worker 공용 |
 | Backend Task Definition | 완료 | GitHub Actions 배포 기준 최신 revision 사용 |
 | Frontend Task Definition | 완료 | ARM64, port 3000, Next.js standalone |
-| Worker Task Definition | 완료 | `DATABASE_URL` Secret 주입 및 Service `:4` 연결 완료 |
+| Worker Task Definition | 완료 | `DATABASE_URL`, S3 Report Bucket, SQS, AWS Provider 환경변수 적용 |
 | Backend ECS Service | 실행 중 | `desired_count=1` |
 | Frontend ECS Service | 실행 중 | `desired_count=1`, Target healthy |
-| Worker ECS Service | 대기 | `desired_count=0` |
+| Worker ECS Service | 실행 중 | `desired_count=1`, 분석·STT 메시지 처리 검증 |
 | Backend ECR Repository | 완료 | Backend image 저장 |
 | Frontend ECR Repository | 완료 | Frontend ARM64 image 저장 |
 | Worker ECR Repository | 완료 | Worker image 저장 |
@@ -101,6 +101,7 @@ SQS
 | RDS Deletion Protection | 완료 | 실수 삭제 방지 |
 | RDS Automated Backup | 완료 | 7일 보존 |
 | RDS Final Snapshot | 완료 | 삭제 시 최종 스냅샷 생성 |
+| RDS Storage Encryption | 미적용 | 기존 DB 교체가 필요해 암호화 스냅샷 복원·전환 계획 수립 필요 |
 | PostGIS Extension | 완료 | GPS 위치 데이터 확장 대비 |
 | S3 Evidence Bucket | 완료 | 증거 파일 저장 |
 | S3 Report Bucket | 완료 | 생성 리포트 저장 |
@@ -126,16 +127,16 @@ Cognito 연동값:
 COGNITO_USER_POOL_ID=ap-northeast-2_5K39SlMFg
 COGNITO_CLIENT_ID=2n7fd1lbtifh3d3269i400es1f
 COGNITO_DOMAIN=https://bada-dev-165749212250.auth.ap-northeast-2.amazoncognito.com/
-COGNITO_REDIRECT_URI=http://localhost:8000/auth/cognito/callback
-COGNITO_LOGOUT_URI=http://localhost:8000/
+COGNITO_REDIRECT_URI=https://api.badasoft.com/auth/cognito/callback
+COGNITO_LOGOUT_URI=https://badasoft.com/
 COGNITO_SCOPES=openid email profile
 ```
 
 - 기존 App Client를 인플레이스 수정해 Client ID를 유지했다.
 - Google IdP는 `email`, `email_verified`, `name`, `username(sub)` 속성 매핑을 사용한다.
 - Google Client Secret은 비추적 `infra/terraform.tfvars`와 암호화된 Terraform remote state에서만 관리한다.
-- Hosted UI에서 Google OAuth 진입까지 검증했으며 callback code 교환과 JWT 검증은 인증 담당 범위다.
-- 인프라 설정은 완료됐지만 Backend의 `AUTH_MODE`는 아직 `demo`다. 인증 담당자가 Cognito callback/code 교환과 JWT 검증을 구현한 뒤 `AUTH_MODE=cognito`로 전환해야 한다.
+- Hosted UI Google OAuth 진입, PKCE challenge, HTTPS callback, Secure cookie와 Backend `AUTH_MODE=cognito` 적용을 확인했다.
+- 실제 Google 사용자 계정의 로그인 완료, 보호 API 호출과 모바일 앱 복귀는 인증·모바일 담당 통합 테스트 범위다.
 
 ### AI / Bedrock
 
@@ -171,8 +172,8 @@ COGNITO_SCOPES=openid email profile
 | 리소스 | 상태 | 비고 |
 | --- | --- | --- |
 | CloudWatch Log Group | 완료 | Backend / Worker 로그 |
-| CloudWatch Alarm | 완료 | ALB, ECS, RDS, SQS 핵심 지표 8개 |
-| SNS Alarm Topic | 완료 | Alarm 8개 action 연결 완료 |
+| CloudWatch Alarm | 완료 | ALB, Backend·Frontend·Worker ECS, RDS, SQS 핵심 지표 14개 |
+| SNS Alarm Topic | 완료 | Alarm 14개 ALARM/OK action 연결 완료 |
 | SNS Email Subscription | 완료 | `badajoa0710@gmail.com`, 테스트 메시지 및 Alarm/OK 경로 검증 |
 | CloudWatch MCP | 완료 | 전용 AssumeRole 최소권한, 서버 1.28.0, Backend/Worker Log Group 및 활성 Alarm 조회 검증 |
 | AWS Budgets | 완료 | 팀 예산 추적 |
@@ -293,7 +294,7 @@ workflow_dispatch
 
 | 항목 | 상태 | 비고 |
 | --- | --- | --- |
-| Worker SQS long-running consumer | 미구현 | 구현 후 Worker Service 기동 필요 |
+| Worker SQS long-running consumer | 완료 | `desired=1`, 메시지 처리·삭제 및 DLQ 0건 확인 |
 | Worker runtime 인프라 적용 | 완료 | SQS 설정, DB Secret, Service `:4` 연결 검증 |
 | Worker 자동배포 실행 검증 | 완료 | consumer 구현 후 실제 메시지 처리 검증은 별도 진행 |
 | Amazon Transcribe 독립 모드 | 완료 | Backend `:20`, Worker `:7`에 `TRANSCRIBE_MODE=aws` 배포 및 ALB health 검증 |
@@ -302,11 +303,16 @@ workflow_dispatch
 | Cognito Hosted UI/OAuth 인프라 | 완료 | Hosted UI, Authorization Code Grant, callback/logout URL 적용 |
 | Cognito Google IdP | 완료 | PR #39 코드 반영 후 Terraform apply, App Client provider와 Google redirect 검증 |
 | Google IdP Terraform drift | 완료 | PR #45 merge, AWS 자동 보정값 명시 및 최종 plan `No changes` 검증 |
-| Cognito 애플리케이션 로그인 연동 | 개발 대기 | callback/code 교환, JWT 검증, `AUTH_MODE=cognito` 전환 필요 |
+| Cognito 애플리케이션 로그인 연동 | 인프라 적용 완료 | 운영 callback, PKCE/JWKS 코드, `AUTH_MODE=cognito`; 실제 사용자/모바일 E2E는 팀 검증 대기 |
 | Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
 | SNS 기반 알림 전송 | 완료 | 구독 확인, 테스트 메시지, Alarm → SNS 및 OK 복구 알림 경로 검증 |
 | CloudWatch MCP | 완료 | `bada-mcp-readonly` 프로필로 Log Group/Alarm 실제 조회 및 S3 접근 거부 확인 |
 | Frontend ECS 배포 | 완료 | Next.js 15.5.19, ECR/Task/Service/ALB host routing, `/api/health` 200 |
+| Worker 분석·PDF E2E | 완료 | SQS 처리 후 사건 `completed`, KMS 암호화 Report S3 PDF 저장 |
+| Amazon Transcribe E2E | 완료 | 한국어 MP3 Job `COMPLETED`, 전사문 DB 저장, SQS 메시지 삭제 |
+| ECS 배포 자동 롤백 | 완료 | Backend·Frontend·Worker deployment circuit breaker와 rollback 활성화 |
+| RDS 저장 암호화 | 마이그레이션 필요 | 현재 `StorageEncrypted=false`; 무중단 즉시 변경 불가 |
+| ECR 이미지 스캔 | 부분 완료 | Frontend Critical 1/High 8, Backend·Worker 최신 OCI index는 Basic Scan 미지원 |
 
 ## 7. Well-Architected Tool 현황
 
