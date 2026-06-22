@@ -18,6 +18,7 @@
 | 비밀값 관리 | Secrets Manager |
 | 설정값 관리 | SSM Parameter Store |
 | 인증 인프라 | Cognito Hosted UI / Authorization Code Grant / Google IdP 적용 완료 |
+| HTTPS/도메인 | `badasoft.com` ACM 인증서(ISSUED), ALB 443 리스너(TLS1.3), HTTP→HTTPS 301, Route 53 적용 완료 |
 | Bedrock 모델 접근 | Anthropic FTU 제출 및 Claude Sonnet 4.6 Playground 호출 완료 |
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
 | 배포 자동화 | Backend 자동배포 완료, Worker 자동배포 workflow 코드 및 AWS 권한 반영 완료 |
@@ -310,7 +311,7 @@ Pillar별 리스크:
 
 | 우선순위 | 개선 항목 | 관련 Pillar | 상태 |
 | --- | --- | --- | --- |
-| P0 | ALB HTTPS/ACM 적용 및 HTTP -> HTTPS redirect 검토 | Security | 대기 |
+| P0 | ALB HTTPS/ACM 적용 및 HTTP -> HTTPS redirect | Security | 완료 (`badasoft.com`, ACM ISSUED, 443 리스너, 301 리다이렉트, HTTPS /health 200) |
 | P0 | CloudWatch Alarm SNS 이메일 수신 검증 | Operational Excellence / Reliability | 완료 |
 | P0 | Worker SQS consumer 구현 후 Worker Service 기동 검증 | Reliability / Cost | 개발 대기 |
 | P1 | RTO/RPO와 RDS restore rehearsal 절차 정의 | Reliability | 대기 |
