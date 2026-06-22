@@ -40,18 +40,27 @@ sqs_receive_wait_time_seconds  = 20
 # Use "replace-me" to let Terraform use the ECR repositories created in this stack.
 api_container_image    = "replace-me"
 worker_container_image = "replace-me"
+frontend_container_image = "replace-me"
 
 # ECS service desired count.
 # Keep 0 until backend/worker images are pushed to ECR.
 backend_desired_count = 0
 worker_desired_count  = 0
+frontend_desired_count = 0
 
 # Minimum Fargate task size for dev/MVP.
 backend_task_cpu    = 256
 backend_task_memory = 512
 worker_task_cpu     = 256
 worker_task_memory  = 512
+frontend_task_cpu   = 256
+frontend_task_memory = 512
 ecs_cpu_architecture = "ARM64"
+
+# Frontend ECS/ECR/ALB resources. Enable infrastructure first with
+# frontend_desired_count=0, push the first image, then raise it to 1.
+domain_name      = ""
+frontend_enabled = false
 
 # CloudWatch alarm notifications.
 # alarm_email_endpoints creates email subscriptions on the Terraform-managed SNS topic.
