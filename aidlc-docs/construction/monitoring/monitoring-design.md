@@ -24,15 +24,13 @@ BADA 프로덕션 환경에 오픈소스 모니터링 스택을 구축한다.
                             │ 데이터소스
                   ┌─────────┼─────────┐
                   ▼         ▼         ▼
-          ┌────────────┐ ┌─────┐ ┌──────────┐
-          │ Prometheus │ │ CW  │ │  Loki    │
-          │ (ECS,:9090)│ │     │ │ (선택)   │
-          └─────┬──────┘ └─────┘ └──────────┘
+          ┌────────────┐ ┌────────────┐ ┌──────────┐
+          │ Prometheus │ │ CloudWatch │ │  Loki    │
+          │ (ECS,:9090)│ │ datasource │ │ (선택)   │
+          └─────┬──────┘ └────────────┘ └──────────┘
                 │ scrape
-        ┌───────┼───────┐
-        ▼       ▼       ▼
-    Backend  Worker   Grafana
-    /metrics /metrics  자체 메트릭
+                ▼
+       api.badasoft.com/metrics
 ```
 
 ## 컴포넌트
@@ -40,12 +38,15 @@ BADA 프로덕션 환경에 오픈소스 모니터링 스택을 구축한다.
 ### 1. Prometheus (ECS Fargate Task)
 - **역할**: 메트릭 수집 (scrape)
 - **포트**: 9090
-- **스토리지**: EFS 볼륨 (데이터 영속화, 15일 보존)
+- **스토리지**: Fargate 임시 볼륨, 3일 보존
+  - Prometheus TSDB는 NFS/EFS를 지원하지 않으므로 로컬 볼륨을 사용한다.
+  - 태스크 교체 시 과거 메트릭은 초기화되며, 장기 보존이 필요하면 Amazon Managed Service for Prometheus를 검토한다.
 - **scrape 대상**:
-  - Backend `/metrics` (FastAPI + prometheus_client)
-  - Worker 자체 메트릭 (커스텀 exporter)
+  - `https://api.badasoft.com/metrics` (FastAPI + prometheus_client)
   - Prometheus 자체
-- **설정**: `prometheus.yml` (EFS 또는 S3에서 로드)
+- **설정 배포**: ECS 초기화 컨테이너가 저장소의 `prometheus.yml`을 공유 설정 볼륨에 기록
+- **내부 접근**: Cloud Map `prometheus.bada-dev.local:9090`
+- **Worker 메트릭**: exporter 구현 후 별도 target으로 추가
 
 ### 2. Grafana (ECS Fargate Task)
 - **역할**: 대시보드 시각화 + 알림
@@ -55,7 +56,9 @@ BADA 프로덕션 환경에 오픈소스 모니터링 스택을 구축한다.
   - Prometheus (메트릭)
   - CloudWatch (AWS 관리형 메트릭: ALB, RDS, SQS, ECS)
 - **인증**: Grafana 자체 로그인 (admin 계정)
-- **스토리지**: EFS (대시보드 설정 영속화)
+- **관리자 비밀번호**: Terraform 자동 생성 후 Secrets Manager `bada-dev/grafana-admin-password`에 저장
+- **스토리지**: EFS (SQLite DB와 사용자 설정 영속화)
+- **프로비저닝**: 초기화 컨테이너가 Prometheus/CloudWatch 데이터소스와 BADA Overview 대시보드를 자동 배치
 
 ### 3. Backend /metrics 엔드포인트
 - **라이브러리**: `prometheus_client` (Python)
@@ -85,15 +88,18 @@ BADA 프로덕션 환경에 오픈소스 모니터링 스택을 구축한다.
 
 | 리소스 | 용도 |
 |--------|------|
-| EFS 파일시스템 | Prometheus 데이터 + Grafana 설정 영속화 |
+| EFS 파일시스템 | Grafana 데이터 영속화 |
 | ECS Task Definition (Prometheus) | prom/prometheus 이미지 |
 | ECS Task Definition (Grafana) | grafana/grafana-oss 이미지 |
+| ECS 초기화 컨테이너 | 저장소의 설정 파일을 공유 볼륨에 배치 |
+| Cloud Map Private DNS | Grafana → Prometheus 내부 통신 |
 | ECS Service (Prometheus) | desired=1 |
 | ECS Service (Grafana) | desired=1 |
 | ALB Target Group (Grafana) | 헬스체크 /api/health |
 | ALB Listener Rule | monitor.badasoft.com → Grafana TG |
 | Route 53 A 레코드 | monitor.badasoft.com → ALB |
-| Security Group | Prometheus←Backend/Worker scrape 허용 |
+| Security Group | ALB→Grafana, Grafana→Prometheus, ECS→EFS 최소 포트 허용 |
+| Monitoring Task Role | CloudWatch/Logs/EC2 태그 조회 전용 권한 |
 
 ## 비용 예상 (추가)
 
@@ -108,7 +114,40 @@ BADA 프로덕션 환경에 오픈소스 모니터링 스택을 구축한다.
 
 1. Backend에 `/metrics` 엔드포인트 추가 (prometheus_client)
 2. Prometheus 설정 파일 (prometheus.yml) 작성
-3. Terraform: EFS + Prometheus ECS + Grafana ECS + ALB 라우팅
+3. Terraform: Prometheus ECS + Grafana/EFS + Cloud Map + ALB 라우팅
 4. Grafana 데이터소스 설정 (Prometheus + CloudWatch)
 5. 대시보드 JSON 프로비저닝
 6. 검증: monitor.badasoft.com 접속 확인
+
+## 운영 및 검증
+
+```bash
+cd infra
+terraform plan -var-file=terraform.tfvars
+terraform apply -var-file=terraform.tfvars
+
+aws ecs describe-services \
+  --cluster bada-dev-cluster \
+  --services bada-dev-prometheus bada-dev-grafana
+
+curl -fsS https://monitor.badasoft.com/api/health
+```
+
+Grafana 로그인 계정은 `admin`이며 비밀번호는 필요할 때만 조회한다.
+
+```bash
+aws secretsmanager get-secret-value \
+  --secret-id bada-dev/grafana-admin-password \
+  --query SecretString \
+  --output text
+```
+
+완료 기준:
+
+- Prometheus와 Grafana ECS Service가 각각 `desired=1`, `running=1`, `rollout=COMPLETED`
+- Grafana Target Group `healthy`
+- `/api/health` HTTP 200
+- Prometheus datasource health `OK`
+- `prometheus`, `bada-backend` target 모두 `UP`
+- BADA Overview 대시보드 자동 생성
+- 후속 Terraform plan `No changes`

@@ -1,6 +1,111 @@
 # ─── 모니터링 인프라: Prometheus + Grafana (ECS Fargate) ────────────────────
 
-# EFS 파일시스템 (Prometheus 데이터 + Grafana 설정 영속화)
+locals {
+  monitoring_service_discovery_namespace = "${local.name_prefix}.local"
+  prometheus_config_base64 = base64encode(templatefile(
+    "${path.module}/../monitoring/prometheus/prometheus.yml",
+    { domain_name = var.domain_name }
+  ))
+  grafana_datasources_base64 = base64encode(templatefile(
+    "${path.module}/../monitoring/grafana/provisioning/datasources/datasources.yml",
+    {
+      aws_region                  = var.aws_region
+      service_discovery_namespace = local.monitoring_service_discovery_namespace
+    }
+  ))
+  grafana_dashboards_config_base64 = filebase64(
+    "${path.module}/../monitoring/grafana/provisioning/dashboards/dashboards.yml"
+  )
+  grafana_overview_dashboard_base64 = filebase64(
+    "${path.module}/../monitoring/grafana/provisioning/dashboards/json/bada-overview.json"
+  )
+}
+
+# Prometheus는 외부에 노출하지 않고 Grafana가 VPC 내부 DNS로 접근한다.
+resource "aws_service_discovery_private_dns_namespace" "monitoring" {
+  count       = var.monitoring_enabled ? 1 : 0
+  name        = local.monitoring_service_discovery_namespace
+  description = "Private DNS namespace for BADA monitoring services"
+  vpc         = aws_vpc.main.id
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-monitoring-namespace" })
+}
+
+resource "aws_service_discovery_service" "prometheus" {
+  count = var.monitoring_enabled ? 1 : 0
+  name  = "prometheus"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.monitoring[0].id
+
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+
+    routing_policy = "MULTIVALUE"
+  }
+
+  health_check_custom_config {
+    failure_threshold = 1
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-prometheus-discovery" })
+}
+
+# Grafana CloudWatch 데이터소스용 전용 읽기 권한.
+# 애플리케이션 Task Role의 S3/SQS/Bedrock 권한을 모니터링 컨테이너에 노출하지 않는다.
+resource "aws_iam_role" "monitoring_task" {
+  count = var.monitoring_enabled ? 1 : 0
+  name  = "${local.name_prefix}-monitoring-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-monitoring-task-role" })
+}
+
+resource "aws_iam_role_policy" "monitoring_readonly" {
+  count = var.monitoring_enabled ? 1 : 0
+  name  = "${local.name_prefix}-monitoring-readonly"
+  role  = aws_iam_role.monitoring_task[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:DescribeAlarms",
+          "cloudwatch:GetMetricData",
+          "cloudwatch:GetMetricStatistics",
+          "cloudwatch:ListMetrics",
+          "ec2:DescribeInstances",
+          "ec2:DescribeRegions",
+          "ec2:DescribeTags",
+          "logs:DescribeLogGroups",
+          "logs:GetQueryResults",
+          "logs:StartQuery",
+          "logs:StopQuery",
+          "tag:GetResources"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# EFS 파일시스템 (Grafana 데이터 영속화)
 resource "aws_efs_file_system" "monitoring" {
   count          = var.monitoring_enabled ? 1 : 0
   creation_token = "${local.name_prefix}-monitoring-efs"
@@ -14,25 +119,6 @@ resource "aws_efs_mount_target" "monitoring" {
   file_system_id  = aws_efs_file_system.monitoring[0].id
   subnet_id       = aws_subnet.public[count.index].id
   security_groups = [aws_security_group.monitoring[0].id]
-}
-
-resource "aws_efs_access_point" "prometheus" {
-  count          = var.monitoring_enabled ? 1 : 0
-  file_system_id = aws_efs_file_system.monitoring[0].id
-
-  posix_user {
-    gid = 65534
-    uid = 65534
-  }
-
-  root_directory {
-    path = "/prometheus"
-    creation_info {
-      owner_gid   = 65534
-      owner_uid   = 65534
-      permissions = "0755"
-    }
-  }
 }
 
 resource "aws_efs_access_point" "grafana" {
@@ -68,15 +154,6 @@ resource "aws_security_group" "monitoring" {
     to_port         = 3000
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
-  }
-
-  # Prometheus scrape from backend/worker ECS tasks
-  ingress {
-    description     = "Prometheus from ECS"
-    from_port       = 9090
-    to_port         = 9090
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs.id]
   }
 
   # Prometheus/Grafana communication inside the monitoring security group
@@ -116,19 +193,54 @@ resource "aws_ecs_task_definition" "prometheus" {
   cpu                      = 256
   memory                   = 512
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn            = aws_iam_role.ecs_task.arn
+  task_role_arn            = aws_iam_role.monitoring_task[0].arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = var.ecs_cpu_architecture
+  }
 
   container_definitions = jsonencode([
+    {
+      name      = "prometheus-config"
+      image     = "alpine:3.20"
+      essential = false
+      entryPoint = [
+        "sh",
+        "-c"
+      ]
+      command = [
+        "set -eu; mkdir -p /config; printf '%s' \"$PROMETHEUS_CONFIG_BASE64\" | base64 -d > /config/prometheus.yml"
+      ]
+      environment = [
+        { name = "PROMETHEUS_CONFIG_BASE64", value = local.prometheus_config_base64 }
+      ]
+      mountPoints = [
+        { sourceVolume = "prometheus-config", containerPath = "/config" }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/aws/ecs/${local.name_prefix}/prometheus"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "config"
+        }
+      }
+    },
     {
       name         = "prometheus"
       image        = "prom/prometheus:v2.54.0"
       essential    = true
       portMappings = [{ containerPort = 9090, protocol = "tcp" }]
-      mountPoints  = [{ sourceVolume = "prometheus-data", containerPath = "/prometheus" }]
+      dependsOn    = [{ containerName = "prometheus-config", condition = "SUCCESS" }]
+      mountPoints = [
+        { sourceVolume = "prometheus-data", containerPath = "/prometheus" },
+        { sourceVolume = "prometheus-config", containerPath = "/etc/prometheus", readOnly = true }
+      ]
       command = [
         "--config.file=/etc/prometheus/prometheus.yml",
         "--storage.tsdb.path=/prometheus",
-        "--storage.tsdb.retention.time=15d",
+        "--storage.tsdb.retention.time=3d",
         "--web.enable-lifecycle"
       ]
       logConfiguration = {
@@ -143,17 +255,11 @@ resource "aws_ecs_task_definition" "prometheus" {
   ])
 
   volume {
-    name = "prometheus-data"
-    efs_volume_configuration {
-      file_system_id     = aws_efs_file_system.monitoring[0].id
-      root_directory     = "/"
-      transit_encryption = "ENABLED"
+    name = "prometheus-config"
+  }
 
-      authorization_config {
-        access_point_id = aws_efs_access_point.prometheus[0].id
-        iam             = "DISABLED"
-      }
-    }
+  volume {
+    name = "prometheus-data"
   }
 
   tags = local.common_tags
@@ -168,17 +274,55 @@ resource "aws_ecs_task_definition" "grafana" {
   cpu                      = 256
   memory                   = 512
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn            = aws_iam_role.ecs_task.arn
+  task_role_arn            = aws_iam_role.monitoring_task[0].arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = var.ecs_cpu_architecture
+  }
 
   container_definitions = jsonencode([
+    {
+      name      = "grafana-config"
+      image     = "alpine:3.20"
+      essential = false
+      entryPoint = [
+        "sh",
+        "-c"
+      ]
+      command = [
+        "set -eu; mkdir -p /config/datasources /config/dashboards/json; printf '%s' \"$DATASOURCES_BASE64\" | base64 -d > /config/datasources/datasources.yml; printf '%s' \"$DASHBOARDS_CONFIG_BASE64\" | base64 -d > /config/dashboards/dashboards.yml; printf '%s' \"$OVERVIEW_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-overview.json"
+      ]
+      environment = [
+        { name = "DATASOURCES_BASE64", value = local.grafana_datasources_base64 },
+        { name = "DASHBOARDS_CONFIG_BASE64", value = local.grafana_dashboards_config_base64 },
+        { name = "OVERVIEW_DASHBOARD_BASE64", value = local.grafana_overview_dashboard_base64 }
+      ]
+      mountPoints = [
+        { sourceVolume = "grafana-config", containerPath = "/config" }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/aws/ecs/${local.name_prefix}/grafana"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "config"
+        }
+      }
+    },
     {
       name         = "grafana"
       image        = "grafana/grafana-oss:11.3.0"
       essential    = true
       portMappings = [{ containerPort = 3000, protocol = "tcp" }]
-      mountPoints  = [{ sourceVolume = "grafana-data", containerPath = "/var/lib/grafana" }]
+      dependsOn    = [{ containerName = "grafana-config", condition = "SUCCESS" }]
+      mountPoints = [
+        { sourceVolume = "grafana-data", containerPath = "/var/lib/grafana" },
+        { sourceVolume = "grafana-config", containerPath = "/etc/grafana/provisioning", readOnly = true }
+      ]
       environment = [
         { name = "GF_SERVER_ROOT_URL", value = "https://monitor.${var.domain_name}" },
+        { name = "GF_USERS_ALLOW_SIGN_UP", value = "false" },
       ]
       secrets = [
         {
@@ -196,6 +340,10 @@ resource "aws_ecs_task_definition" "grafana" {
       }
     }
   ])
+
+  volume {
+    name = "grafana-config"
+  }
 
   volume {
     name = "grafana-data"
@@ -227,6 +375,10 @@ resource "aws_ecs_service" "prometheus" {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.monitoring[0].id]
     assign_public_ip = true
+  }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.prometheus[0].arn
   }
 
   depends_on = [
@@ -340,8 +492,15 @@ resource "aws_secretsmanager_secret" "grafana_admin_password" {
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-grafana-admin-password" })
 }
 
+resource "random_password" "grafana_admin" {
+  count            = var.monitoring_enabled && var.grafana_admin_password == null ? 1 : 0
+  length           = 24
+  special          = true
+  override_special = "!#$%&*+-=?@_"
+}
+
 resource "aws_secretsmanager_secret_version" "grafana_admin_password" {
   count         = var.monitoring_enabled ? 1 : 0
   secret_id     = aws_secretsmanager_secret.grafana_admin_password[0].id
-  secret_string = var.grafana_admin_password
+  secret_string = var.grafana_admin_password != null ? var.grafana_admin_password : random_password.grafana_admin[0].result
 }

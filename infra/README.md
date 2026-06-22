@@ -14,6 +14,7 @@
 - ECS Fargate
 - Secrets Manager / SSM Parameter Store
 - CloudWatch Logs / Alarms
+- Prometheus + Grafana
 
 기본 사용 순서:
 
@@ -48,6 +49,9 @@ MVP 원칙:
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
 - CloudWatch Alarm은 ALB/ECS/RDS/SQS 핵심 지표 기준으로 생성하며, 기본은 콘솔 확인용이다.
 - CloudWatch MCP는 Terraform 관리 최소권한 AssumeRole을 통해서만 AWS에 접근한다.
+- Prometheus는 Fargate 로컬 볼륨에 3일간 저장하고, Grafana 데이터만 EFS에 영속화한다.
+- Grafana는 Cloud Map의 `prometheus.bada-dev.local`을 통해 Prometheus에 접근한다.
+- Grafana 관리자 비밀번호는 Terraform이 생성해 Secrets Manager `bada-dev/grafana-admin-password`에 저장한다.
 - Cognito App Client는 Authorization Code Grant와 `openid email profile` scope를 사용한다.
 - Google 로그인을 사용할 때는 Cognito Federated Identity Provider와 App Client provider를 Terraform으로 함께 관리한다.
 - 프로젝트 운영 기간은 `2026-06-04 ~ 2026-07-10`, 팀 전체 AWS 총 예산은 `1,500달러`
