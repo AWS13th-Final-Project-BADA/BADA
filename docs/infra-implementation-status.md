@@ -26,8 +26,8 @@
 | Bedrock 모델 접근 | Anthropic FTU 제출 및 Claude Sonnet 4.6 Playground 호출 완료 |
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
 | 배포 자동화 | Backend/Worker/Frontend GitHub Actions OIDC 배포 workflow 및 AWS 권한 반영 |
-| 롤백 | Backend 수동 롤백 workflow + Frontend·Worker ECS CLI 절차, 3종 자동 circuit breaker rollback (런북: 개인 `rollback_and_recovery.md`) |
-| 모니터링 | Prometheus + Grafana ECS 배포, `monitor.badasoft.com`, Backend target UP, CloudWatch datasource, Logs / Alarms / SNS / CloudWatch MCP 연결 완료 |
+| 롤백 | Backend 수동 workflow + Frontend·Worker ECS CLI, Backend·Frontend·Worker 자동 circuit breaker (`docs/runbooks/rollback-and-recovery.md`) |
+| 모니터링 | Prometheus + Grafana ECS, CloudWatch datasource, Logs/Alarms/SNS/MCP, Grafana Task Role의 Alarm SNS Topic 한정 `sns:Publish` 적용 완료 |
 | Week 3 복구 검증 | Worker 재시도·DLQ·재시작 멱등성 검증, ALB 로그 30일 보존 적용 완료 (PR #60) |
 | Well-Architected | Workload 생성 및 초기 milestone 저장 완료 |
 
@@ -180,6 +180,8 @@ COGNITO_SCOPES=openid email profile
 | CloudWatch Alarm | 완료 | ALB, Backend·Frontend·Worker ECS, RDS, SQS 핵심 지표 14개 |
 | SNS Alarm Topic | 완료 | Alarm 14개 ALARM/OK action 연결 완료 |
 | SNS Email Subscription | 완료 | `badajoa0710@gmail.com`, 테스트 메시지 및 Alarm/OK 경로 검증 |
+| Grafana SNS Publish 권한 | 완료 | Monitoring Task Role에서 `bada-dev-alarm-notifications` Topic에만 허용 |
+| Grafana Alert Contact Point / Rule | 구성 대기 | 모니터링 담당의 임계치·수신자 확정 후 구성·실수신 검증 |
 | CloudWatch MCP | 완료 | 전용 AssumeRole 최소권한, 서버 1.28.0, Backend/Worker Log Group 및 활성 Alarm 조회 검증 |
 | AWS Budgets | 완료 | 팀 예산 추적 |
 | Well-Architected Tool | 초기 등록 완료 | Workload / Milestone 생성 |
@@ -299,7 +301,7 @@ workflow_dispatch
 
 ### Frontend · Worker 수동 롤백 (ECS CLI)
 
-Frontend·Worker는 전용 롤백 workflow가 없으므로 ECS CLI로 직전 안정 Task Definition revision을 적용한다(세 서비스 모두 deployment circuit breaker 자동 rollback은 활성).
+Frontend·Worker는 전용 롤백 workflow가 없으므로 ECS CLI로 실행 전 검증한 ACTIVE Task Definition 후보를 적용한다. Backend·Frontend·Worker는 deployment circuit breaker 자동 rollback이 활성이다.
 
 ```bash
 aws ecs update-service --region ap-northeast-2 --cluster bada-dev-cluster \
@@ -307,12 +309,12 @@ aws ecs update-service --region ap-northeast-2 --cluster bada-dev-cluster \
 aws ecs wait services-stable --region ap-northeast-2 --cluster bada-dev-cluster --services <service>
 ```
 
-| 서비스 | 직전 안정 revision(2026-06-24) | 검증 |
+| 서비스 | ACTIVE 후보 예시(2026-06-24) | 롤백 후 필수 검증 |
 | --- | --- | --- |
 | Frontend | `bada-dev-frontend:2` | `https://badasoft.com/api/health` 200 |
-| Worker | `bada-dev-worker:14` | consumer 시작 로그 + SQS/DLQ 0 |
+| Worker | `bada-dev-worker:14` | consumer 시작 로그 + 테스트 메시지 처리 + SQS/DLQ 정상 |
 
-상세 절차·주의사항은 개인 운영 문서 `BADA-infra-workspace/docs/infra/rollback_and_recovery.md` 참고.
+후보가 ACTIVE라는 사실만으로 안정성이 보장되지는 않는다. image tag·변경 이력·DB 호환성을 실행 전에 재확인한다. 상세 절차는 `docs/runbooks/rollback-and-recovery.md`를 참고한다.
 
 ## 6. 현재 미구현 / 대기 항목
 
@@ -397,3 +399,5 @@ Pillar별 리스크:
 | `.github/workflows/deploy-dev-worker.yml` | Worker 자동배포 workflow |
 | `.github/workflows/deploy-dev-frontend.yml` | Frontend 자동배포 workflow |
 | `.github/workflows/rollback-dev-backend.yml` | Backend 수동 롤백 workflow |
+| `docs/runbooks/rollback-and-recovery.md` | ECS 롤백·복구 절차 |
+| `docs/runbooks/demo-incident-response.md` | 데모 핵심 경로 장애 진단·대응 |

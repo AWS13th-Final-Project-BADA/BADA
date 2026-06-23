@@ -22,6 +22,7 @@ frontend/  Next.js + next-intl (다국어)
 infra/     Terraform (AWS IaC)
 eval/      평가셋 + 정확도 측정
 docs/      체크리스트·문서
+  runbooks/ 장애 진단·롤백 운영 절차
 .kiro/steering/  AI-DLC 규칙 (AI가 항상 참조)
 ```
 자세한 규칙은 `.kiro/steering/` 참조.
@@ -54,6 +55,11 @@ Bedrock(Claude) · Amazon Translate · WeasyPrint.
 - 원칙: AI(Bedrock/OCR/번역) 비용도 함께 고려하되, 인프라는 지나치게 축소하지 않고 안정적인 데모가 가능한 수준으로 구성
 - 네트워크 기본 원칙: `ALB/ECS는 public subnet`, `RDS는 private subnet`, `NAT Gateway는 사용하지 않음`
 - 비용 통제 원칙: `RDS Single-AZ`, `Fargate 최소 안정 사양`, `CloudWatch 로그 보존기간 단축`, `Secrets 최소화 + 비민감 값은 SSM 분리`
+
+운영 런북:
+
+- `docs/runbooks/demo-incident-response.md`: 로그인→업로드→분석→PDF 장애 진단
+- `docs/runbooks/rollback-and-recovery.md`: ECS Task Definition 롤백·복구
 
 ## 5주 로드맵 / bolt
 
