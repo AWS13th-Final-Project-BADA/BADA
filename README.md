@@ -61,6 +61,7 @@ Bedrock(Claude) · Amazon Translate · WeasyPrint.
 - `docs/runbooks/demo-incident-response.md`: 로그인→업로드→분석→PDF 장애 진단
 - `docs/runbooks/rollback-and-recovery.md`: ECS Task Definition 롤백·복구
 - `docs/runbooks/rds-recovery.md`: RDS 복원·암호화 전환·rollback
+- `docs/runbooks/project-closure.md`: 프로젝트 종료·민감 데이터 삭제·비용 리소스 정리
 - `docs/infra-security-operations-plan.md`: ECR·IAM·비용 위험과 결정 계획
 
 ## 5주 로드맵 / bolt

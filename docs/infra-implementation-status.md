@@ -30,6 +30,8 @@
 | 모니터링 | Prometheus + Grafana ECS, CloudWatch datasource, Logs/Alarms/SNS/MCP, Grafana Task Role의 Alarm SNS Topic 한정 `sns:Publish` 적용 완료 |
 | Week 3 복구 검증 | Worker 재시도·DLQ·재시작 멱등성 검증, ALB 로그 30일 보존 적용 완료 (PR #60) |
 | Week 3 운영 런북·Grafana 권한 | 팀 공용 장애·롤백 런북과 Alarm SNS Topic 한정 Publish 권한 반영 완료 (PR #61) |
+| PR #63 후속 검증 | Backend CD의 운영 HTTPS 200 게이트 성공, Backend `:43`, Terraform No changes, ECS/Target/Alarm/SQS 정상 |
+| 종료·정책 계획 | RDS·IAM·ECR 권고 결정과 7/10 종료·민감 데이터 삭제 런북 작성, 팀 승인 대기 |
 | Well-Architected | Workload 생성 및 초기 milestone 저장 완료 |
 
 ## 2. 현재 실행 상태
@@ -45,7 +47,7 @@
 | Frontend Task Definition | `bada-dev-frontend:3` |
 | Frontend Target Group | `healthy`, port `3000`, health path `/api/health` |
 | Frontend URL | `https://badasoft.com` → `/ko`, `/api/health` 200 |
-| Backend Task Definition | `bada-dev-backend:42` |
+| Backend Task Definition | `bada-dev-backend:43` |
 | Worker Task Definition | `bada-dev-worker:17` |
 | Target Group | `healthy` |
 | ALB `/health` | `200 {"status":"ok"}` |
@@ -405,4 +407,5 @@ Pillar별 리스크:
 | `docs/runbooks/rollback-and-recovery.md` | ECS 롤백·복구 절차 |
 | `docs/runbooks/demo-incident-response.md` | 데모 핵심 경로 장애 진단·대응 |
 | `docs/runbooks/rds-recovery.md` | RDS 복원·암호화 전환·rollback 절차 |
+| `docs/runbooks/project-closure.md` | 프로젝트 종료·데이터 보존·비용 리소스 정리 |
 | `docs/infra-security-operations-plan.md` | ECR·Task Role·비용 운영 결정 |

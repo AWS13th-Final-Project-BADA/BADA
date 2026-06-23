@@ -8,7 +8,7 @@
 
 | 서비스 | 현재 실행 | ACTIVE 후보 예시 | 자동 rollback | 수동 경로 |
 | --- | --- | --- | --- | --- |
-| Backend | `bada-dev-backend:42` | `:41` | 활성 | GitHub Actions workflow |
+| Backend | `bada-dev-backend:43` | `:42` | 활성 | GitHub Actions workflow |
 | Worker | `bada-dev-worker:17` | `:14` | 활성 | ECS CLI |
 | Frontend | `bada-dev-frontend:3` | `:2` | 활성 | ECS CLI |
 | Prometheus | `bada-dev-prometheus:2` | `:1` | 미활성 | ECS CLI |
