@@ -300,6 +300,8 @@ SQS Analysis DLQ            : visible message 1개 이상
 - 기본값은 `alarm_email_endpoints = []`, `alarm_actions = []`이며 실제 이메일 주소는 Git에서 제외되는 로컬 `terraform.tfvars`에만 저장한다.
 - SNS Topic `bada-dev-alarm-notifications`는 Terraform apply로 생성 완료했다.
 - 팀 알림 이메일 `badajoa0710@gmail.com` 구독을 생성하고 CloudWatch Alarm 14개의 `alarm_actions`와 `ok_actions`에 SNS Topic을 연결했다.
+- Grafana Monitoring Task Role에는 해당 Alarm Topic 하나로 제한한 `sns:Publish` 권한을 적용했다.
+- Grafana Contact Point와 Alert Rule은 모니터링 담당의 임계치·수신자 확정 후 구성하고 실제 이메일 수신을 검증한다.
 - Backend·Frontend·Worker ECS Service는 deployment circuit breaker와 자동 rollback을 사용한다.
 - SQS 메시지 수뿐 아니라 `ApproximateAgeOfOldestMessage >= 600초`도 감시해 적은 수의 정체 메시지를 탐지한다.
 
