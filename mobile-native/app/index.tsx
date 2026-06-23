@@ -28,10 +28,10 @@ export default function Home() {
           onPress={() => router.push("/cases")}
         />
         <MenuButton
-          label={t("nav.community") + " · " + t("nav.chat")}
-          muted
-          onPress={() => {}}
+          label={t("nav.community")}
+          onPress={() => router.push("/community")}
         />
+        <MenuButton label={t("nav.chat")} onPress={() => router.push("/chat")} />
         <MenuButton label="GPS 근무 증거" onPress={() => router.push("/gps")} />
       </View>
 

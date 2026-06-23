@@ -9,7 +9,8 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { fetchApi, ApiError } from "@/lib/api";
+import * as WebBrowser from "expo-web-browser";
+import { fetchApi, ApiError, API_BASE } from "@/lib/api";
 import type { AnalysisReport } from "@/lib/types";
 import { t, i18n } from "@/i18n";
 import { colors, spacing, radius } from "@/theme";
@@ -54,6 +55,14 @@ export default function AnalysisScreen() {
     } finally {
       setRunning(false);
     }
+  }
+
+  function openReport() {
+    // 제출용 Evidence Pack — 백엔드 report.html(공개) 을 앱 내 브라우저로 연다.
+    // (진짜 PDF 다운로드 엔드포인트 report.pdf 는 백엔드 연계 항목)
+    WebBrowser.openBrowserAsync(
+      `${API_BASE}/cases/${caseId}/report.html?lang=${i18n.locale}`
+    ).catch(() => {});
   }
 
   if (loading) {
@@ -168,6 +177,12 @@ export default function AnalysisScreen() {
         </>
       )}
 
+      {report && (
+        <Pressable style={styles.report} onPress={openReport}>
+          <Text style={styles.reportText}>📄 제출용 리포트(Evidence Pack) 보기</Text>
+        </Pressable>
+      )}
+
       <Text style={styles.disclaimer}>
         {report?.narrative?.disclaimer || t("disclaimer")}
       </Text>
@@ -259,6 +274,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     overflow: "hidden",
   },
+  report: {
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    alignItems: "center",
+    backgroundColor: colors.card,
+  },
+  reportText: { color: colors.primary, fontWeight: "700", fontSize: 15 },
   disclaimer: {
     fontSize: 12,
     color: colors.textMuted,

@@ -23,6 +23,10 @@ export default function RootLayout() {
         <Stack.Screen name="cases/[id]" options={{ title: "사건 상세" }} />
         <Stack.Screen name="cases/upload" options={{ title: "증거 업로드" }} />
         <Stack.Screen name="cases/analysis" options={{ title: "분석 결과" }} />
+        <Stack.Screen name="community/index" options={{ title: "커뮤니티" }} />
+        <Stack.Screen name="community/new" options={{ title: "글쓰기" }} />
+        <Stack.Screen name="community/[id]" options={{ title: "게시글" }} />
+        <Stack.Screen name="chat" options={{ title: "AI 상담" }} />
         <Stack.Screen name="gps" options={{ title: "GPS 근무 증거" }} />
       </Stack>
     </SafeAreaProvider>
