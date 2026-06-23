@@ -21,7 +21,7 @@ env:
   AWS_ROLE_ARN: arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role
   ECS_CLUSTER: bada-dev-cluster
   ECS_SERVICE: bada-dev-backend
-  ALB_NAME: bada-dev-alb
+  BACKEND_HEALTH_URL: https://api.badasoft.com/health
 
 jobs:
   rollback-backend:
@@ -62,21 +62,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          alb_dns_name="$(aws elbv2 describe-load-balancers \
-            --names "${ALB_NAME}" \
-            --query "LoadBalancers[0].DNSName" \
-            --output text)"
-          health_check_url="http://${alb_dns_name}/health"
 
           for attempt in {1..30}; do
-            if curl -fsS "${health_check_url}"; then
+            status_code="$(curl \
+              --silent \
+              --show-error \
+              --max-time 10 \
+              --output health-response.json \
+              --write-out "%{http_code}" \
+              "${BACKEND_HEALTH_URL}" || true)"
+
+            if [[ "${status_code}" == "200" ]]; then
+              cat health-response.json
               echo
-              echo "Rollback health check succeeded."
+              echo "Rollback Backend HTTPS health check succeeded."
               exit 0
             fi
-            echo "Rollback health check failed. Retry ${attempt}/30..."
+            echo "Rollback Backend HTTPS health check returned ${status_code:-curl-error}. Retry ${attempt}/30..."
             sleep 10
           done
 
-          echo "Rollback health check failed after retries."
+          echo "Rollback Backend HTTPS health check failed after retries."
           exit 1

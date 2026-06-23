@@ -161,6 +161,7 @@ develop push
 ```
 
 - Workflow: `.github/workflows/deploy-dev.yml`
+- 배포 후 `https://api.badasoft.com/health`가 정확히 HTTP 200인지 확인한다.
 - Deploy Role: `arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role`
 - Trigger: `develop` push 또는 수동 실행
 - Scope: Backend ECS Service 우선 배포
@@ -246,6 +247,7 @@ Rollback Dev Backend workflow_dispatch
 ```
 
 - Workflow: `.github/workflows/rollback-dev-backend.yml`
+- 롤백 후 `https://api.badasoft.com/health`가 정확히 HTTP 200인지 확인한다.
 - 실행 브랜치: `develop`
 - 입력값 예시: `bada-dev-backend:9` 또는 Task Definition ARN
 - 사용 시점: 새 배포 후 `/health` 실패, 주요 API 장애, CloudWatch 로그에서 기동 오류가 확인될 때
@@ -309,7 +311,8 @@ SQS Analysis DLQ            : visible message 1개 이상
 
 - ECR 3개 저장소는 `scan_on_push = true`다.
 - Frontend 최신 이미지 스캔에서 Alpine OpenSSL 계열 Critical 1건과 High 8건이 확인됐으며, ECR 결과상 fixed version은 아직 없다.
-- Backend/Worker 최신 수동 배포 이미지는 OCI image index라 ECR Basic Scan이 지원하지 않는다.
+- Backend 최신 Docker v2 이미지 스캔은 Critical 1건, High 3건이다.
+- Worker 최신 이미지는 OCI image index라 Scan 결과가 없다.
 - GitHub Actions build는 `--provenance=false`를 사용한다. 다음 CD 배포에서 Docker v2 manifest와 스캔 결과를 재확인한다.
 - 이메일 구독 confirmation, SNS 테스트 메시지, CloudWatch Alarm/OK 알림 수신 경로를 검증했다.
 - 확장: `alarm_email_endpoints`에 이메일 주소를 넣으면 Terraform 관리 SNS Topic에 이메일 구독을 생성하고, CloudWatch Alarm action에 연결한다.

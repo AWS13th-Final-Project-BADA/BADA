@@ -8,7 +8,7 @@
 
 | 서비스 | 현재 실행 | ACTIVE 후보 예시 | 자동 rollback | 수동 경로 |
 | --- | --- | --- | --- | --- |
-| Backend | `bada-dev-backend:41` | `:40` | 활성 | GitHub Actions workflow |
+| Backend | `bada-dev-backend:42` | `:41` | 활성 | GitHub Actions workflow |
 | Worker | `bada-dev-worker:17` | `:14` | 활성 | ECS CLI |
 | Frontend | `bada-dev-frontend:3` | `:2` | 활성 | ECS CLI |
 | Prometheus | `bada-dev-prometheus:2` | `:1` | 미활성 | ECS CLI |
@@ -63,7 +63,7 @@ Actions
 
 Workflow: `.github/workflows/rollback-dev-backend.yml`
 
-현재 workflow는 ALB HTTP URL을 검사한다. HTTP→HTTPS 301이 성공처럼 처리될 수 있으므로 workflow 완료 후 반드시 운영 HTTPS endpoint를 별도로 확인한다.
+배포와 롤백 workflow는 운영 HTTPS endpoint의 상태 코드가 정확히 200인지 확인한다.
 
 ```bash
 curl -fsS https://api.badasoft.com/health
