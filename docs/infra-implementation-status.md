@@ -1,7 +1,10 @@
 # BADA 인프라 구현 현황
 
 > 팀 공용 AWS 계정에 현재 구현된 BADA 인프라 상태를 한눈에 확인하기 위한 문서다.
-> 실행 방법이나 상세 의사결정이 아니라, “무엇이 구축되어 있고 현재 어떤 상태인지”만 기록한다.
+> 실행 방법이나 상세 의사결정이 아니라, "무엇이 구축되어 있고 현재 어떤 상태인지"만 기록한다.
+
+> ⏱️ 일정: **구현 완성 마감 `2026-07-03 (금)`**, **인프라·서비스 유지 종료 `2026-07-10 (금)`**.
+> 7/10 이후 비용 리소스 종료 예정.
 
 ## 1. 전체 요약
 
@@ -23,8 +26,9 @@
 | Bedrock 모델 접근 | Anthropic FTU 제출 및 Claude Sonnet 4.6 Playground 호출 완료 |
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
 | 배포 자동화 | Backend/Worker/Frontend GitHub Actions OIDC 배포 workflow 및 AWS 권한 반영 |
-| 롤백 | GitHub Actions 수동 롤백 workflow |
+| 롤백 | Backend 수동 롤백 workflow + Frontend·Worker ECS CLI 절차, 3종 자동 circuit breaker rollback (런북: 개인 `rollback_and_recovery.md`) |
 | 모니터링 | Prometheus + Grafana ECS 배포, `monitor.badasoft.com`, Backend target UP, CloudWatch datasource, Logs / Alarms / SNS / CloudWatch MCP 연결 완료 |
+| Week 3 복구 검증 | Worker 재시도·DLQ·재시작 멱등성 검증, ALB 로그 30일 보존 적용 완료 (PR #60) |
 | Well-Architected | Workload 생성 및 초기 milestone 저장 완료 |
 
 ## 2. 현재 실행 상태
@@ -40,7 +44,7 @@
 | Frontend Task Definition | `bada-dev-frontend:3` |
 | Frontend Target Group | `healthy`, port `3000`, health path `/api/health` |
 | Frontend URL | `https://badasoft.com` → `/ko`, `/api/health` 200 |
-| Backend Task Definition | `bada-dev-backend:40` |
+| Backend Task Definition | `bada-dev-backend:41` |
 | Worker Task Definition | `bada-dev-worker:17` |
 | Target Group | `healthy` |
 | ALB `/health` | `200 {"status":"ok"}` |
@@ -293,13 +297,30 @@ workflow_dispatch
 | 입력값 | 롤백할 Backend Task Definition |
 | 제한사항 | DB migration, 데이터 변경, Secrets 변경은 별도 복구 필요 |
 
+### Frontend · Worker 수동 롤백 (ECS CLI)
+
+Frontend·Worker는 전용 롤백 workflow가 없으므로 ECS CLI로 직전 안정 Task Definition revision을 적용한다(세 서비스 모두 deployment circuit breaker 자동 rollback은 활성).
+
+```bash
+aws ecs update-service --region ap-northeast-2 --cluster bada-dev-cluster \
+  --service <bada-dev-frontend|bada-dev-worker> --task-definition <family:revision>
+aws ecs wait services-stable --region ap-northeast-2 --cluster bada-dev-cluster --services <service>
+```
+
+| 서비스 | 직전 안정 revision(2026-06-24) | 검증 |
+| --- | --- | --- |
+| Frontend | `bada-dev-frontend:2` | `https://badasoft.com/api/health` 200 |
+| Worker | `bada-dev-worker:14` | consumer 시작 로그 + SQS/DLQ 0 |
+
+상세 절차·주의사항은 개인 운영 문서 `BADA-infra-workspace/docs/infra/rollback_and_recovery.md` 참고.
+
 ## 6. 현재 미구현 / 대기 항목
 
 | 항목 | 상태 | 비고 |
 | --- | --- | --- |
 | Worker SQS long-running consumer | 완료 | `desired=1`, 메시지 처리·삭제 및 DLQ 0건 확인 |
-| Worker runtime 인프라 적용 | 완료 | SQS 설정, DB Secret, Service `:4` 연결 검증 |
-| Worker 자동배포 실행 검증 | 완료 | consumer 구현 후 실제 메시지 처리 검증은 별도 진행 |
+| Worker runtime 인프라 적용 | 완료 | SQS 설정, DB Secret, Service `:17`, `desired=1/running=1` 검증 |
+| Worker 자동배포 실행 검증 | 완료 | 분석·STT·PDF 처리와 재시도·DLQ·재시작 멱등성 검증 |
 | Amazon Transcribe 독립 모드 | 완료 | Backend `:20`, Worker `:7`에 `TRANSCRIBE_MODE=aws` 배포 및 ALB health 검증 |
 | Anthropic Claude 계정 접근 | 완료 | FTU 제출 및 Global Claude Sonnet 4.6 Playground 호출 검증 |
 | ECS Bedrock 실제 호출 | 검증 대기 | Task Role 기반 호출과 CloudWatch Logs 확인 필요 |
@@ -359,12 +380,12 @@ Pillar별 리스크:
 | --- | --- | --- | --- |
 | P0 | ALB HTTPS/ACM 적용 및 HTTP -> HTTPS redirect | Security | 완료 (`badasoft.com`, ACM ISSUED, 443 리스너, 301 리다이렉트, HTTPS /health 200) |
 | P0 | CloudWatch Alarm SNS 이메일 수신 검증 | Operational Excellence / Reliability | 완료 |
-| P0 | Worker SQS consumer 구현 후 Worker Service 기동 검증 | Reliability / Cost | 개발 대기 |
+| P0 | Worker SQS consumer 구현 후 Worker Service 기동 검증 | Reliability / Cost | 완료 (`desired=1`, 처리·DLQ·멱등성 검증) |
 | P1 | RTO/RPO와 RDS restore rehearsal 절차 정의 | Reliability | 대기 |
 | P1 | ECR image scan, dependency scan, CI 보안 검증 강화 | Security | 대기 |
 | P1 | ECS Backend/Worker Auto Scaling과 부하 테스트 기준 수립 | Performance / Reliability | 대기 |
 | P2 | Cost allocation tag, Cost Explorer/CUR 기반 비용 분석 강화 | Cost Optimization | 대기 |
-| P2 | S3 lifecycle/retention 정책과 데이터 분류 기준 구체화 | Security / Sustainability | 대기 |
+| P2 | S3 lifecycle/retention 정책과 데이터 분류 기준 구체화 | Security / Sustainability | ALB 로그 30일 적용 완료, Evidence/Report 정책 대기 |
 
 ## 8. 참고 문서
 
