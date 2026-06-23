@@ -1,43 +1,48 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { fetchApi } from "@/lib/api";
+import type { Case, EvidenceItem } from "@/lib/types";
+import { ISSUE_LABELS } from "@/lib/types";
 import { t } from "@/i18n";
 import { colors, spacing, radius } from "@/theme";
 
-interface CaseDetail {
-  id: string;
-  title: string;
-  workplace_name: string | null;
-  employer_name: string | null;
-  status: string;
-  created_at: string;
-  // 분석 결과(있을 때)
-  analysis?: {
-    expected_wage?: number | null;
-    received_wage?: number | null;
-    suspected_unpaid?: number | null;
-  } | null;
-}
-
 export default function CaseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [data, setData] = useState<CaseDetail | null>(null);
+  const router = useRouter();
+  const [data, setData] = useState<Case | null>(null);
+  const [evidences, setEvidences] = useState<EvidenceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchApi<CaseDetail>(`/cases/${id}`)
-      .then(setData)
-      .catch(() => setError("사건 정보를 불러오지 못했습니다."))
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    try {
+      const [c, evs] = await Promise.all([
+        fetchApi<Case>(`/cases/${id}`),
+        fetchApi<EvidenceItem[]>(`/cases/${id}/evidences`).catch(() => []),
+      ]);
+      setData(c);
+      setEvidences(evs);
+    } catch {
+      setError("사건 정보를 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  // 업로드/분석 화면에서 돌아올 때 갱신
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   if (loading) {
     return (
@@ -54,65 +59,83 @@ export default function CaseDetailScreen() {
     );
   }
 
-  const won = (n?: number | null) =>
-    n == null ? "—" : `${n.toLocaleString("ko-KR")}원`;
+  const period = [data.work_start_date, data.work_end_date]
+    .map((d) => d || "—")
+    .join(" ~ ");
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{data.workplace_name || data.title}</Text>
+      <Text style={styles.title}>{data.workplace_name || "(무제 사건)"}</Text>
       <Text style={styles.badge}>{data.status}</Text>
 
-      <Section title={t("cases.workplace")}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t("cases.workplace")}</Text>
         <Row k={t("cases.employer")} v={data.employer_name || "—"} />
-        <Row k={t("cases.status")} v={data.status} />
-        <Row k="생성일" v={data.created_at?.slice(0, 10)} />
-      </Section>
-
-      <Section title={t("analysis.title")}>
-        <Row k={t("analysis.expected")} v={won(data.analysis?.expected_wage)} />
-        <Row k={t("analysis.received")} v={won(data.analysis?.received_wage)} />
+        <Row k={t("cases.period")} v={period} />
         <Row
-          k={t("analysis.suspected")}
-          v={won(data.analysis?.suspected_unpaid)}
-          highlight
+          k={t("cases.wage")}
+          v={
+            data.agreed_hourly_wage != null
+              ? `${data.agreed_hourly_wage.toLocaleString("ko-KR")}원`
+              : "—"
+          }
         />
-      </Section>
+        <Row
+          k={t("cases.issueType")}
+          v={
+            data.issue_types.length
+              ? data.issue_types.map((i) => ISSUE_LABELS[i] ?? i).join(", ")
+              : "—"
+          }
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>
+          {t("upload.title")} ({evidences.length})
+        </Text>
+        {evidences.length === 0 ? (
+          <Text style={styles.muted}>아직 업로드된 증거가 없습니다.</Text>
+        ) : (
+          evidences.map((e) => (
+            <View key={e.id} style={styles.evRow}>
+              <Text style={styles.evName} numberOfLines={1}>
+                {e.file_name}
+              </Text>
+              <Text style={styles.evStatus}>{e.ocr_status || e.category}</Text>
+            </View>
+          ))
+        )}
+      </View>
+
+      <Pressable
+        style={styles.secondary}
+        onPress={() =>
+          router.push({ pathname: "/cases/upload", params: { caseId: id } })
+        }
+      >
+        <Text style={styles.secondaryText}>+ {t("upload.title")}</Text>
+      </Pressable>
+
+      <Pressable
+        style={styles.primary}
+        onPress={() =>
+          router.push({ pathname: "/cases/analysis", params: { caseId: id } })
+        }
+      >
+        <Text style={styles.primaryText}>{t("analysis.title")}</Text>
+      </Pressable>
 
       <Text style={styles.disclaimer}>{t("disclaimer")}</Text>
     </ScrollView>
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
-  );
-}
-
-function Row({
-  k,
-  v,
-  highlight,
-}: {
-  k: string;
-  v: string;
-  highlight?: boolean;
-}) {
+function Row({ k, v }: { k: string; v: string }) {
   return (
     <View style={styles.row}>
       <Text style={styles.rowK}>{k}</Text>
-      <Text style={[styles.rowV, highlight && { color: colors.danger, fontWeight: "700" }]}>
-        {v}
-      </Text>
+      <Text style={styles.rowV}>{v}</Text>
     </View>
   );
 }
@@ -151,7 +174,31 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   rowK: { color: colors.textMuted, fontSize: 14 },
-  rowV: { color: colors.text, fontSize: 14, fontWeight: "500" },
+  rowV: { color: colors.text, fontSize: 14, fontWeight: "500", flexShrink: 1, textAlign: "right" },
+  muted: { color: colors.textMuted, fontSize: 13 },
+  evRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  evName: { color: colors.text, fontSize: 13, flex: 1, marginRight: spacing.sm },
+  evStatus: { color: colors.textMuted, fontSize: 12 },
+  primary: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    alignItems: "center",
+  },
+  primaryText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  secondary: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    alignItems: "center",
+    backgroundColor: colors.card,
+  },
+  secondaryText: { color: colors.text, fontWeight: "600" },
   disclaimer: {
     fontSize: 12,
     color: colors.textMuted,

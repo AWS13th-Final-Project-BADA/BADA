@@ -19,7 +19,10 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ title: "BADA" }} />
         <Stack.Screen name="login" options={{ title: "로그인" }} />
         <Stack.Screen name="cases/index" options={{ title: "내 사건" }} />
+        <Stack.Screen name="cases/new" options={{ title: "새 사건 만들기" }} />
         <Stack.Screen name="cases/[id]" options={{ title: "사건 상세" }} />
+        <Stack.Screen name="cases/upload" options={{ title: "증거 업로드" }} />
+        <Stack.Screen name="cases/analysis" options={{ title: "분석 결과" }} />
         <Stack.Screen name="gps" options={{ title: "GPS 근무 증거" }} />
       </Stack>
     </SafeAreaProvider>
