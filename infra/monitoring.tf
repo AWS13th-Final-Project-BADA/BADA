@@ -105,6 +105,26 @@ resource "aws_iam_role_policy" "monitoring_readonly" {
   })
 }
 
+# Grafana Alert를 기존 알람 SNS Topic으로 발행하기 위한 최소권한.
+# 모니터링 Task Role이 해당 Topic에만 sns:Publish 하도록 스코프한다.
+# (Grafana Contact Point/Alert rule 연결은 모니터링 담당이 임계치 전달 후 구성)
+resource "aws_iam_role_policy" "monitoring_sns_publish" {
+  count = var.monitoring_enabled ? 1 : 0
+  name  = "${local.name_prefix}-monitoring-sns-publish"
+  role  = aws_iam_role.monitoring_task[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["sns:Publish"]
+        Resource = aws_sns_topic.alarms.arn
+      }
+    ]
+  })
+}
+
 # EFS 파일시스템 (Grafana 데이터 영속화)
 resource "aws_efs_file_system" "monitoring" {
   count          = var.monitoring_enabled ? 1 : 0
