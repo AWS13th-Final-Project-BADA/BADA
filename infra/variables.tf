@@ -156,6 +156,17 @@ variable "log_retention_days" {
   default     = 14
 }
 
+variable "alb_log_retention_days" {
+  description = "ALB access log retention period in S3"
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = var.alb_log_retention_days >= 7
+    error_message = "alb_log_retention_days must be at least 7 days."
+  }
+}
+
 variable "sqs_visibility_timeout_seconds" {
   description = "Time an in-flight analysis message remains hidden. 15 minutes covers the worker transcription timeout with a buffer."
   type        = number
