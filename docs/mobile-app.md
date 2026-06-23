@@ -1,5 +1,9 @@
 # BADA 모바일 앱 (Capacitor · Android)
 
+> ⚠️ **[전환 중 — 2026-06-24]** 이 문서는 **Capacitor(웹뷰 기반)** 방식 기준이며, 옛 `backend/app/static` 프론트를 전제로 한 **구버전**이다.
+> 현재 모바일은 **진짜 네이티브 앱(React Native + Expo)** 으로 전환 중이다 → **`aidlc-docs/construction/mobile/native-migration-plan.md`** 및 **`mobile-native/`** 참조.
+> 이력 보존을 위해 본문은 그대로 둔다. 신규 작업은 `mobile-native/`에서 진행한다.
+
 웹 프론트(`backend/app/static`)를 **그대로 네이티브 앱으로 감싸는** 방식. 코드 한 벌로 웹·앱 공용.
 
 ## 무엇이 되나

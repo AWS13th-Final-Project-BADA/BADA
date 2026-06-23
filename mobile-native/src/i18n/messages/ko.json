@@ -1,0 +1,54 @@
+{
+  "common": {
+    "appName": "BADA",
+    "tagline": "상담 준비용 증거 정리 도구",
+    "login": "로그인",
+    "logout": "로그아웃",
+    "loading": "불러오는 중...",
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "confirm": "확인",
+    "back": "뒤로"
+  },
+  "nav": {
+    "cases": "내 사건",
+    "community": "커뮤니티",
+    "chat": "AI 상담"
+  },
+  "cases": {
+    "title": "내 사건 목록",
+    "create": "새 사건 만들기",
+    "workplace": "사업장",
+    "employer": "사업주",
+    "period": "근무기간",
+    "wage": "시급",
+    "issueType": "문제유형",
+    "status": "상태"
+  },
+  "upload": {
+    "title": "증거 업로드",
+    "dropzone": "파일을 여기에 끌어놓거나 클릭하세요",
+    "category": "카테고리",
+    "categories": {
+      "contract": "계약서",
+      "schedule": "근무표",
+      "payment": "통장/입금내역",
+      "chat": "카톡/문자",
+      "statement": "급여명세서",
+      "other": "기타"
+    }
+  },
+  "analysis": {
+    "title": "분석 결과",
+    "run": "분석 실행",
+    "expected": "기대 급여",
+    "received": "실수령",
+    "suspected": "미지급 의심",
+    "deductions": "공제 항목",
+    "timeline": "타임라인",
+    "missing": "추가 필요 증거",
+    "download": "PDF 다운로드"
+  },
+  "disclaimer": "본 자료는 법률자문이 아닌 상담 준비용 증거 정리 자료입니다. 최종 판단은 전문기관에서 확인하세요."
+}

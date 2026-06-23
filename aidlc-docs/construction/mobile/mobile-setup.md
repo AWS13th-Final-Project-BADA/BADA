@@ -1,5 +1,10 @@
 # 모바일 앱 (Capacitor) 설정
 
+> ⚠️ **[전환 중 — 2026-06-24]** 이 문서는 **Capacitor(웹뷰 기반 · Next.js 원격 로드)** 방식 기준이다.
+> "웹뷰가 아닌 진짜 네이티브 앱" 요구에 따라 모바일은 **React Native + Expo**로 전환 중이다.
+> 최신 방향·로드맵은 **`native-migration-plan.md`**, 코드는 **`mobile-native/`** 를 참조한다.
+> (참고: 본 문서 방식은 `capacitor.config.json`의 원격 로드와 `package.json`의 `next export` 번들이 서로 상충했다.)
+
 ## 구조
 
 ```
