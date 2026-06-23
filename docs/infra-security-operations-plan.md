@@ -97,3 +97,17 @@ Budget 알림은 Actual 5/50/80/90/100%, Forecast 80/100% 기준으로 구성돼
 - Frontend·Backend Critical 취약점의 수정 또는 위험 수용
 - Worker scan-compatible 이미지 생성 시점
 - Evidence·Report S3 보존 기간
+
+## 5. 인프라 권고 결정
+
+| 항목 | 권고 결정 | 완료 조건 |
+| --- | --- | --- |
+| RDS 암호화 | 현재 dev 인스턴스의 즉시 마이그레이션은 이월 | 운영·재사용 전 암호화 신규 RDS 전환 |
+| Task Role 분리 | 현재 dev에서는 이월 | 운영 전 Backend·Worker Role 분리와 E2E |
+| Frontend·Backend CVE | 7/3 전 담당자 수정 또는 위험 수용 기록 | 재스캔 결과와 승인자 기록 |
+| Worker Scan | 다음 Worker CD에서 manifest와 scan 재확인 | Docker v2 또는 scan 가능한 이미지 결과 |
+| Evidence·Report | 데모 중 자동 만료 미적용, 종료 시 실데이터 삭제 | PM 승인과 종료 런북 실행 |
+| Auto Scaling | MVP 미적용 | 예상 부하가 단일 Task 한계를 넘을 때 재검토 |
+| WAF·CloudFront·VPC Endpoint | MVP 미적용 | 외부 공개 운영 전 재검토 |
+
+종료·데이터 보존 절차는 `docs/runbooks/project-closure.md`를 기준으로 한다.
