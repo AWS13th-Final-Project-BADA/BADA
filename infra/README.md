@@ -48,6 +48,7 @@ MVP 원칙:
 - `TRANSCRIBE_MODE=aws`를 별도로 사용해 `PROVIDER_MODE=local` 상태에서도 Amazon Transcribe만 실제 호출 가능
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
 - CloudWatch Alarm은 ALB/ECS/RDS/SQS 핵심 지표 기준으로 생성하며, 기본은 콘솔 확인용이다.
+- ALB access log는 S3에 저장하고 기본 30일 후 자동 만료한다.
 - CloudWatch MCP는 Terraform 관리 최소권한 AssumeRole을 통해서만 AWS에 접근한다.
 - Prometheus는 Fargate 로컬 볼륨에 3일간 저장하고, Grafana 데이터만 EFS에 영속화한다.
 - Grafana는 Cloud Map의 `prometheus.bada-dev.local`을 통해 Prometheus에 접근한다.
