@@ -1,79 +1,33 @@
 /**
- * 백그라운드 GPS 추적 — expo-location + expo-task-manager.
- * (@transistorsoft 유료 플러그인 대체 — 무료/네이티브)
+ * GPS — 사건 종속(case-scoped) + 포그라운드 추적.
+ * 백엔드 계약(backend/app/routers/gps.py):
+ *   POST /cases/{id}/gps/workplace  {center_lat, center_lng, radius_m(10~500)}
+ *   GET  /cases/{id}/gps/workplace
+ *   POST /cases/{id}/gps/ping       {ts, lat, lng, is_mocked, source}
  *
- * 동작: "항상 허용" 권한 획득 → 위치 갱신마다 Backend `POST /gps/ping` 전송.
- * BADA 차별점: 재직 중 실시간 근무 증거 수집(steering product.md §2 하이브리드).
- *
- * is_mocked: 위치 위조(mock) 감지 플래그를 백엔드로 전달(증거 신빙성, security.md §6).
+ * 포그라운드(앱이 열린 동안) watchPositionAsync 사용 → Expo Go에서 동작.
+ * 백그라운드(앱 꺼져도 추적)는 개발 빌드 필요 → 추후(mobile-setup.md §7).
  */
 import * as Location from "expo-location";
-import * as TaskManager from "expo-task-manager";
 import { fetchApi } from "./api";
 
-export const GPS_TASK = "bada-background-location";
-
-async function sendPing(loc: Location.LocationObject, caseId?: string) {
-  const body = {
-    case_id: caseId ?? null,
-    ts: new Date(loc.timestamp).toISOString(),
-    lat: loc.coords.latitude,
-    lng: loc.coords.longitude,
-    accuracy: loc.coords.accuracy ?? null,
-    // expo는 mocked 플래그를 Android에서 제공(없으면 false)
-    is_mocked: (loc as any).mocked ?? false,
-  };
-  try {
-    await fetchApi("/gps/ping", { method: "POST", body: JSON.stringify(body) });
-  } catch {
-    // 오프라인/실패는 조용히 무시(다음 핑에서 재시도). 큐잉은 M2에서 보강.
-  }
+export interface Workplace {
+  id: string;
+  center_lat: number;
+  center_lng: number;
+  radius_m: number;
 }
 
-// 백그라운드 태스크 정의(모듈 로드 시 1회 등록)
-TaskManager.defineTask(GPS_TASK, async ({ data, error }) => {
-  if (error) return;
-  const { locations } = (data as any) ?? {};
-  if (!locations?.length) return;
-  for (const loc of locations as Location.LocationObject[]) {
-    await sendPing(loc);
-  }
-});
+export interface PingResult {
+  stored: boolean;
+  status: string | null; // IN_WORKPLACE | OUTSIDE | UNKNOWN | null(mock)
+  distance_m: number | null;
+  warning?: string;
+}
 
-export async function requestPermissions(): Promise<boolean> {
+export async function requestForeground(): Promise<boolean> {
   const fg = await Location.requestForegroundPermissionsAsync();
-  if (fg.status !== "granted") return false;
-  const bg = await Location.requestBackgroundPermissionsAsync();
-  return bg.status === "granted";
-}
-
-export async function startTracking(): Promise<void> {
-  const has = await Location.hasStartedLocationUpdatesAsync(GPS_TASK).catch(
-    () => false
-  );
-  if (has) return;
-  await Location.startLocationUpdatesAsync(GPS_TASK, {
-    accuracy: Location.Accuracy.Balanced,
-    distanceInterval: 10, // 10m 이동마다(mobile-setup.md 규칙과 동일)
-    deferredUpdatesInterval: 30000,
-    showsBackgroundLocationIndicator: true,
-    foregroundService: {
-      notificationTitle: "BADA 위치 수집 중",
-      notificationBody: "근무 증거를 위해 위치를 기록하고 있습니다.",
-      notificationColor: "#2563eb",
-    },
-  });
-}
-
-export async function stopTracking(): Promise<void> {
-  const has = await Location.hasStartedLocationUpdatesAsync(GPS_TASK).catch(
-    () => false
-  );
-  if (has) await Location.stopLocationUpdatesAsync(GPS_TASK);
-}
-
-export async function isTracking(): Promise<boolean> {
-  return Location.hasStartedLocationUpdatesAsync(GPS_TASK).catch(() => false);
+  return fg.status === "granted";
 }
 
 export async function getCurrent(): Promise<Location.LocationObject | null> {
@@ -84,4 +38,72 @@ export async function getCurrent(): Promise<Location.LocationObject | null> {
   } catch {
     return null;
   }
+}
+
+/** 근무지(지오펜스) 등록. */
+export async function registerWorkplace(
+  caseId: string,
+  lat: number,
+  lng: number,
+  radiusM: number
+): Promise<Workplace> {
+  return fetchApi<Workplace>(`/cases/${caseId}/gps/workplace`, {
+    method: "POST",
+    body: JSON.stringify({
+      center_lat: lat,
+      center_lng: lng,
+      radius_m: radiusM,
+    }),
+  });
+}
+
+/** 등록된 근무지 조회(없으면 null). */
+export async function getWorkplace(caseId: string): Promise<Workplace | null> {
+  try {
+    return await fetchApi<Workplace>(`/cases/${caseId}/gps/workplace`);
+  } catch {
+    return null; // 404 = 미등록
+  }
+}
+
+/** 위치 핑 1건 전송 → IN/OUT 즉시 판정 결과 반환. */
+export async function sendPing(
+  caseId: string,
+  loc: Location.LocationObject
+): Promise<PingResult> {
+  return fetchApi<PingResult>(`/cases/${caseId}/gps/ping`, {
+    method: "POST",
+    body: JSON.stringify({
+      ts: new Date(loc.timestamp).toISOString(),
+      lat: loc.coords.latitude,
+      lng: loc.coords.longitude,
+      is_mocked: (loc as any).mocked ?? false, // 위치 위조 감지 → 증거 배제
+      source: "app",
+    }),
+  });
+}
+
+/**
+ * 포그라운드 추적 시작 — 앱이 열려 있는 동안 위치 변화마다 핑 전송.
+ * 반환된 subscription.remove() 로 중지.
+ */
+export async function startForegroundWatch(
+  caseId: string,
+  onPing: (loc: Location.LocationObject, result: PingResult) => void
+): Promise<Location.LocationSubscription> {
+  return Location.watchPositionAsync(
+    {
+      accuracy: Location.Accuracy.Balanced,
+      distanceInterval: 10, // 10m 이동마다
+      timeInterval: 15000, // 또는 15초마다
+    },
+    async (loc) => {
+      try {
+        const result = await sendPing(caseId, loc);
+        onPing(loc, result);
+      } catch {
+        // 오프라인/일시 실패는 다음 갱신에서 재시도
+      }
+    }
+  );
 }

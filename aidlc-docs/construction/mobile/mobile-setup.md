@@ -72,7 +72,8 @@ mobile-native/
 | **M2** | 새 사건 생성 · 증거 업로드(카메라/갤러리/PDF) · 분석 결과(+report.html) | ✅ 완료 |
 | **M3** | 커뮤니티(피드/작성/상세·댓글·공감) · AI 챗봇 · Evidence Pack 리포트 | ✅ 완료 |
 | **검증** | 에뮬레이터 실행 성공(홈 렌더, AI 챗봇 백엔드 실연결 확인) | ✅ 2026-06-24 |
-| **남음** | GPS 버그 수정 · 개발빌드 GPS 검증 · 디자인 마감 · 법무(동의·삭제) · 인계물·출시빌드 | ⏳ |
+| **GPS 수정** | 사건 종속 전환 + 근무지 등록 + 포그라운드 추적(Expo Go 동작) · 챗봇 언어 `auto` | ✅ 2026-06-24 |
+| **남음** | 백그라운드 GPS(개발빌드) · 디자인 마감 · 법무(동의·삭제) · 인계물·출시빌드 | ⏳ |
 
 > 화면은 백엔드 계약(`schemas.py`·`schemas_report.py`·`schemas_community.py`·`schemas_ai_chat.py`)에 맞춰 구현. 모든 사용자 대면 문구에 면책고지 적용.
 
@@ -84,11 +85,14 @@ mobile-native/
 2. **챗봇 `case_id` 정합** — `schemas_ai_chat.py` `case_id: int` ↔ 사건 UUID 불일치. `str` 수용으로 변경. (GPS+Agent+OCR 담당)
 3. **`report.pdf` 다운로드** — 워커가 PDF를 S3(`pdf_ko_s3_key`)에 저장하나 노출 엔드포인트 없음. `presign_get` 302 엔드포인트 1개 추가. 후순위. (백엔드/분석 담당)
 
-## 7. GPS — 수정 필요(앱)
+## 7. GPS — 사건 종속 + 포그라운드 (구현 완료)
 
-- 현재 `src/lib/gps.ts`가 `/gps/ping`으로 전송 → 실제는 `POST /cases/{case_id}/gps/ping`(사건 종속) + 사전 `POST /cases/{case_id}/gps/workplace`(위치+반경) 필요.
-- 수정 방향: 사건 선택 → 근무지(반경 50~500m) 등록 → 해당 사건으로 핑 전송 → IN/OUT 판정. `is_mocked` 핑 포함 전송(백엔드 무결성).
-- 백그라운드 추적은 **개발 빌드 필요**(Expo Go는 foreground-service 권한 미포함).
+- **완료(2026-06-24)**: `src/lib/gps.ts`·`app/gps.tsx`를 사건 종속 구조로 수정.
+  - 흐름: **사건 선택 → 근무지 등록(`POST /cases/{id}/gps/workplace`, 반경 50~500m) → 해당 사건으로 핑 전송(`POST /cases/{id}/gps/ping`) → IN/OUT 즉시 판정.**
+  - 핑 바디 = `{ts, lat, lng, is_mocked, source:"app"}` (백엔드 `Ping` 모델 일치). `is_mocked` 핑은 서버에서 증거 배제.
+  - 추적은 **포그라운드**(`watchPositionAsync`) → **Expo Go에서 동작.**
+- **남음**: 앱을 꺼도 추적되는 **백그라운드 모드**는 개발 빌드 필요(`expo run:android`; Expo Go는 foreground-service 권한 미포함).
+- 테스트 전제: GPS 엔드포인트가 인증을 요구 → 로그인(또는 개발용 토큰 주입) 후 사건이 있어야 핑 동작.
 
 ## 8. 법무 필수 (출시 전, `docs/BADA Privacy Legal Requirements.md`)
 

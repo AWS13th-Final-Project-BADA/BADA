@@ -13,7 +13,6 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import { fetchApi } from "@/lib/api";
 import type { ChatResponse } from "@/lib/types";
-import { t, i18n } from "@/i18n";
 import { colors, spacing, radius } from "@/theme";
 
 interface Msg {
@@ -52,7 +51,7 @@ export default function ChatScreen() {
         body: JSON.stringify({
           case_id: numericCaseId,
           message: text,
-          language: i18n.locale,
+          language: "auto", // 사용자가 입력한 말의 언어를 자동 감지해 그 언어로 답변
         }),
       });
       setMessages((m) => [
