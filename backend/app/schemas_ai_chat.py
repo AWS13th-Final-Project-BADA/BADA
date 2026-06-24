@@ -14,7 +14,7 @@ class RagSource(BaseModel):
 
 class ChatMessageRequest(BaseModel):
     session_id: Optional[int] = None
-    case_id: int = Field(..., example=1)
+    case_id: Optional[str] = Field(default=None, example="550e8400-e29b-41d4-a716-446655440000")
     message: str = Field(..., example="고용노동부에 가기 전에 뭘 준비해야 하나요?")
     language: str = Field(default="auto", example="auto")
 

@@ -52,4 +52,7 @@ uploads/
 # 개인 작업 메모 (협업 저장소에 올리지 않음)
 evidence-agent-context.md
 
+# 개인 Kiro steering (팀 공유 제외)
+.kiro/steering/ponytail.md
+
 .hypothesis/
