@@ -31,18 +31,19 @@ export async function requestForeground(): Promise<boolean> {
 }
 
 export async function getCurrent(): Promise<Location.LocationObject | null> {
-  // 1) 마지막으로 알려진 위치 — 에뮬레이터/실내에서 즉시 반환되는 경우가 많음
+  // 1) 최신 위치를 High 정확도로 먼저 측정 → 에뮬레이터 SET LOCATION(GPS) 반영
+  //    (last-known을 먼저 쓰면 옛 좌표가 고정돼 판정이 안 바뀜)
   try {
-    const last = await Location.getLastKnownPositionAsync();
-    if (last) return last;
+    const cur = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+    if (cur) return cur;
   } catch {
     /* fall through */
   }
-  // 2) 새 위치 측정 시도
+  // 2) 실패 시에만 마지막으로 알려진 위치로 폴백
   try {
-    return await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
+    return await Location.getLastKnownPositionAsync();
   } catch {
     return null;
   }
