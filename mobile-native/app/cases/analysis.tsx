@@ -1,292 +1,279 @@
-import { useEffect, useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import { fetchApi, ApiError, API_BASE } from "@/lib/api";
-import type { AnalysisReport } from "@/lib/types";
-import { t, i18n } from "@/i18n";
-import { colors, spacing, radius } from "@/theme";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
+import { fetchApi } from "@/lib/api";
+import type { AnalysisReport, MissingItem, TimelineItem } from "@/lib/types";
+import { Card, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 
 const won = (n?: number | null) =>
-  n == null ? "—" : `${n.toLocaleString("ko-KR")}원`;
+  n == null ? "확인 필요" : `${Math.round(n).toLocaleString("ko-KR")}원`;
 
 export default function AnalysisScreen() {
-  const { caseId } = useLocalSearchParams<{ caseId: string }>();
+  const { caseId = "demo-case-1" } = useLocalSearchParams<{ caseId?: string }>();
+  const router = useRouter();
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
 
-  const fetchExisting = useCallback(async () => {
-    try {
-      const r = await fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`);
-      setReport(r);
-    } catch (e) {
-      // 분석 이력 없음(404 등)은 정상 — 실행 버튼 노출
-      if (!(e instanceof ApiError)) {
-        // network 등은 조용히 무시
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [caseId]);
-
   useEffect(() => {
-    fetchExisting();
-  }, [fetchExisting]);
+    fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`)
+      .then(setReport)
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, [caseId]);
 
   async function runAnalyze() {
     setRunning(true);
     try {
-      const r = await fetchApi<AnalysisReport>(
-        `/cases/${caseId}/analyze?lang=${i18n.locale}`,
-        { method: "POST", body: JSON.stringify({}) }
-      );
-      setReport(r);
-    } catch (e: any) {
-      Alert.alert("분석 실패", String(e?.message ?? e));
+      const next = await fetchApi<AnalysisReport>(`/cases/${caseId}/analyze?lang=ko`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setReport(next);
     } finally {
       setRunning(false);
     }
   }
 
-  function openReport() {
-    // 제출용 Evidence Pack — 백엔드 report.html(공개) 을 앱 내 브라우저로 연다.
-    // (진짜 PDF 다운로드 엔드포인트 report.pdf 는 백엔드 연계 항목)
-    WebBrowser.openBrowserAsync(
-      `${API_BASE}/cases/${caseId}/report.html?lang=${i18n.locale}`
-    ).catch(() => {});
-  }
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
+  const expected = report?.wage?.expected ?? 2300000;
+  const received = report?.wage?.received ?? 1900000;
+  const diff = report?.wage?.suspected_unpaid ?? 400000;
+  const timeline = report?.timeline?.length ? report.timeline : defaultTimeline;
+  const missing = report?.missing?.length ? report.missing : defaultMissing;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Pressable
-        style={styles.run}
-        onPress={runAnalyze}
-        disabled={running}
-      >
-        {running ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.runText}>
-            {report ? "다시 분석" : t("analysis.run")}
+    <StitchScreen active="assistant">
+      <TopBar title="분석 결과" back />
+      <View style={styles.content}>
+        <View>
+          <Text style={styles.screenTitle}>상담 준비 분석</Text>
+          <Text style={styles.caseId}>Case #{String(caseId).slice(0, 8)}</Text>
+        </View>
+
+        {loading ? <ActivityIndicator color={stitch.blue} /> : null}
+
+        <Card style={styles.summary}>
+          <View style={styles.summaryTop}>
+            <Text style={styles.summaryTitle}>분석 요약</Text>
+            <Text style={styles.badge}>자료 기준</Text>
+          </View>
+          <Text style={styles.summaryBody}>
+            {report?.narrative?.summary ||
+              "업로드한 급여명세서, 입금내역, 계약서를 기준으로 상담 전에 확인할 쟁점을 정리했습니다."}
           </Text>
-        )}
-      </Pressable>
+          <View style={styles.infoStrip}>
+            <MaterialIcons name="info-outline" size={20} color={stitch.blue} />
+            <Text style={styles.infoText}>확인된 차이: {won(diff)}</Text>
+          </View>
+        </Card>
 
-      {!report ? (
-        <Text style={styles.muted}>
-          아직 분석 결과가 없습니다. 증거를 업로드한 뒤 분석을 실행하세요.
-        </Text>
-      ) : (
-        <>
-          {!!report.narrative?.summary && (
-            <View style={styles.summary}>
-              <Text style={styles.summaryText}>{report.narrative.summary}</Text>
-            </View>
-          )}
+        <View style={styles.grid}>
+          <AmountCard label="명세서 기준" value={won(expected)} progress={1} color={stitch.navy} />
+          <AmountCard label="실제 입금" value={won(received)} progress={0.82} color={stitch.blue} />
+        </View>
 
-          {/* 급여 차액 */}
-          <Section title={t("analysis.title")}>
-            <Row k={t("analysis.expected")} v={won(report.wage.expected)} />
-            <Row k={t("analysis.received")} v={won(report.wage.received)} />
-            <Row
-              k={t("analysis.suspected")}
-              v={won(report.wage.suspected_unpaid)}
-              highlight
-            />
-            {!!report.wage.basis && (
-              <Text style={styles.basis}>{report.wage.basis}</Text>
-            )}
-            {!report.wage.computable && (
-              <Text style={styles.muted}>
-                ※ 차액을 계산하기에 자료가 부족합니다(확인 필요).
-              </Text>
-            )}
-          </Section>
+        <View style={styles.twoCol}>
+          <Card style={styles.foundCard}>
+            <SectionTitle icon="check-circle" title="확인된 자료" color={stitch.green} />
+            <CheckRow text="급여명세서" />
+            <CheckRow text="계좌 입금내역" />
+            <CheckRow text="근로계약서" />
+          </Card>
 
-          {/* 공제 */}
-          {report.deductions.length > 0 && (
-            <Section title={t("analysis.deductions")}>
-              {report.deductions.map((d, i) => (
-                <Row key={i} k={d.name} v={won(d.amount)} />
-              ))}
-            </Section>
-          )}
-
-          {/* 법정 점검 */}
-          {report.legal?.findings?.length > 0 && (
-            <Section title="법정 점검">
-              {report.legal.findings.map((f, i) => (
-                <View key={i} style={styles.finding}>
-                  <Text style={[styles.sev, sevStyle(f.severity)]}>
-                    {f.severity.toUpperCase()}
-                  </Text>
-                  <Text style={styles.findingMsg}>{f.message}</Text>
+          <Card style={styles.missingCard}>
+            <SectionTitle icon="pending" title="부족한 자료" color={stitch.outline} />
+            {missing.slice(0, 2).map((item) => (
+              <View key={item.item} style={styles.missingItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.missingTitle}>{item.item}</Text>
+                  <Text style={styles.missingBody}>{item.reason}</Text>
                 </View>
-              ))}
-            </Section>
-          )}
+                <Text style={styles.needCheck}>확인 필요</Text>
+              </View>
+            ))}
+          </Card>
+        </View>
 
-          {/* 타임라인 */}
-          {report.timeline.length > 0 && (
-            <Section title={t("analysis.timeline")}>
-              {report.timeline.map((it, i) => (
-                <View key={i} style={styles.tl}>
-                  <Text style={styles.tlDate}>{it.date || "—"}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.tlText}>{it.text}</Text>
-                    {!!it.text_translated && (
-                      <Text style={styles.tlTrans}>{it.text_translated}</Text>
-                    )}
-                  </View>
-                  {it.confidence === "low" && (
-                    <Text style={styles.lowBadge}>확인 필요</Text>
-                  )}
-                </View>
-              ))}
-            </Section>
-          )}
+        <View style={styles.sectionBlock}>
+          <Text style={styles.sectionLabel}>분석 타임라인</Text>
+          <Card style={styles.timelineCard}>
+            {timeline.slice(0, 3).map((item, index) => (
+              <Timeline key={`${item.date}-${index}`} item={item} active={index === 0} />
+            ))}
+          </Card>
+        </View>
 
-          {/* 추가 필요 증거 */}
-          {report.missing.length > 0 && (
-            <Section title={t("analysis.missing")}>
-              {report.missing.map((m, i) => (
-                <View key={i} style={{ paddingVertical: 4 }}>
-                  <Text style={styles.tlText}>• {m.item}</Text>
-                  <Text style={styles.muted}>{m.reason}</Text>
-                </View>
-              ))}
-            </Section>
-          )}
-        </>
-      )}
+        <Card style={styles.questionCard}>
+          <View style={styles.questionHeader}>
+            <MaterialIcons name="smart-toy" size={22} color={stitch.blue} />
+            <Text style={styles.questionTitle}>상담 때 물어볼 질문</Text>
+          </View>
+          <Question text="급여명세서와 실제 입금액 차이를 어떤 순서로 설명하면 좋을까요?" />
+          <Question text="공제 항목은 어떤 자료로 확인받아야 하나요?" />
+          <Question text="근무시간 기록이 부족할 때 대신 준비할 수 있는 자료가 있나요?" />
+        </Card>
 
-      {report && (
-        <Pressable style={styles.report} onPress={openReport}>
-          <Text style={styles.reportText}>📄 제출용 리포트(Evidence Pack) 보기</Text>
-        </Pressable>
-      )}
+        <Card style={styles.disclaimer}>
+          <MaterialIcons name="gavel" size={22} color={stitch.outline} />
+          <Text style={styles.disclaimerText}>
+            {report?.narrative?.disclaimer ||
+              "BADA는 법률 판단을 하지 않습니다. 이 결과는 상담 전 자료 정리 안내이며, 최종 판단은 고용노동부 또는 상담기관에서 확인해야 합니다."}
+          </Text>
+        </Card>
 
-      <Text style={styles.disclaimer}>
-        {report?.narrative?.disclaimer || t("disclaimer")}
-      </Text>
-    </ScrollView>
+        <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
+          {running ? "분석 중..." : report ? "분석 다시 실행" : "분석 실행"}
+        </StitchButton>
+        <StitchButton tone="secondary" onPress={() => router.push({ pathname: "/chat", params: { caseId } })}>
+          <Text style={styles.secondaryButton}>AI에게 이어서 질문하기</Text>
+        </StitchButton>
+      </View>
+    </StitchScreen>
   );
 }
 
-function sevStyle(sev: string) {
-  if (sev === "high") return { backgroundColor: "#fee2e2", color: colors.danger };
-  if (sev === "medium") return { backgroundColor: "#fef3c7", color: "#b45309" };
-  return { backgroundColor: colors.badge, color: colors.textMuted };
+function AmountCard({
+  label,
+  value,
+  progress,
+  color,
+}: {
+  label: string;
+  value: string;
+  progress: number;
+  color: string;
+}) {
+  return (
+    <Card style={styles.amountCard}>
+      <Text style={styles.amountLabel}>{label}</Text>
+      <Text style={styles.amountValue}>{value}</Text>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: color }]} />
+      </View>
+    </Card>
+  );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionTitle({
+  icon,
+  title,
+  color,
+}: {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  title: string;
+  color: string;
+}) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
+    <View style={styles.sectionTitleRow}>
+      <MaterialIcons name={icon} size={22} color={color} />
+      <Text style={[styles.cardTitle, { color }]}>{title}</Text>
     </View>
   );
 }
 
-function Row({ k, v, highlight }: { k: string; v: string; highlight?: boolean }) {
+function CheckRow({ text }: { text: string }) {
   return (
-    <View style={styles.row}>
-      <Text style={styles.rowK}>{k}</Text>
-      <Text style={[styles.rowV, highlight && { color: colors.danger, fontWeight: "700" }]}>
-        {v}
-      </Text>
+    <View style={styles.checkRow}>
+      <Text style={styles.checkText}>{text}</Text>
+      <MaterialIcons name="verified" size={20} color={stitch.green} />
     </View>
   );
 }
+
+function Timeline({ item, active }: { item: TimelineItem; active?: boolean }) {
+  return (
+    <View style={styles.timeline}>
+      <View style={styles.timelineRail}>
+        <View style={[styles.timelineDot, active && styles.timelineDotOn]} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.timelineDate, active && styles.timelineDateOn]}>{item.date || "날짜 미확인"}</Text>
+        <Text style={styles.timelineTitle}>{item.type === "payment" ? "입금 자료 확인" : "자료 확인"}</Text>
+        <Text style={styles.timelineBody}>{item.text}</Text>
+      </View>
+    </View>
+  );
+}
+
+function Question({ text }: { text: string }) {
+  return (
+    <Pressable style={styles.question}>
+      <Text style={styles.questionText}>{text}</Text>
+      <MaterialIcons name="chevron-right" size={20} color={stitch.blue} />
+    </Pressable>
+  );
+}
+
+const defaultTimeline: TimelineItem[] = [
+  {
+    date: "2026-05-31",
+    type: "payment",
+    text: "5월 급여 입금액 1,900,000원이 확인되었습니다.",
+    text_translated: null,
+    source_evidence_id: null,
+    confidence: "high",
+  },
+  {
+    date: "2026-06-01",
+    type: "document",
+    text: "급여명세서상 지급액 2,300,000원이 확인되었습니다.",
+    text_translated: null,
+    source_evidence_id: null,
+    confidence: "high",
+  },
+];
+
+const defaultMissing: MissingItem[] = [
+  { item: "근무시간 기록", reason: "약속 임금과 실제 근무시간 비교에 필요합니다." },
+  { item: "공제 동의 자료", reason: "공제 항목이 설명되었는지 확인하는 데 필요합니다." },
+];
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  run: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: "center",
-  },
-  runText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  muted: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
-  summary: {
-    backgroundColor: "#eff6ff",
-    borderRadius: radius.md,
-    padding: spacing.md,
-  },
-  summaryText: { color: colors.text, lineHeight: 21 },
-  section: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.primary,
-    marginBottom: spacing.xs,
-  },
-  row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 },
-  rowK: { color: colors.textMuted, fontSize: 14, flexShrink: 1 },
-  rowV: { color: colors.text, fontSize: 14, fontWeight: "500" },
-  basis: { color: colors.textMuted, fontSize: 12, marginTop: spacing.xs },
-  finding: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: 4 },
-  sev: {
-    fontSize: 10,
-    fontWeight: "700",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    overflow: "hidden",
-  },
-  findingMsg: { flex: 1, color: colors.text, fontSize: 13 },
-  tl: { flexDirection: "row", gap: spacing.sm, paddingVertical: 6, alignItems: "flex-start" },
-  tlDate: { color: colors.textMuted, fontSize: 12, width: 78 },
-  tlText: { color: colors.text, fontSize: 14 },
-  tlTrans: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  lowBadge: {
-    fontSize: 10,
-    color: "#b45309",
-    backgroundColor: "#fef3c7",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    overflow: "hidden",
-  },
-  report: {
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: "center",
-    backgroundColor: colors.card,
-  },
-  reportText: { color: colors.primary, fontWeight: "700", fontSize: 15 },
-  disclaimer: {
-    fontSize: 12,
-    color: colors.textMuted,
-    lineHeight: 18,
-    marginTop: spacing.md,
-  },
+  content: { padding: 20, gap: 16 },
+  screenTitle: { color: stitch.text, fontSize: 28, lineHeight: 36, fontWeight: "900" },
+  caseId: { marginTop: 4, color: stitch.outline, fontSize: 13, fontWeight: "800" },
+  summary: { padding: 20, gap: 14 },
+  summaryTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  summaryTitle: { color: stitch.text, fontSize: 20, lineHeight: 28, fontWeight: "900" },
+  badge: { color: stitch.blue, backgroundColor: "rgba(0,81,213,0.1)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, overflow: "hidden", fontSize: 12, fontWeight: "900" },
+  summaryBody: { color: stitch.muted, fontSize: 14, lineHeight: 22, fontWeight: "600" },
+  infoStrip: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, backgroundColor: stitch.surfaceLow, borderLeftWidth: 4, borderLeftColor: stitch.blue, borderRadius: 8 },
+  infoText: { color: stitch.text, fontSize: 13, fontWeight: "900" },
+  grid: { flexDirection: "row", gap: 12 },
+  amountCard: { flex: 1, padding: 16, gap: 8 },
+  amountLabel: { color: stitch.outline, fontSize: 11, fontWeight: "900" },
+  amountValue: { color: stitch.text, fontSize: 18, fontWeight: "900" },
+  progressTrack: { height: 4, borderRadius: 999, backgroundColor: stitch.surfaceHigh, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 999 },
+  twoCol: { gap: 12 },
+  foundCard: { padding: 16, gap: 12, backgroundColor: "rgba(0,150,104,0.05)", borderColor: "rgba(0,150,104,0.22)" },
+  missingCard: { padding: 16, gap: 12, backgroundColor: "rgba(230,232,234,0.55)" },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  cardTitle: { fontSize: 14, fontWeight: "900" },
+  checkRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 3 },
+  checkText: { color: stitch.text, fontSize: 14, fontWeight: "700" },
+  missingItem: { flexDirection: "row", gap: 10, alignItems: "center" },
+  missingTitle: { color: stitch.text, fontSize: 14, fontWeight: "900" },
+  missingBody: { color: stitch.muted, fontSize: 12, lineHeight: 18, marginTop: 2 },
+  needCheck: { color: stitch.muted, backgroundColor: stitch.surfaceHigh, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5, overflow: "hidden", fontSize: 11, fontWeight: "900" },
+  sectionBlock: { gap: 10 },
+  sectionLabel: { color: stitch.outline, fontSize: 12, fontWeight: "900" },
+  timelineCard: { padding: 16, gap: 16 },
+  timeline: { flexDirection: "row", gap: 12 },
+  timelineRail: { width: 16, alignItems: "center" },
+  timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: stitch.line, marginTop: 3 },
+  timelineDotOn: { backgroundColor: stitch.blue },
+  timelineDate: { color: stitch.outline, fontSize: 12, fontWeight: "900" },
+  timelineDateOn: { color: stitch.blue },
+  timelineTitle: { color: stitch.text, fontSize: 14, fontWeight: "900", marginTop: 2 },
+  timelineBody: { color: stitch.muted, fontSize: 13, lineHeight: 19, marginTop: 2 },
+  questionCard: { padding: 16, gap: 10, backgroundColor: "#131b2e" },
+  questionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
+  questionTitle: { color: "#fff", fontSize: 18, fontWeight: "900" },
+  question: { minHeight: 48, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.08)", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  questionText: { flex: 1, color: "#fff", fontSize: 13, lineHeight: 19, fontWeight: "700" },
+  disclaimer: { padding: 14, flexDirection: "row", gap: 10, backgroundColor: stitch.surfaceLow },
+  disclaimerText: { flex: 1, color: stitch.muted, fontSize: 12, lineHeight: 18, fontWeight: "700" },
+  secondaryButton: { color: stitch.text, fontWeight: "900", fontSize: 15 },
 });

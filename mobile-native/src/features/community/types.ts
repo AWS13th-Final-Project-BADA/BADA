@@ -1,5 +1,3 @@
-/** 커뮤니티(community) 타입 — backend schemas_community.py. */
-
 export type CommunityCategory =
   | "free"
   | "wage"

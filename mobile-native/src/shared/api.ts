@@ -1,10 +1,6 @@
-/**
- * Backend API 클라이언트 — Bearer 토큰 자동 주입.
- * web `frontend/src/lib/api.ts`의 네이티브 버전.
- * 토큰은 localStorage 대신 expo-secure-store(OS 보안 저장소)에 보관.
- */
-import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
+import * as SecureStore from "expo-secure-store";
+import { handleDemoApi, isDemoToken } from "@/lib/demoApi";
 
 const API_BASE: string =
   (Constants.expoConfig?.extra?.apiBase as string) || "https://api.badasoft.com";
@@ -38,11 +34,15 @@ export async function fetchApi<T = any>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = await getToken();
+  if (isDemoToken(token)) {
+    return handleDemoApi<T>(path, options);
+  }
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
@@ -50,13 +50,14 @@ export async function fetchApi<T = any>(
     await clearToken();
     throw new ApiError(401, "Unauthorized");
   }
+
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new ApiError(res.status, `API ${res.status}: ${body}`);
   }
-  // 204 등 본문 없는 응답 방어
+
   const text = await res.text();
   return (text ? JSON.parse(text) : null) as T;
 }
 
-export { API_BASE };
+export { API_BASE, isDemoToken as isDemoAccessToken };
