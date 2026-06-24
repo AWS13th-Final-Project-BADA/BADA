@@ -24,9 +24,7 @@ COPY worker/fonts/ /usr/share/fonts/truetype/bada/
 RUN fc-cache -fv 2>/dev/null || true
 
 COPY worker /app/worker
-COPY backend/app/models.py /app/backend/app/models.py
-COPY backend/app/db.py /app/backend/app/db.py
-COPY backend/app/__init__.py /app/backend/app/__init__.py
+COPY backend/app /app/backend/app
 
 WORKDIR /app/worker
 

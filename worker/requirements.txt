@@ -4,6 +4,7 @@
 boto3==1.35.30          # Bedrock (Claude Vision/Text)
 requests==2.32.3        # Upstage Document Parse API
 pydantic==2.9.2         # OCR output schema validation
+pydantic-settings==2.5.2  # backend/app/config.py 의존성(Worker DB 직접 접근)
 jinja2==3.1.4
 pytest==8.3.3
 hypothesis==6.115.0     # Property-Based Testing
