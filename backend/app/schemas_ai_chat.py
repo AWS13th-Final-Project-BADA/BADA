@@ -14,7 +14,8 @@ class RagSource(BaseModel):
 
 class ChatMessageRequest(BaseModel):
     session_id: Optional[int] = None
-    case_id: int = Field(..., example=1)
+    # 사건 UUID 문자열. 모바일/웹 모두 사건 ID(UUID)를 보낸다. 미지정(None)이면 일반 상담.
+    case_id: Optional[str] = Field(default=None, example="a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d")
     message: str = Field(..., example="고용노동부에 가기 전에 뭘 준비해야 하나요?")
     language: str = Field(default="auto", example="auto")
 

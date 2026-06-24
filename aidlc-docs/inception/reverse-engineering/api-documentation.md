@@ -46,10 +46,10 @@ All endpoints are prefixed based on their router registration in `main.py`.
 | GET | `/cases/{id}/gps/logs` | GPS 로그 전체 조회 |
 | GET | `/cases/{id}/gps/summary` | 일별 GPS 요약 (Evidence Pack용) |
 
-### AI Chat (`/cases/{case_id}/chat`)
+### AI Chat (`/chat`)
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/cases/{id}/chat/messages` | 챗봇 메시지 전송 및 응답 수신 |
+| POST | `/chat/messages` | 챗봇 메시지 전송 및 응답 수신 (case_id는 body, UUID 문자열; 미지정 시 일반 상담) |
 
 ### Auth (`/auth`)
 | Method | Path | Purpose |
