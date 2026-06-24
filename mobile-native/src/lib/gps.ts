@@ -31,6 +31,14 @@ export async function requestForeground(): Promise<boolean> {
 }
 
 export async function getCurrent(): Promise<Location.LocationObject | null> {
+  // 1) 마지막으로 알려진 위치 — 에뮬레이터/실내에서 즉시 반환되는 경우가 많음
+  try {
+    const last = await Location.getLastKnownPositionAsync();
+    if (last) return last;
+  } catch {
+    /* fall through */
+  }
+  // 2) 새 위치 측정 시도
   try {
     return await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.Balanced,

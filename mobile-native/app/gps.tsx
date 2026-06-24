@@ -18,6 +18,7 @@ import {
   getWorkplace,
   registerWorkplace,
   startForegroundWatch,
+  sendPing,
   type Workplace,
   type PingResult,
 } from "@/lib/gps";
@@ -101,6 +102,27 @@ export default function GpsScreen() {
     }
   }
 
+  // 현재 위치로 1회 핑 → 즉시 판정(에뮬레이터/수동 확인용)
+  async function pingOnce() {
+    if (!caseId) return;
+    const ok = await requestForeground();
+    if (!ok) {
+      Alert.alert("위치 권한 필요", "위치 권한을 허용해 주세요.");
+      return;
+    }
+    try {
+      const loc = await getCurrent();
+      if (!loc) {
+        Alert.alert("오류", "현재 위치를 가져오지 못했습니다.");
+        return;
+      }
+      const r = await sendPing(caseId, loc);
+      setLastStatus(formatStatus(r));
+    } catch (e: any) {
+      Alert.alert("핑 실패", String(e?.message ?? e));
+    }
+  }
+
   async function onStart() {
     if (!caseId) return;
     const ok = await requestForeground();
@@ -108,6 +130,7 @@ export default function GpsScreen() {
       Alert.alert("위치 권한 필요", "위치 권한을 허용해 주세요.");
       return;
     }
+    await pingOnce(); // 시작 즉시 1회 판정
     subRef.current = await startForegroundWatch(caseId, (_loc, r: PingResult) => {
       setLastStatus(formatStatus(r));
     });
@@ -223,6 +246,10 @@ export default function GpsScreen() {
         </Pressable>
       )}
 
+      <Pressable style={styles.secondary} onPress={pingOnce}>
+        <Text style={styles.secondaryText}>지금 위치로 판정 새로고침</Text>
+      </Pressable>
+
       <Text style={styles.note}>
         ⚠️ 위치 위조(mock)가 감지된 핑은 증거에서 자동 배제됩니다. 앱을 꺼도
         추적되는 백그라운드 모드는 개발 빌드에서 지원됩니다.
@@ -284,5 +311,14 @@ const styles = StyleSheet.create({
   },
   stop: { backgroundColor: colors.danger },
   btnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  secondary: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    alignItems: "center",
+    backgroundColor: colors.card,
+  },
+  secondaryText: { color: colors.text, fontWeight: "600" },
   note: { fontSize: 12, color: colors.textMuted, lineHeight: 18, marginTop: spacing.md },
 });
