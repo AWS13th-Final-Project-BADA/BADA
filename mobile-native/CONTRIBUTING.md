@@ -2,7 +2,7 @@
 
 > 목적: **기능별 유지보수와 신규 개발이 서로 충돌 없이 병렬로** 진행되게 하는 규칙.
 > 핵심 원리: 충돌은 "여러 사람이 같은 파일을 동시에 고칠 때" 생긴다. → **각자 자기 기능 폴더만 건드리게** 만든다.
-> 상위 방향: `../aidlc-docs/construction/mobile/native-migration-plan.md` · 커밋/브랜치 공통 규칙: `../.kiro/steering/git.md`
+> 상위 방향(설계): `../aidlc-docs/construction/mobile/mobile-setup.md` · 커밋/브랜치 공통 규칙: `../.kiro/steering/git.md`
 
 ---
 

@@ -2,7 +2,7 @@
 
 웹뷰가 아닌 **진짜 네이티브 앱**. 백엔드(`https://api.badasoft.com`)를 그대로 호출하며, develop·backend·기존 `frontend`·기존 `mobile`(Capacitor)과 **완전히 분리**되어 있다.
 
-> 전환 배경·로드맵·리스크: `../aidlc-docs/construction/mobile/native-migration-plan.md`
+> 전환 배경·로드맵·리스크: `../aidlc-docs/construction/mobile/mobile-setup.md`
 
 ## 사전 준비 (1회)
 - Node.js 18+
