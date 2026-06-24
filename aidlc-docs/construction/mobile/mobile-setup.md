@@ -57,9 +57,12 @@ mobile-native/
 │  ├─ _layout.tsx · index.tsx · login.tsx · gps.tsx
 │  └─ cases/(index·[id]·new·upload·analysis) · community/(index·new·[id]) · chat.tsx
 ├─ src/
-│  ├─ lib/(api·auth·gps·evidence·types).ts
-│  ├─ i18n/(index + messages/ko·vi·en.json)   # frontend에서 복사
-│  └─ theme.ts
+│  ├─ shared/(api · theme · types)            # 공유 transport·테마·primitives 타입
+│  ├─ features/                               # 기능별 모듈(2026-06-24 재배치)
+│  │   ├─ auth/api · evidence/(api·types) · gps/api
+│  │   └─ cases/types · analysis/types · community/types · chat/types
+│  ├─ lib/(api·auth·gps·evidence·types) · theme.ts   # 기존 import 호환 배럴(재export)
+│  └─ i18n/(index + messages/ko·vi·en.json)   # frontend에서 복사(중앙 집중)
 ├─ CONTRIBUTING.md          # 충돌 없는 협업 규약(기능 모듈 경계·핫스팟·브랜치)
 └─ BACKEND-INTEGRATION.md   # 백엔드 연계 3건(§6)
 ```
