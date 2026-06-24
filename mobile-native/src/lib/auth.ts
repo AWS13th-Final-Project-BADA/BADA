@@ -13,6 +13,7 @@
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import { API_BASE, setToken, clearToken } from "./api";
+import { DEMO_TOKEN } from "./demoApi";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -20,23 +21,38 @@ const APP_REDIRECT = Linking.createURL("auth"); // exp://… 또는 bada://auth
 
 type Provider = "cognito" | "kakao" | "google" | "naver";
 
+function buildAuthUrl(provider: Provider): string {
+  const params = new URLSearchParams({
+    redirect_uri: APP_REDIRECT,
+  });
+
+  if (provider === "google") {
+    params.set("identity_provider", "Google");
+    params.set("prompt", "select_account");
+    return `${API_BASE}/auth/cognito/login?${params.toString()}`;
+  }
+
+  if (provider === "cognito") {
+    return `${API_BASE}/auth/cognito/login?${params.toString()}`;
+  }
+
+  return `${API_BASE}/auth/${provider}/login?${params.toString()}`;
+}
+
 function extractToken(url: string): string | null {
-  // 지원: bada://auth?token=... / bada://auth#token=...
-  const q = url.split(/[?#]/)[1];
-  if (!q) return null;
-  for (const part of q.split("&")) {
-    const [k, v] = part.split("=");
-    if (k === "token" && v) return decodeURIComponent(v);
+  // 지원: bada://auth?token=... / bada://auth#token=... / https://badasoft.com/#token=...
+  const parts = url.split(/[?#]/).slice(1);
+  for (const q of parts) {
+    for (const part of q.split("&")) {
+      const [k, v] = part.split("=");
+      if (k === "token" && v) return decodeURIComponent(v);
+    }
   }
   return null;
 }
 
 export async function login(provider: Provider = "cognito"): Promise<boolean> {
-  const loginPath =
-    provider === "cognito" ? "/auth/cognito/login" : `/auth/${provider}/login`;
-  const authUrl = `${API_BASE}${loginPath}?redirect_uri=${encodeURIComponent(
-    APP_REDIRECT
-  )}`;
+  const authUrl = buildAuthUrl(provider);
 
   const result = await WebBrowser.openAuthSessionAsync(authUrl, APP_REDIRECT);
   if (result.type === "success" && result.url) {
@@ -58,6 +74,11 @@ export async function logout(): Promise<void> {
 /** 데모/개발용 토큰 수동 주입 (백엔드 딥링크 연계 전 임시). */
 export async function setTokenManually(token: string): Promise<void> {
   await setToken(token);
+}
+
+/** Expo 개발 중 앱 전체 흐름을 확인하기 위한 로컬 데모 세션. */
+export async function startDemoSession(): Promise<void> {
+  await setToken(DEMO_TOKEN);
 }
 
 export { APP_REDIRECT };

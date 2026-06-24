@@ -1,8 +1,3 @@
-/**
- * 백엔드 계약 타입 — backend/app/schemas.py · schemas_report.py 와 1:1 대응.
- * (연동 안정성을 위해 백엔드 스키마를 따른다. 임의 필드 추가 금지.)
- */
-
 export type Category =
   | "contract"
   | "schedule"
@@ -14,7 +9,6 @@ export type Category =
 export type FileType = "image" | "pdf" | "text";
 export type Confidence = "high" | "medium" | "low";
 
-/** GET /cases, GET /cases/{id} 응답 (cases.py _dict) */
 export interface Case {
   id: string;
   workplace_name: string | null;
@@ -27,7 +21,6 @@ export interface Case {
   status: string;
 }
 
-/** POST /cases 요청 (schemas.CaseCreate) */
 export interface CaseCreate {
   workplace_name?: string | null;
   employer_name?: string | null;
@@ -38,14 +31,12 @@ export interface CaseCreate {
   issue_types?: string[];
 }
 
-/** POST /cases/{id}/evidences 응답 */
 export interface PresignResult {
   evidence_id: string;
   upload_url: string | null;
   file_key: string;
 }
 
-/** GET /cases/{id}/evidences 응답 항목 */
 export interface EvidenceItem {
   id: string;
   file_name: string;
@@ -53,7 +44,6 @@ export interface EvidenceItem {
   ocr_status: string | null;
 }
 
-/** ---- AnalysisReport (schemas_report.py) ---- */
 export interface Wage {
   currency: string;
   computable: boolean;
@@ -64,6 +54,7 @@ export interface Wage {
   basis: string | null;
   notes: string[];
 }
+
 export interface Deduction {
   name: string;
   category: string;
@@ -72,16 +63,19 @@ export interface Deduction {
   sources: string[];
   verify: string;
 }
+
 export interface Finding {
   type: string;
   severity: Confidence;
   message: string;
   amount: number | null;
 }
+
 export interface Legal {
   min_wage: { year: number; hourly: number };
   findings: Finding[];
 }
+
 export interface TimelineItem {
   date: string | null;
   type: string;
@@ -90,14 +84,17 @@ export interface TimelineItem {
   source_evidence_id: string | null;
   confidence: Confidence;
 }
+
 export interface MissingItem {
   item: string;
   reason: string;
 }
+
 export interface Narrative {
   summary: string;
   disclaimer: string;
 }
+
 export interface AnalysisReport {
   schema_version: string;
   case: {
@@ -125,7 +122,7 @@ export const ISSUE_TYPES = [
 
 export const ISSUE_LABELS: Record<string, string> = {
   wage_unpaid: "임금 미지급",
-  deduction: "임의 공제",
+  deduction: "공제 확인",
   overtime: "연장·야간수당",
   severance: "퇴직금",
   other: "기타",
@@ -140,7 +137,6 @@ export const CATEGORY_FILETYPE: Record<Category, FileType> = {
   other: "image",
 };
 
-/** ---- 커뮤니티 (schemas_community.py) ---- */
 export type CommunityCategory =
   | "free"
   | "wage"
@@ -186,7 +182,6 @@ export interface CommunityComment {
   created_at: string;
 }
 
-/** ---- AI 챗봇 (schemas_ai_chat.py) ---- */
 export interface ChatResponse {
   answer: string;
   intent: string;

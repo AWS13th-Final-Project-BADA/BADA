@@ -5,7 +5,7 @@
  * 2) upload_url 있으면 → S3로 직접 PUT (권장 경로)
  *    upload_url 없으면(로컬/미설정) → multipart POST /cases/{id}/evidences/upload 폴백
  */
-import { fetchApi, API_BASE, getToken } from "./api";
+import { fetchApi, API_BASE, getToken, isDemoAccessToken } from "./api";
 import type { Category, FileType, PresignResult } from "./types";
 
 export interface PickedFile {
@@ -29,6 +29,11 @@ export async function uploadEvidence(
       category,
     }),
   });
+  const token = await getToken();
+
+  if (isDemoAccessToken(token)) {
+    return { evidenceId: presign.evidence_id, via: "multipart" };
+  }
 
   // 2-a) S3 직접 PUT
   if (presign.upload_url) {
@@ -43,7 +48,6 @@ export async function uploadEvidence(
   }
 
   // 2-b) multipart 폴백 (백엔드가 직접 저장)
-  const token = await getToken();
   const fd = new FormData();
   fd.append("category", category);
   // RN FormData 파일 형식
