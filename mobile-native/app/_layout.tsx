@@ -1,19 +1,16 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { colors } from "@/theme";
 import "@/i18n"; // i18n 초기화
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "700" },
-          contentStyle: { backgroundColor: colors.bg },
+          headerShown: false,
+          contentStyle: { backgroundColor: "#f7f9fb" },
         }}
       >
         <Stack.Screen name="index" options={{ title: "BADA" }} />

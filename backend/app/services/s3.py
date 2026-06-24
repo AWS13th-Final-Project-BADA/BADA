@@ -15,13 +15,32 @@ def _s3():
     return _client
 
 
-def presign_put(file_key: str, file_type: str, expires: int = 300) -> str:
-    content_type = {"image": "image/*", "pdf": "application/pdf", "text": "text/plain"}.get(
-        file_type, "application/octet-stream"
-    )
+# 모바일 직접 PUT 시 클라이언트가 보내는 실제 MIME 화이트리스트.
+# S3 presigned PUT은 서명된 ContentType과 PUT 헤더가 정확히 일치해야 통과한다.
+ALLOWED_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "application/pdf",
+    "text/plain",
+}
+
+
+def presign_put(
+    file_key: str, file_type: str, expires: int = 300, content_type: str | None = None
+) -> str:
+    if content_type:
+        # 앱이 실제 MIME(image/jpeg 등)을 주면 그대로 서명 → PUT 헤더와 100% 일치
+        ct = content_type
+    else:
+        # (기존 동작 그대로 — content_type 미전달 클라이언트/웹 무영향)
+        ct = {"image": "image/*", "pdf": "application/pdf", "text": "text/plain"}.get(
+            file_type, "application/octet-stream"
+        )
     return _s3().generate_presigned_url(
         "put_object",
-        Params={"Bucket": settings.s3_bucket, "Key": file_key, "ContentType": content_type},
+        Params={"Bucket": settings.s3_bucket, "Key": file_key, "ContentType": ct},
         ExpiresIn=expires,
     )
 
