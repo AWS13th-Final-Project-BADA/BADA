@@ -1,0 +1,69 @@
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
+import { API_BASE, clearToken, setToken } from "@/lib/api";
+import { DEMO_TOKEN } from "@/lib/demoApi";
+
+WebBrowser.maybeCompleteAuthSession();
+
+const APP_REDIRECT = Linking.createURL("auth");
+
+type Provider = "cognito" | "kakao" | "google" | "naver";
+
+function extractToken(url: string): string | null {
+  const queryParts = url.split(/[?#]/).slice(1);
+  for (const query of queryParts) {
+    for (const part of query.split("&")) {
+      const [k, v] = part.split("=");
+      if (k === "token" && v) return decodeURIComponent(v);
+    }
+  }
+  return null;
+}
+
+function buildAuthUrl(provider: Provider): string {
+  const params = new URLSearchParams({ redirect_uri: APP_REDIRECT });
+
+  if (provider === "google") {
+    params.set("identity_provider", "Google");
+    params.set("prompt", "select_account");
+    return `${API_BASE}/auth/cognito/login?${params.toString()}`;
+  }
+
+  if (provider === "cognito") {
+    return `${API_BASE}/auth/cognito/login?${params.toString()}`;
+  }
+
+  return `${API_BASE}/auth/${provider}/login?${params.toString()}`;
+}
+
+export async function login(provider: Provider = "cognito"): Promise<boolean> {
+  const result = await WebBrowser.openAuthSessionAsync(
+    buildAuthUrl(provider),
+    APP_REDIRECT
+  );
+
+  if (result.type === "success" && result.url) {
+    const token = extractToken(result.url);
+    if (token) {
+      await setToken(token);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export async function logout(): Promise<void> {
+  await clearToken();
+  WebBrowser.openBrowserAsync(`${API_BASE}/auth/cognito/logout`).catch(() => {});
+}
+
+export async function setTokenManually(token: string): Promise<void> {
+  await setToken(token);
+}
+
+export async function startDemoSession(): Promise<void> {
+  await setToken(DEMO_TOKEN);
+}
+
+export { APP_REDIRECT };
