@@ -8,7 +8,10 @@ from typing import Any
 DATA_FILE = Path(__file__).resolve().parents[1] / "data" / "sample_case_context.json"
 
 
-def load_case_context(case_id: int) -> dict[str, Any] | None:
+def load_case_context(case_id: str | None) -> dict[str, Any] | None:
+    if not case_id:
+        return None
+
     if not DATA_FILE.exists():
         return None
 
@@ -17,5 +20,4 @@ def load_case_context(case_id: int) -> dict[str, Any] | None:
     except Exception:
         return None
 
-    case_key = str(case_id)
-    return raw.get(case_key)
+    return raw.get(str(case_id))
