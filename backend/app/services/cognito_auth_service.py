@@ -38,11 +38,11 @@ def authorize_url(state: str, *, identity_provider: str | None = None, prompt: s
     return f"{_domain()}/oauth2/authorize?{urlencode(params)}"
 
 
-def logout_url() -> str:
+def logout_url(logout_uri: str | None = None) -> str:
     _require_config()
     params = {
         "client_id": settings.cognito_client_id,
-        "logout_uri": settings.cognito_logout_uri,
+        "logout_uri": logout_uri or settings.cognito_logout_uri,
     }
     return f"{_domain()}/logout?{urlencode(params)}"
 
