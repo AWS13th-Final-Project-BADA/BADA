@@ -20,6 +20,8 @@ export async function uploadEvidence(
       file_name: file.name,
       file_type: fileType,
       category,
+      // 실제 MIME을 함께 전달 → 백엔드 presign 서명과 아래 S3 PUT의 Content-Type이 일치(허용: image/jpeg·png, application/pdf)
+      content_type: file.mimeType,
     }),
   });
 
