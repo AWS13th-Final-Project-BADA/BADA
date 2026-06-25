@@ -19,6 +19,17 @@ locals {
   grafana_overview_dashboard_base64 = filebase64(
     "${path.module}/../monitoring/grafana/provisioning/dashboards/json/bada-overview.json"
   )
+  grafana_alerting_contactpoints_base64 = base64encode(templatefile(
+    "${path.module}/../monitoring/grafana/provisioning/alerting/contactpoints.yml",
+    { sns_topic_arn = aws_sns_topic.alarms.arn }
+  ))
+  grafana_alerting_rules_base64 = base64encode(templatefile(
+    "${path.module}/../monitoring/grafana/provisioning/alerting/rules.yml",
+    {
+      rds_instance_id = aws_db_instance.postgres.identifier
+      aws_region      = var.aws_region
+    }
+  ))
 }
 
 # Prometheus는 외부에 노출하지 않고 Grafana가 VPC 내부 DNS로 접근한다.
@@ -311,12 +322,14 @@ resource "aws_ecs_task_definition" "grafana" {
         "-c"
       ]
       command = [
-        "set -eu; mkdir -p /config/datasources /config/dashboards/json; printf '%s' \"$DATASOURCES_BASE64\" | base64 -d > /config/datasources/datasources.yml; printf '%s' \"$DASHBOARDS_CONFIG_BASE64\" | base64 -d > /config/dashboards/dashboards.yml; printf '%s' \"$OVERVIEW_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-overview.json"
+        "set -eu; mkdir -p /config/datasources /config/dashboards/json /config/alerting; printf '%s' \"$DATASOURCES_BASE64\" | base64 -d > /config/datasources/datasources.yml; printf '%s' \"$DASHBOARDS_CONFIG_BASE64\" | base64 -d > /config/dashboards/dashboards.yml; printf '%s' \"$OVERVIEW_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-overview.json; printf '%s' \"$ALERTING_CONTACTPOINTS_BASE64\" | base64 -d > /config/alerting/contactpoints.yml; printf '%s' \"$ALERTING_RULES_BASE64\" | base64 -d > /config/alerting/rules.yml"
       ]
       environment = [
         { name = "DATASOURCES_BASE64", value = local.grafana_datasources_base64 },
         { name = "DASHBOARDS_CONFIG_BASE64", value = local.grafana_dashboards_config_base64 },
-        { name = "OVERVIEW_DASHBOARD_BASE64", value = local.grafana_overview_dashboard_base64 }
+        { name = "OVERVIEW_DASHBOARD_BASE64", value = local.grafana_overview_dashboard_base64 },
+        { name = "ALERTING_CONTACTPOINTS_BASE64", value = local.grafana_alerting_contactpoints_base64 },
+        { name = "ALERTING_RULES_BASE64", value = local.grafana_alerting_rules_base64 }
       ]
       mountPoints = [
         { sourceVolume = "grafana-config", containerPath = "/config" }
