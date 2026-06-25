@@ -260,3 +260,47 @@
 **Context**: Phase 1에 19, 20번 추가. 우선순위 최상위.
 
 ---
+
+
+## CI 강화 (#17) 구현
+**Timestamp**: 2026-06-25T15:58:13+09:00
+**User Input**: "나는 모니터링 담당이거든. 그거 시작하자"
+**AI Response**: ci.yml에 ruff(lint) + bandit(SAST) + pytest-cov(커버리지) 3개 병렬 job 추가
+**Context**: dev-requirements.txt, pyproject.toml 생성. 커밋 692034b.
+
+---
+
+## docs/ 폴더 정리
+**Timestamp**: 2026-06-25T16:06:38+09:00
+**User Input**: "docs 폴더가 너무 지저분하고 중복도 많고 알아보기 너무 힘들다는거야"
+**AI Response**: 중복 7개 삭제, 7폴더 분류, README.md 목차 생성. 커밋 98543e6.
+**Context**: 30개 파일 → 25개 (7폴더). 삭제: mobile-app, cs/transaction, CHANGELOG-STT, OCR-IMPROVEMENTS, ocr-roadmap, mobile-e2e-pr-checklist, monitoring-team-handoff.
+
+---
+
+## README.md 갱신 + 아키텍처 다이어그램
+**Timestamp**: 2026-06-25T16:21:11+09:00
+**User Input**: "제일 상위 디렉토리에 있는 README.md도 수정 좀 해야하지 않아?"
+**AI Response**: README 현행 반영 (mobile-native, 배포현황, CI/CD) + As-Is/To-Be Mermaid 다이어그램 추가.
+**Context**: 커밋 5a1562a, e03263e.
+
+---
+
+## 카오스 엔지니어링 시나리오 문서
+**Timestamp**: 2026-06-25T16:29:51+09:00
+**User Input**: "카오스 엔지니어링 시나리오 같은거 문서화 한거 있나? 만들어봐."
+**AI Response**: docs/operations/chaos-engineering-scenarios.md 생성 (5개 시나리오). 커밋 81d2720.
+**Context**: Phase 4 (Auto Scaling 적용 후) 실행 예정.
+
+---
+
+## 관측성 강화 (비즈니스 메트릭 + SLI/SLO + Alert 계층화)
+**Timestamp**: 2026-06-25T17:22:49+09:00
+**User Input**: "모니터링 부분에서 더 디벨롭할건 없을까? 옵저버빌리티 관점에서는 부족하진 않아?"
+**AI Response**: 3단계 관측성 강화:
+1. 비즈니스 메트릭 8개 추가 (prometheus.py + routers 연결)
+2. SLI/SLO 정의 문서 (5 SLI + 에러 버짓 정책)
+3. Alert 계층화 (severity 라우팅 + G9/G10 SLI 알림 추가)
+**Context**: 커밋 252d7e4. Grafana terraform apply + Backend 재배포 시 적용.
+
+---

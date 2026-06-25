@@ -29,6 +29,8 @@
 | 문서 | 내용 |
 |------|------|
 | [monitoring-guide.md](operations/monitoring-guide.md) | Prometheus + Grafana 인계 + Alert 테스트 절차 |
+| [sli-slo-definition.md](operations/sli-slo-definition.md) | SLI/SLO 정의 + 에러 버짓 정책 |
+| [chaos-engineering-scenarios.md](operations/chaos-engineering-scenarios.md) | 카오스 엔지니어링 테스트 시나리오 5건 |
 | [ownership.md](operations/ownership.md) | 팀 역할 분담 (초기 7역할 기준) |
 
 ## mobile/ — 모바일 앱
