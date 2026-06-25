@@ -146,6 +146,8 @@ async def upload_file(case_id: str, category: str = Form(...), file: UploadFile 
                     _db.close()
             threading.Thread(target=_bg_transcribe, daemon=True).start()
 
+    from ..middleware.prometheus import EVIDENCES_UPLOADED
+    EVIDENCES_UPLOADED.labels(category=category).inc()
     return {"id": ev.id, "file_name": ev.file_name, "category": ev.category, "file_key": key}
 
 

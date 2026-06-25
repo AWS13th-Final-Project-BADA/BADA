@@ -32,11 +32,23 @@ def _date(s):
 
 @router.post("/analyze", response_model=AnalysisReport)
 def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("ko"), db: Session = Depends(get_db)):
+    import time as _time
+    from ..middleware.prometheus import ANALYSIS_RUNS, ANALYSIS_DURATION
+
     case = db.get(Case, case_id)
     if not case:
         raise HTTPException(404, "case not found")
     req = req or AnalyzeRequest()
-    result = analysis_service.run_analysis(db, case, req, target_lang=lang)
+
+    _start = _time.perf_counter()
+    try:
+        result = analysis_service.run_analysis(db, case, req, target_lang=lang)
+    except Exception:
+        ANALYSIS_RUNS.labels(status="error").inc()
+        raise
+    ANALYSIS_RUNS.labels(status="success").inc()
+    ANALYSIS_DURATION.observe(_time.perf_counter() - _start)
+
     report = report_builder.build_report(case, result, lang=lang, provider_mode=settings.provider_mode)
     report_dict = report.model_dump()
 

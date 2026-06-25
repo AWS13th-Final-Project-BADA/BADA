@@ -6,6 +6,24 @@ policies:
     group_by:
       - grafana_folder
       - alertname
+      - severity
     group_wait: 30s
     group_interval: 5m
     repeat_interval: 4h
+    routes:
+      # Critical: 즉시 알림, 1시간마다 반복
+      - receiver: BADA-SNS
+        matchers:
+          - severity = critical
+        group_wait: 10s
+        group_interval: 1m
+        repeat_interval: 1h
+        continue: false
+      # Warning: 5분 대기 후 알림, 4시간마다 반복
+      - receiver: BADA-SNS
+        matchers:
+          - severity = warning
+        group_wait: 5m
+        group_interval: 10m
+        repeat_interval: 4h
+        continue: false
