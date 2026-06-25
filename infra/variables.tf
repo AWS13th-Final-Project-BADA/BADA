@@ -99,6 +99,12 @@ variable "db_apply_immediately" {
   default     = true
 }
 
+variable "db_multi_az" {
+  description = "Enable RDS Multi-AZ for automatic failover. Adds a standby instance in another AZ."
+  type        = bool
+  default     = false
+}
+
 variable "app_port" {
   description = "Backend container application port"
   type        = number

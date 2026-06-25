@@ -101,7 +101,7 @@ resource "aws_db_instance" "postgres" {
   )
   apply_immediately   = var.db_apply_immediately
   publicly_accessible = false
-  multi_az            = false
+  multi_az            = var.db_multi_az
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-postgres" })
 }
