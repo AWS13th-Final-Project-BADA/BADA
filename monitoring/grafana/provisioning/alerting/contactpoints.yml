@@ -7,18 +7,9 @@ contactPoints:
       - uid: bada-sns-receiver
         type: sns
         settings:
-          topic: ${sns_topic_arn}
-          authProvider: default
+          message: '{{ template "default.message" . }}'
+          sigv4:
+            region: ${aws_region}
           subject: "[BADA Alert] {{ .CommonLabels.alertname }}"
-          messageFormat: body
+          topic_arn: ${sns_topic_arn}
         disableResolveMessage: false
-
-policies:
-  - orgId: 1
-    receiver: BADA-SNS
-    group_by:
-      - grafana_folder
-      - alertname
-    group_wait: 30s
-    group_interval: 5m
-    repeat_interval: 4h
