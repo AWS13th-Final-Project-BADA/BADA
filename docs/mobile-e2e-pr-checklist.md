@@ -4,7 +4,7 @@
 
 This PR connects the React Native Expo app to the BADA backend E2E flow requested by the team.
 
-- Google login through Cognito Hosted UI
+- Social OAuth login (Google / Kakao / Naver)
 - Mobile deep link callback: `bada://auth` or Expo `exp://.../auth`
 - Token storage in Expo SecureStore
 - `Authorization: Bearer <token>` API calls
@@ -32,7 +32,7 @@ This PR connects the React Native Expo app to the BADA backend E2E flow requeste
 
 3. Login.
    - Tap `구글로 시작하기`.
-   - Confirm that the browser opens Cognito/Google login.
+   - Confirm that the browser opens the provider OAuth login (Google / Kakao / Naver).
    - Select a Google test account.
    - Confirm that the app returns to BADA and lands on the home screen.
 
@@ -65,8 +65,8 @@ This PR connects the React Native Expo app to the BADA backend E2E flow requeste
 
 When debugging, confirm these requests:
 
-- `GET /auth/cognito/login?identity_provider=Google&prompt=select_account&redirect_uri=...`
-- `GET /auth/cognito/callback?code=...&state=...`
+- `GET /auth/{provider}/login?redirect_uri=...` (provider = google | kakao | naver)
+- `GET /auth/{provider}/callback?code=...&state=...`
 - `GET /auth/me` with `Authorization: Bearer <token>`
 - `POST /cases` with `Authorization: Bearer <token>`
 - `POST /cases/{case_id}/evidences/upload` with `Authorization: Bearer <token>`
@@ -76,7 +76,7 @@ When debugging, confirm these requests:
 
 - Mobile OAuth passes `redirect_uri=bada://auth` or an Expo `exp://.../auth` URL to the backend.
 - Backend stores this app return URL inside OAuth `state`.
-- After Cognito callback, backend redirects to `return_to?token=<token>`.
+- After the provider OAuth callback, backend redirects to `return_to?token=<token>`.
 - If the callback has no valid app return URL, backend falls back to `APP_BASE_URL/#token=<token>` for web.
 - Upload uses backend multipart upload. Backend storage decides local filesystem vs S3 through `STORAGE_MODE` and `S3_BUCKET`.
 
@@ -85,7 +85,7 @@ When debugging, confirm these requests:
 Run from `backend`:
 
 ```bash
-python -m pytest tests/test_mobile_e2e.py tests/test_cognito_auth.py -q
+python -m pytest tests/test_mobile_e2e.py -q
 ```
 
 Run from `mobile-native`:
@@ -101,4 +101,4 @@ Remove `.expo-export-check` after the export smoke test.
 
 Use a Google account added to the Google OAuth test users or an account allowed by the production OAuth publishing status.
 
-Do not commit Google OAuth client secrets, Cognito secrets, or personal test account passwords.
+Do not commit Google/Kakao/Naver OAuth client secrets or personal test account passwords.
