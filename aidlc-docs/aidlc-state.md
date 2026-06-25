@@ -45,6 +45,7 @@
 
 ## Post-MVP 의사결정 (2026-06-25 확정)
 - 상세: `docs/decision-record-20260625.md`
-- 즉시 실행: 3(행 수준 인가), 6(모델 비교), 10(X-Ray), 14(구조화 로깅), 16(TF Plan PR), 17(CI 강화)
+- 웹 프론트엔드 제거 → mobile-native 전환 (deploy-dev-frontend.yml 삭제, frontend_enabled=false 예정)
+- 즉시 실행: 19(모바일 로그인 E2E), 20(APK 배포), 3(행 수준 인가), 6(모델 비교), 10(X-Ray), 14(구조화 로깅), 16(TF Plan PR), 17(CI 강화)
 - TF 분리 후: 2, 4, 5, 7, 8, 11, 12, 13, 15, 18
 - 최종 검증: 9(k6 부하 테스트)

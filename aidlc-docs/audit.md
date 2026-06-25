@@ -243,3 +243,20 @@
 **Context**: 의사결정 기록 완료
 
 ---
+
+
+## 웹 프론트엔드 제거 결정
+**Timestamp**: 2026-06-25T15:30:02+09:00
+**User Input**: "B. 웹 프론트 제거하자. CI/CD 관점에서 지금 제대로 동작하지 않는 것도 수정해야할듯"
+**AI Response**: deploy-dev-frontend.yml 삭제, frontend_enabled=false 전환 안내 (ALB default → Backend static)
+**Context**: mobile-native로 전환 완료. Next.js frontend 폐기.
+
+---
+
+## 모바일 로그인 + APK 배포 추가
+**Timestamp**: 2026-06-25T15:36:06+09:00
+**User Input**: "모바일 로그인 & APK 배포 단계가 아직 미구현 상태야"
+**AI Response**: #19 모바일 로그인 E2E, #20 APK 배포 파이프라인을 Phase 1 최우선으로 추가
+**Context**: Phase 1에 19, 20번 추가. 우선순위 최상위.
+
+---

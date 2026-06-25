@@ -13,6 +13,17 @@
 
 ---
 
+## 추가 결정 (웹 프론트엔드 → 모바일 전환)
+
+| # | 항목 | 결정 |
+|---|------|------|
+| — | 웹 프론트엔드 (Next.js) | 제거. `frontend_enabled=false` → ALB default → Backend static 서빙 |
+| — | deploy-dev-frontend.yml | 삭제 완료 (`bb58341`) |
+| — | badasoft.com | Backend static/index.html로 폴백 (앱 다운로드 안내 전환 가능) |
+| — | 주력 프론트엔드 | `mobile-native/` (React Native + Expo) |
+
+---
+
 ## 확정 의사결정 (18건)
 
 | # | 항목 | 결정 | 비용(2주) | 실행 조건 |
@@ -36,6 +47,9 @@
 | 17 | CI 강화 | pytest-cov + bandit (SAST) + ruff (lint) | $0 | 즉시 |
 | 18 | VPC Endpoint | S3 Gateway (무료) + SQS/ECR Interface Endpoint | ~$7 | 12번과 세트 |
 
+| 19 | 모바일 로그인 E2E | Cognito OAuth 웹뷰 → 토큰 수신 검증 | $0 | 즉시 |
+| 20 | APK 배포 파이프라인 | EAS Build + GH Action + Preview APK | $0 | 즉시 |
+
 **총 예상 추가 비용: ~$144/2주** (예산의 10%)
 
 ---
@@ -46,6 +60,8 @@
 
 | # | 작업 | 예상 시간 | 담당 |
 |---|------|----------|------|
+| 19 | 모바일 로그인 E2E (Cognito OAuth → 토큰 수신) | 2~3h | 모바일 + Backend |
+| 20 | APK 배포 파이프라인 (EAS Build + GH Action) | 반나절 | 모바일 + 인프라 |
 | 3 | 행 수준 인가 (deps.py + routers) | 2~3h | Backend |
 | 6 | Bedrock 모델 비교 (eval 스크립트) | 반나절 | Agent/OCR |
 | 10 | X-Ray SDK 통합 + Task Role 권한 추가 | 반나절 | Backend + 인프라 |
