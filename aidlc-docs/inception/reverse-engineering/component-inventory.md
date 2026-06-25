@@ -5,7 +5,7 @@
 | Package | Purpose | Status |
 |---------|---------|--------|
 | `backend/` | FastAPI REST API 서버 (인증, CRUD, OCR, 분석, 챗봇, GPS, 커뮤니티) | ✅ 실행 중 |
-| `worker/` | SQS 비동기 분석 워커 (규칙 엔진 + LLM 보조) | ⚠️ 코드 완성, 미기동 |
+| `worker/` | SQS 비동기 분석 워커 (규칙 엔진 + LLM 보조) | ✅ 코드 완성, SQS 연동 완료 |
 | `frontend/` (계획) | Next.js + next-intl 프론트엔드 (미구현, README만 존재) | ❌ 미구현 |
 | `backend/app/static/` | Vanilla JS SPA 프론트엔드 (실제 사용 중) | ✅ 운영 중 |
 | `mobile/` | Capacitor 네이티브 앱 래퍼 (레거시, 전환 완료) | 🔒 이력 보존 |
@@ -54,7 +54,7 @@
 | Component | 완성도 | 핵심 갭 |
 |-----------|--------|---------|
 | Backend API | 90% | Cognito 인증 연동 미완 (AUTH_MODE=demo) |
-| Worker Consumer | 85% | 코드 완성, ECS 미기동 (desired=0) |
+| Worker Consumer | 90% | 코드 완성, SQS 연동 완료, E2E 검증 대기 |
 | Worker Transcription | 10% | handler 골격만, 실제 로직 미구현 |
 | Static Frontend | 75% | 기능 동작, 모바일 UX/다국어 미진 |
 | Next.js Frontend | 0% | README만 존재, 실제 코드 없음 |

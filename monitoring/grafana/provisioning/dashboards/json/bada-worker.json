@@ -1,0 +1,100 @@
+{
+  "uid": "bada-worker",
+  "title": "BADA Worker",
+  "tags": ["bada", "worker"],
+  "timezone": "Asia/Seoul",
+  "templating": {
+    "list": [
+      {
+        "name": "region",
+        "type": "constant",
+        "query": "${aws_region}",
+        "hide": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "메시지 처리량 (handler별)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(worker_messages_processed_total[5m])) by (handler)", "legendFormat": "{{handler}}"}]
+    },
+    {
+      "id": 2,
+      "title": "처리 결과 (성공/실패)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(worker_messages_processed_total[5m])) by (status)", "legendFormat": "{{status}}"}]
+    },
+    {
+      "id": 3,
+      "title": "처리 시간 (P50/P95/P99)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": {"uid": "prometheus"},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(worker_message_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(worker_message_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, sum(rate(worker_message_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P99"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "id": 4,
+      "title": "실패율 (%)",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(worker_messages_processed_total{status=\"failed\"}[5m])) / sum(rate(worker_messages_processed_total[5m])) * 100", "legendFormat": "실패율"}],
+      "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 5}, {"color": "red", "value": 10}]}}}
+    },
+    {
+      "id": 5,
+      "title": "SQS 대기 메시지",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [
+        {
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "statistics": ["Average"],
+          "period": "60",
+          "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+          "region": "$region",
+          "alias": "Main"
+        },
+        {
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "statistics": ["Average"],
+          "period": "60",
+          "dimensions": {"QueueName": ["${sqs_dlq_name}"]},
+          "region": "$region",
+          "alias": "DLQ"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "SQS 처리 중 (In-Flight)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [{
+        "namespace": "AWS/SQS",
+        "metricName": "ApproximateNumberOfMessagesNotVisible",
+        "statistics": ["Average"],
+        "period": "60",
+        "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+        "region": "$region"
+      }]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}
