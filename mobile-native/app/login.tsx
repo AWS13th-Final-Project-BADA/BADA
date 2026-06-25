@@ -1,14 +1,13 @@
-import { useState } from "react";
-import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+﻿import { useState } from "react";
+import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import { login, setTokenManually, startDemoSession } from "@/lib/auth";
+import { login } from "@/lib/auth";
 import { stitchImages } from "@/lib/stitchAssets";
 import { Card, RemoteImage, StitchButton, StitchScreen, stitch } from "@/components/StitchKit";
 
 export default function Login() {
   const router = useRouter();
-  const [devToken, setDevToken] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function doLogin(provider: "google" | "kakao" | "naver") {
@@ -16,7 +15,7 @@ export default function Login() {
     try {
       const ok = await login(provider);
       if (ok) router.replace("/");
-      else Alert.alert("로그인 실패", "토큰을 받지 못했어요. 개발 중에는 기능 먼저 둘러보기를 사용해 주세요.");
+      else Alert.alert("로그인 실패", "토큰을 받지 못했어요. 계정을 다시 선택해 주세요.");
     } catch (e: any) {
       Alert.alert("로그인 실패", String(e?.message ?? e));
     } finally {
@@ -38,7 +37,7 @@ export default function Login() {
       <View style={styles.content}>
         <RemoteImage uri={stitchImages.loginSecurity} style={styles.securityImage} />
 
-        <Text style={styles.title}>상담 전 자료를{"\n"}안전하게 정리하세요</Text>
+        <Text style={styles.title}>로그인하고{"\n"}내 사건을 안전하게 관리하세요</Text>
         <Text style={styles.subtitle}>업로드한 자료와 분석 결과를 내 계정에 보관하고, 상담 준비 과정을 이어갈 수 있어요.</Text>
 
         <View style={styles.trustGrid}>
@@ -46,17 +45,6 @@ export default function Login() {
           <TrustCard icon="gavel" title="법률 판단 없음" />
         </View>
 
-        {__DEV__ ? (
-          <StitchButton
-            tone="blue"
-            onPress={async () => {
-              await startDemoSession();
-              router.replace("/");
-            }}
-          >
-            기능 먼저 둘러보기
-          </StitchButton>
-        ) : null}
 
         <Pressable style={styles.googleButton} onPress={() => doLogin("google")} disabled={busy}>
           <Image source={{ uri: stitchImages.google }} style={styles.googleIcon} />
@@ -82,28 +70,6 @@ export default function Login() {
           <Text style={styles.termText}>개인정보처리방침</Text>
         </View>
 
-        {__DEV__ ? (
-          <View style={styles.devBox}>
-            <TextInput
-              style={styles.input}
-              placeholder="access_token 붙여넣기"
-              placeholderTextColor={stitch.outline}
-              value={devToken}
-              autoCapitalize="none"
-              onChangeText={setDevToken}
-            />
-            <StitchButton
-              tone="secondary"
-              onPress={async () => {
-                if (!devToken.trim()) return;
-                await setTokenManually(devToken.trim());
-                router.replace("/");
-              }}
-            >
-              <Text style={styles.secondaryText}>토큰으로 입장</Text>
-            </StitchButton>
-          </View>
-        ) : null}
       </View>
     </StitchScreen>
   );
@@ -130,12 +96,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "rgba(198,198,205,0.32)",
   },
-  logo: { color: stitch.navy, fontSize: 34, lineHeight: 42, fontWeight: "900", letterSpacing: -0.6 },
+  logo: { color: stitch.navy, fontSize: 34, lineHeight: 42, fontWeight: "900" },
   lang: { height: 46, borderRadius: 23, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: stitch.surfaceLow },
   langText: { color: stitch.text, fontSize: 16, fontWeight: "800" },
   content: { paddingHorizontal: 32, paddingTop: 42, gap: 16 },
   securityImage: { height: 240, borderRadius: 12, overflow: "hidden" },
-  title: { marginTop: 16, color: stitch.navy, fontSize: 32, lineHeight: 41, fontWeight: "900", textAlign: "center", letterSpacing: -0.5 },
+  title: { marginTop: 16, color: stitch.navy, fontSize: 32, lineHeight: 41, fontWeight: "900", textAlign: "center" },
   subtitle: { color: stitch.muted, fontSize: 16, lineHeight: 25, textAlign: "center", fontWeight: "700" },
   trustGrid: { flexDirection: "row", gap: 14, marginTop: 16, marginBottom: 10 },
   trustCard: { flex: 1, minHeight: 126, alignItems: "center", justifyContent: "center", gap: 12 },
@@ -151,7 +117,4 @@ const styles = StyleSheet.create({
   terms: { flexDirection: "row", justifyContent: "center", gap: 14, marginTop: 10, marginBottom: 12 },
   termText: { color: stitch.outline, fontSize: 12, fontWeight: "800" },
   dot: { color: stitch.line },
-  devBox: { gap: 10, marginTop: 8, marginBottom: 24 },
-  input: { minHeight: 48, borderRadius: 8, borderWidth: 1, borderColor: stitch.line, backgroundColor: stitch.surface, paddingHorizontal: 14, color: stitch.text },
-  secondaryText: { color: stitch.text, fontWeight: "900", fontSize: 15 },
 });

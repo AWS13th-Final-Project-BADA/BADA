@@ -15,11 +15,11 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.bada.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "근무지 출입 증거 수집을 위해 위치를 사용합니다.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "재직 중 근무 증거를 위해 백그라운드에서도 위치를 수집합니다.",
+        "NSLocationWhenInUseUsageDescription": "근무지 출입 증거를 기록하기 위해 위치 정보를 사용합니다.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "근무 중 출근 증거를 남기기 위해 백그라운드에서도 위치를 기록할 수 있습니다.",
         "UIBackgroundModes": ["location"],
-        "NSCameraUsageDescription": "증거 문서 촬영을 위해 카메라를 사용합니다.",
-        "NSPhotoLibraryUsageDescription": "증거 이미지 업로드를 위해 사진 접근이 필요합니다."
+        "NSCameraUsageDescription": "증거 문서를 촬영하기 위해 카메라를 사용합니다.",
+        "NSPhotoLibraryUsageDescription": "증거 이미지를 업로드하기 위해 사진 접근 권한이 필요합니다."
       }
     },
     "android": {
@@ -40,7 +40,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "재직 중 근무 증거를 위해 백그라운드에서도 위치를 수집합니다.",
+          "locationAlwaysAndWhenInUsePermission": "근무 중 출근 증거를 남기기 위해 백그라운드에서도 위치를 기록할 수 있습니다.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }

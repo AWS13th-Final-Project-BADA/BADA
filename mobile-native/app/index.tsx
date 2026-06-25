@@ -2,27 +2,50 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import { isLoggedIn } from "@/lib/api";
+import { ApiError, fetchApi, isLoggedIn } from "@/lib/api";
 import { logout } from "@/lib/auth";
 import { stitchImages } from "@/lib/stitchAssets";
 import { Card, RemoteImage, SectionLabel, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 
+interface CurrentUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  preferred_lang?: string | null;
+  provider?: string | null;
+}
+
 export default function Home() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
-  const [authed, setAuthed] = useState(false);
+  const [user, setUser] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    isLoggedIn()
-      .then((ok) => {
+
+    async function bootstrap() {
+      try {
+        const hasToken = await isLoggedIn();
+        if (!hasToken) {
+          router.replace("/login");
+          return;
+        }
+
+        const me = await fetchApi<CurrentUser>("/auth/me");
         if (!mounted) return;
-        setAuthed(ok);
-        if (!ok) router.replace("/login");
-      })
-      .finally(() => {
+        setUser(me);
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        router.replace("/login");
+      } finally {
         if (mounted) setChecking(false);
-      });
+      }
+    }
+
+    void bootstrap();
     return () => {
       mounted = false;
     };
@@ -33,14 +56,15 @@ export default function Home() {
       <StitchScreen scroll={false} bottom={false}>
         <View style={styles.center}>
           <ActivityIndicator color={stitch.blue} />
+          <Text style={styles.loadingText}>계정 정보를 확인하고 있어요</Text>
         </View>
       </StitchScreen>
     );
   }
 
-  if (!authed) {
-    return null;
-  }
+  if (!user) return null;
+
+  const displayName = user.name || user.email?.split("@")[0] || "사용자";
 
   async function signOut() {
     await logout();
@@ -53,8 +77,8 @@ export default function Home() {
       <View style={styles.content}>
         <View style={styles.greetingRow}>
           <View style={styles.greeting}>
-            <Text style={styles.greetingTitle}>반가워요, 김바다 님</Text>
-            <Text style={styles.greetingBody}>오늘은 상담 전 자료를 더 탄탄하게 정리해볼까요?</Text>
+            <Text style={styles.greetingTitle}>반가워요, {displayName} 님</Text>
+            <Text style={styles.greetingBody}>오늘은 상담에 필요한 자료를 차근차근 정리해볼게요.</Text>
           </View>
           <Pressable style={styles.logoutButton} onPress={signOut}>
             <Text style={styles.logoutText}>로그아웃</Text>
@@ -64,8 +88,8 @@ export default function Home() {
         <Card style={styles.currentCard}>
           <View style={styles.currentTop}>
             <View>
-              <Text style={styles.badge}>CURRENT CASE</Text>
-              <Text style={styles.currentTitle}>상담 준비 진행 중</Text>
+              <Text style={styles.badge}>CASE WORKFLOW</Text>
+              <Text style={styles.currentTitle}>증거 패키지를 만들고 상담 준비까지 이어가세요</Text>
             </View>
             <MaterialIcons name="description" size={30} color={stitch.blueStrong} />
           </View>
@@ -74,37 +98,75 @@ export default function Home() {
             <View style={styles.stepLine} />
             <View style={styles.stepLineOn} />
             <Step done label="사건 생성" />
-            <Step done label="증거 업로드" />
-            <Step current label="분석 확인" value="3" />
+            <Step current label="자료 업로드" value="2" />
+            <Step label="AI 분석" value="3" />
             <Step label="상담 준비" value="4" />
           </View>
 
-          <StitchButton onPress={() => router.push("/cases")}>내 사건 이어서 정리하기</StitchButton>
+          <StitchButton onPress={() => router.push("/cases/new")}>새 사건 만들기</StitchButton>
         </Card>
 
         <SectionLabel>빠른 실행</SectionLabel>
         <View style={styles.quickGrid}>
-          <QuickCard icon="add-circle" color={stitch.blue} bg="rgba(0,81,213,0.1)" title="증거 추가" body="문서와 사진 업로드" onPress={() => router.push("/cases/upload")} />
-          <QuickCard icon="smart-toy" color={stitch.green} bg="rgba(0,150,104,0.1)" title="AI 챗봇" body="상담 전 질문 정리" onPress={() => router.push("/chat")} />
-          <QuickCard icon="location-on" color={stitch.red} bg="rgba(186,26,26,0.1)" title="GPS 기록" body="출근 정황 남기기" onPress={() => router.push("/gps")} />
-          <QuickCard icon="forum" color={stitch.blue} bg={stitch.blueSoft} title="커뮤니티" body="비슷한 상황 보기" onPress={() => router.push("/community")} />
+          <QuickCard
+            icon="folder-open"
+            color={stitch.blue}
+            bg="rgba(0,81,213,0.1)"
+            title="내 사건"
+            body="진행 중인 사건 보기"
+            onPress={() => router.push("/cases")}
+          />
+          <QuickCard
+            icon="add-circle"
+            color={stitch.green}
+            bg="rgba(0,150,104,0.1)"
+            title="증거 추가"
+            body="문서와 사진 업로드"
+            onPress={() => router.push("/cases/upload")}
+          />
+          <QuickCard
+            icon="smart-toy"
+            color={stitch.blue}
+            bg={stitch.blueSoft}
+            title="AI 챗봇"
+            body="상담 전 질문 정리"
+            onPress={() => router.push("/chat")}
+          />
+          <QuickCard
+            icon="forum"
+            color={stitch.amber}
+            bg={stitch.amberSoft}
+            title="커뮤니티"
+            body="비슷한 상황 찾아보기"
+            onPress={() => router.push("/community")}
+          />
         </View>
 
         <Pressable style={styles.recommend} onPress={() => router.push("/cases/upload")}>
           <View style={styles.recommendIcon}>
-            <MaterialIcons name="lightbulb-outline" size={22} color="#fff" />
+            <MaterialIcons name="upload-file" size={22} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.recommendLabel}>다음 추천 작업</Text>
-            <Text style={styles.recommendText}>근로계약서 원본을 추가해 보세요</Text>
+            <Text style={styles.recommendText}>계약서, 급여명세서, 입금내역을 먼저 올려보세요</Text>
           </View>
           <MaterialIcons name="chevron-right" size={24} color="#fff" />
         </Pressable>
 
         <SectionLabel action={<Text style={styles.viewAll}>전체보기</Text>}>최근 커뮤니티</SectionLabel>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.communityScroll}>
-          <CommunityPreview image={stitchImages.office} category="상담후기" title="상담 전에 자료를 정리해가니 훨씬 편했어요" body="급여명세서와 입금내역을 같은 달끼리 묶어 갔습니다." />
-          <CommunityPreview image={stitchImages.dashboard} category="체크리스트" title="임금 차액 상담 전 준비물" body="계약서, 입금내역, 근무시간 기록을 먼저 확인하세요." />
+          <CommunityPreview
+            image={stitchImages.office}
+            category="상담 후기"
+            title="상담 전에 자료를 정리해가니 훨씬 편했어요"
+            body="급여명세서와 입금내역을 같은 달끼리 묶어 갔습니다."
+          />
+          <CommunityPreview
+            image={stitchImages.dashboard}
+            category="체크리스트"
+            title="임금 차액 상담 전 준비법"
+            body="계약서, 입금내역, 근무시간 기록을 먼저 확인하세요."
+          />
         </ScrollView>
       </View>
     </StitchScreen>
@@ -186,7 +248,8 @@ function CommunityPreview({
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
+  loadingText: { color: stitch.outline, fontSize: 13, fontWeight: "700" },
   content: { padding: 20, gap: 24 },
   greetingRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   greeting: { flex: 1, marginTop: 2 },
@@ -195,14 +258,14 @@ const styles = StyleSheet.create({
   logoutButton: { minHeight: 36, borderRadius: 18, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", backgroundColor: stitch.surfaceLow },
   logoutText: { color: stitch.muted, fontSize: 12, fontWeight: "900" },
   currentCard: { padding: 24, overflow: "hidden" },
-  currentTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 26 },
+  currentTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 26, gap: 16 },
   badge: { alignSelf: "flex-start", backgroundColor: "rgba(0,81,213,0.1)", color: stitch.blue, fontSize: 12, fontWeight: "900", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 4, overflow: "hidden" },
-  currentTitle: { marginTop: 10, color: stitch.text, fontSize: 22, lineHeight: 28, fontWeight: "900" },
+  currentTitle: { marginTop: 10, color: stitch.text, fontSize: 22, lineHeight: 28, fontWeight: "900", maxWidth: 270 },
   stepWrap: { height: 88, flexDirection: "row", justifyContent: "space-between", marginBottom: 18, position: "relative" },
   stepLine: { position: "absolute", left: 0, right: 0, top: 15, height: 2, backgroundColor: "rgba(198,198,205,0.35)" },
-  stepLineOn: { position: "absolute", left: 0, width: "66%", top: 15, height: 2, backgroundColor: stitch.blue },
+  stepLineOn: { position: "absolute", left: 0, width: "34%", top: 15, height: 2, backgroundColor: stitch.blue },
   step: { flex: 1, alignItems: "center", gap: 8 },
-  stepDim: { opacity: 0.38 },
+  stepDim: { opacity: 0.46 },
   stepDot: { width: 32, height: 32, borderRadius: 16, backgroundColor: stitch.line, alignItems: "center", justifyContent: "center" },
   stepDotOn: { backgroundColor: stitch.blue },
   stepDotCurrent: { backgroundColor: "#fff", borderWidth: 2, borderColor: stitch.blue },

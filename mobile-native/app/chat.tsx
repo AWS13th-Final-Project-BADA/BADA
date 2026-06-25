@@ -14,7 +14,7 @@ import { useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { fetchApi } from "@/lib/api";
 import type { ChatResponse } from "@/lib/types";
-import { Card, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
+import { Card, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 
 interface Msg {
   role: "user" | "ai";
@@ -25,13 +25,13 @@ interface Msg {
 
 const suggested = [
   "이 패키지에서 중요한 내용이 뭐예요?",
-  "상담할 때 뭐부터 말하면 좋을까요?",
+  "상담하러 가면 뭐부터 말하면 좋을까요?",
   "진정서에는 어떤 내용을 적어야 해요?",
 ];
 
 export default function ChatScreen() {
   const { caseId } = useLocalSearchParams<{ caseId?: string }>();
-  const numericCaseId = caseId && /^\d+$/.test(caseId) ? Number(caseId) : 1;
+  const activeCaseId = typeof caseId === "string" && caseId.trim() ? caseId : null;
   const scrollRef = useRef<ScrollView>(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -39,8 +39,8 @@ export default function ChatScreen() {
     {
       role: "ai",
       text:
-        "안녕하세요. 업로드한 자료를 기준으로 상담 전에 정리할 쟁점과 질문을 도와드릴게요. BADA는 법률 판단 대신 자료 정리와 상담 준비 안내를 제공합니다.",
-      sources: [{ title: "현재 Evidence Pack" }],
+        "안녕하세요. 업로드한 자료를 기준으로 상담 전에 정리할 쟁점과 질문을 도와드릴게요. BADA는 법률 판단이 아니라 상담 준비 안내를 제공합니다.",
+      sources: activeCaseId ? [{ title: "현재 사건 자료" }] : undefined,
     },
   ]);
 
@@ -56,7 +56,7 @@ export default function ChatScreen() {
       const res = await fetchApi<ChatResponse>("/chat/messages", {
         method: "POST",
         body: JSON.stringify({
-          case_id: numericCaseId,
+          case_id: activeCaseId,
           message: text,
           language: "auto",
         }),
@@ -85,17 +85,19 @@ export default function ChatScreen() {
   }
 
   return (
-    <StitchScreen scroll={false} bottom={false}>
+    <StitchScreen scroll={false} bottom={false} active="assistant">
       <KeyboardAvoidingView
         style={styles.wrap}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={16}
       >
-        <TopBar title="BADA Assistant" back right="info-outline" />
+        <TopBar title="BADA AI" back right="info-outline" />
 
         <View style={styles.contextBar}>
           <View style={styles.liveDot} />
-          <Text style={styles.contextText}>현재 케이스: 상담 준비 #{String(caseId || "demo").slice(0, 8)}</Text>
+          <Text style={styles.contextText}>
+            {activeCaseId ? `현재 사건: ${activeCaseId.slice(0, 8)}` : "사건을 선택하면 자료 기반 답변이 더 정확해져요"}
+          </Text>
           <MaterialIcons name="description" size={18} color={stitch.outline} />
         </View>
 
@@ -150,7 +152,7 @@ export default function ChatScreen() {
           </Card>
           <View style={styles.guardrail}>
             <MaterialIcons name="verified-user" size={16} color={stitch.outline} />
-            <Text style={styles.guardrailText}>법률 판단 대신 상담 전 자료 정리와 질문 준비를 도와드려요.</Text>
+            <Text style={styles.guardrailText}>법률 판단 대신 상담 준비와 자료 정리를 도와드려요</Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -183,7 +185,7 @@ function Bubble({ message }: { message: Msg }) {
           {message.actions?.length ? (
             <View style={styles.actionList}>
               {message.actions.slice(0, 3).map((action) => (
-                <Text key={action} style={styles.actionItem}>• {action}</Text>
+                <Text key={action} style={styles.actionItem}>- {action}</Text>
               ))}
             </View>
           ) : null}
