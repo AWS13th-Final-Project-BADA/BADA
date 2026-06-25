@@ -110,6 +110,10 @@ output "github_actions_deploy_role_arn" {
   value = aws_iam_role.github_actions_deploy.arn
 }
 
+output "github_actions_plan_role_arn" {
+  value = aws_iam_role.github_actions_plan.arn
+}
+
 output "mcp_cloudwatch_readonly_role_arn" {
   value = aws_iam_role.mcp_cloudwatch_readonly.arn
 }
