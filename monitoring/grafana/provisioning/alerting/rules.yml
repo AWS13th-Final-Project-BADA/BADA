@@ -263,3 +263,48 @@ groups:
           summary: "OCR 실패율이 30%를 초과 (현재: {{ $values.C }}%). 외부 서비스 장애 의심."
         labels:
           severity: warning
+
+
+      # G9: 가용성 SLO 위반 (< 99% over 1h)
+      - uid: bada-g9-availability-slo
+        title: "SLO 위반: 가용성 < 99% (1시간)"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (sum(rate(http_requests_total{status=~"2..|3.."}[1h])) / sum(rate(http_requests_total[1h]))) < 0.99
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "1시간 가용성이 99% 미만입니다. 에러 버짓 소진 중."
+        labels:
+          severity: critical
+
+      # G10: 분석 성공률 저하 (< 90%)
+      - uid: bada-g10-analysis-success-rate
+        title: "분석 성공률 < 90%"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (sum(rate(bada_analysis_runs_total{status="success"}[30m])) / sum(rate(bada_analysis_runs_total[30m]))) < 0.9
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "분석 성공률이 90% 미만입니다 (30분 윈도우)."
+        labels:
+          severity: critical

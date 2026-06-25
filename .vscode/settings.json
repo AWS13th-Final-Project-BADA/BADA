@@ -1,0 +1,6 @@
+{
+  "hediet.vscode-drawio.customLibraries": [
+    { "libName": "AWS 4", "url": "https://raw.githubusercontent.com/jgraph/drawio-libs/master/libs/aws4.xml" }
+  ],
+  "hediet.vscode-drawio.theme": "atlas"
+}

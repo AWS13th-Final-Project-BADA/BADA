@@ -40,6 +40,11 @@
         "FASTMCP_LOG_LEVEL": "ERROR"
       },
       "disabled": false
+    },
+    "mermaid": {
+      "command": "npx",
+      "args": ["-y", "mermaid-mcp-server"],
+      "disabled": false
     }
   }
 }

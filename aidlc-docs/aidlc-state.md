@@ -41,7 +41,20 @@
 - [x] CONSTRUCTION - Build and Test (2026-06-22T11:42:26+09:00)
 - [x] POST-MVP - 모니터링 구축 (Prometheus+Grafana+Alert, 2026-06-22~25)
 - [x] POST-MVP - 모바일 앱 (React Native+Expo, M1~M3 완료, 2026-06-25)
-- [ ] POST-MVP - 프로덕션 고도화 (18건 의사결정 확정, 실행 대기)
+- [ ] POST-MVP - 프로덕션 고도화 (18건 의사결정 확정, 실행 중)
+  - [x] #17 CI 강화 (ruff + bandit + pytest-cov) — 692034b
+  - [x] 관측성 강화 (비즈니스 메트릭 + SLI/SLO + Alert 계층화) — 252d7e4
+  - [x] docs/ 정리 (중복 제거 + 7폴더 분류) — 98543e6
+  - [x] README.md 갱신 + 아키텍처 다이어그램 — e03263e
+  - [x] 카오스 엔지니어링 시나리오 문서 — 81d2720
+  - [x] 웹 프론트엔드 제거 + CD 정리 — bb58341
+  - [ ] #3 행 수준 인가
+  - [ ] #10 X-Ray SDK 통합
+  - [ ] #14 구조화 로깅
+  - [ ] #16 Terraform Plan in PR
+  - [ ] #19 모바일 로그인 E2E
+  - [ ] #20 APK 배포 파이프라인
+  - [ ] Phase 2~4 (TF 분리 후)
 
 ## Post-MVP 의사결정 (2026-06-25 확정)
 - 상세: `docs/decision-record-20260625.md`
