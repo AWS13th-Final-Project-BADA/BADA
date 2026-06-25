@@ -44,21 +44,23 @@
 
 | # | 항목 | 상태 | 비고 |
 |---|------|------|------|
-| 2-1 | Cognito 모바일 딥링크 (`bada://auth?token=`) | ❌ 미구현 | `auth.py` callback 분기 필요 |
+| 2-1 | 소셜 OAuth 모바일 딥링크 (`bada://auth#token=`) | ⏳ 진행 | `/auth/{provider}/callback` 분기 필요 |
 | 2-2 | AI 챗봇 `case_id` UUID 수용 | ✅ 완료 (6/24) | `a67fa14` — 미지정 시 일반 상담 |
 | 2-3 | `GET /cases/{id}/report.pdf` presigned GET 302 | ✅ 완료 (6/24) | `3640e2c` — 미생성 시 404 |
 | 2-4 | Presigned Upload Content-Type 정합 | ✅ 완료 (6/24) | `a51a529` — content_type 옵셔널+화이트리스트 |
 
-### 2-1 상세: Cognito 딥링크 (미구현)
+### 2-1 상세: 소셜 OAuth 딥링크 (진행)
+
+> 팀 결정(6/25): Cognito 제거 → 구글/카카오/네이버 소셜 OAuth.
 
 **현재**: 웹 로그인 성공 → `#token=` 해시로 프론트에 전달.
-**필요**: 모바일이 `redirect_uri=bada://auth`로 요청 시 → callback에서 `bada://auth?token=<JWT>` 302 redirect.
+**필요**: 모바일이 `redirect_uri=bada://auth`로 요청 시 → callback에서 `bada://auth#token=<JWT>` 302 redirect.
 
 구현 방안:
-- `/auth/cognito/login` 호출 시 `state` 파라미터에 원래 redirect_uri 보존
-- Cognito callback 성공 후 state 파싱 → 앱 스킴이면 앱으로 redirect
+- `/auth/{provider}/login` (provider=google|kakao|naver) 호출 시 `state`에 원래 redirect_uri 보존
+- 소셜 OAuth callback 성공 후 state 파싱 → 앱 스킴이면 앱으로 redirect
 - 기존 웹 `#token=` 흐름 무영향
-- Cognito Allowed Callback URL 변경 불필요 (백엔드 내부 분기)
+- 각 provider Redirect URI는 운영(`https://api.badasoft.com/auth/{provider}/callback`) 기준, `AUTH_MODE`를 cognito→oauth/jwt로 전환
 
 ---
 
@@ -82,7 +84,7 @@
   - Frontend ECS 새 Task revision 배포
   - ALB healthy
   - CORS/Auth 오류 여부
-  - Cognito callback/logout URL 정합성
+  - 소셜 OAuth(구글/카카오/네이버) callback/logout URL 정합성
   - Evidence S3 업로드 정상 동작
 
 ---

@@ -18,7 +18,7 @@
 
 | # | 작업 | 시간 | 산출물 |
 |---|------|------|--------|
-| 19 | 모바일 로그인 E2E (Cognito OAuth → 토큰 수신 → API 호출) | 2~3h | 스크린샷/영상 |
+| 19 | 모바일 로그인 E2E (소셜 OAuth 구글/카카오/네이버 → 토큰 수신 → API 호출) | 2~3h | 스크린샷/영상 |
 | 20 | APK 배포 파이프라인 (EAS Build + GH Action workflow) | 반나절 | `.github/workflows/build-mobile.yml` + Preview APK |
 | — | Phase 4: 모바일 E2E 시나리오 (로그인→사건→증거→분석→PDF) | 반나절 | 테스트 결과 문서 |
 
@@ -121,7 +121,7 @@ Phase 4 (Phase 3 apply 완료 후)
 
 | 항목 | 의존 대상 | 해결 시점 |
 |------|----------|----------|
-| 모바일 로그인 (#19) | Cognito callback + Expo 개발빌드 | Day 1 |
+| 모바일 로그인 (#19) | 소셜 OAuth callback + Expo 개발빌드 | Day 1 |
 | APK 배포 (#20) | EAS 계정 + expo login 토큰 | Day 1 |
 | .tf PR apply | E의 TF 분리 완료 (#5) | Day 2 |
 | k6 테스트 (#9) | Auto Scaling apply 완료 (#4) | Day 4 |

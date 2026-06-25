@@ -21,7 +21,7 @@
 | 파일 저장소 | S3 Evidence / Report Bucket |
 | 비밀값 관리 | Secrets Manager |
 | 설정값 관리 | SSM Parameter Store |
-| 인증 인프라 | Cognito Hosted UI / Authorization Code Grant + PKCE / Google IdP / 운영 HTTPS callback 적용 완료 |
+| 인증 인프라 | (현재 배포) Cognito Hosted UI / Auth Code Grant + PKCE / Google IdP / 운영 HTTPS callback. **팀 결정(6/25): Cognito 제거 → 소셜 OAuth(구글/카카오/네이버) 직접 구현으로 전환 — 마이그레이션 예정** |
 | HTTPS/도메인 | `badasoft.com` ACM 인증서(ISSUED), ALB 443 리스너(TLS1.3), HTTP→HTTPS 301, Route 53 적용 완료 |
 | Bedrock 모델 접근 | Anthropic FTU 제출 및 Claude Sonnet 4.6 Playground 호출 완료 |
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
@@ -335,7 +335,7 @@ aws ecs wait services-stable --region ap-northeast-2 --cluster bada-dev-cluster 
 | Cognito Hosted UI/OAuth 인프라 | 완료 | Hosted UI, Authorization Code Grant, callback/logout URL 적용 |
 | Cognito Google IdP | 완료 | PR #39 코드 반영 후 Terraform apply, App Client provider와 Google redirect 검증 |
 | Google IdP Terraform drift | 완료 | PR #45 merge, AWS 자동 보정값 명시 및 최종 plan `No changes` 검증 |
-| Cognito 애플리케이션 로그인 연동 | 인프라 적용 완료 | 운영 callback, PKCE/JWKS 코드, `AUTH_MODE=cognito`; 실제 사용자/모바일 E2E는 팀 검증 대기 |
+| 인증 방식 (로그인) | 전환 결정(6/25) | **현재 `AUTH_MODE=cognito`(배포 중). 팀 결정으로 소셜 OAuth(구글/카카오/네이버) 직접 구현 전환 예정** — `/auth/{provider}/login·callback`(이미 구현) + 콜백 앱 딥링크 분기 + `AUTH_MODE` 전환 + Cognito 리소스 제거 |
 | Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
 | SNS 기반 알림 전송 | 완료 | 구독 확인, 테스트 메시지, Alarm → SNS 및 OK 복구 알림 경로 검증 |
 | CloudWatch MCP | 완료 | `bada-mcp-readonly` 프로필로 Log Group/Alarm 실제 조회 및 S3 접근 거부 확인 |
