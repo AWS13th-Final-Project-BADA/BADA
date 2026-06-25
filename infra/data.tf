@@ -229,6 +229,15 @@ resource "aws_secretsmanager_secret_version" "app" {
     db_username  = var.db_username
     db_password  = var.db_password
     database_url = "postgresql+psycopg://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${aws_db_instance.postgres.address}:5432/bada"
+
+    # 소셜 OAuth (구글/카카오/네이버) + 자체 JWT 서명 — 값은 prod tfvars로 주입
+    google_client_id     = var.google_client_id
+    google_client_secret = var.google_client_secret
+    kakao_rest_api_key   = var.kakao_rest_api_key
+    kakao_client_secret  = var.kakao_client_secret
+    naver_client_id      = var.naver_client_id
+    naver_client_secret  = var.naver_client_secret
+    jwt_secret           = var.jwt_secret
   })
 }
 
