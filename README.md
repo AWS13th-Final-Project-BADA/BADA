@@ -54,129 +54,151 @@ cd mobile-native && npm install && npx expo start
 ### 현재 (As-Is)
 
 ```mermaid
-graph TB
-    subgraph Client
-        Mobile[📱 Mobile App<br/>React Native + Expo]
+flowchart TB
+    %% ─── Client ───
+    Mobile["📱 Mobile App\n(React Native + Expo)"]
+
+    %% ─── Edge ───
+    subgraph Edge["Edge / Ingress"]
+        Cognito["Cognito\nGoogle IdP + PKCE"]
+        ALB["ALB\nHTTPS · ACM · TLS 1.3"]
     end
 
-    subgraph AWS["☁️ AWS ap-northeast-2"]
-        ALB[ALB<br/>HTTPS/ACM]
-
-        subgraph ECS["ECS Fargate Cluster"]
-            Backend[Backend<br/>FastAPI]
-            Worker[Worker<br/>분석 파이프라인]
-            Prom[Prometheus]
-            Graf[Grafana]
-        end
-
-        subgraph Data["데이터 계층"]
-            RDS[(RDS PostgreSQL<br/>+ PostGIS)]
-            S3[S3<br/>Evidence / Report]
-            SQS[SQS + DLQ]
-        end
-
-        subgraph AI["AI 서비스"]
-            Bedrock[Bedrock<br/>Claude Sonnet 4]
-            Translate[Amazon Translate]
-            Transcribe[Amazon Transcribe]
-        end
-
-        Cognito[Cognito<br/>Google IdP]
-        CW[CloudWatch<br/>Logs / Alarms]
-        SNS[SNS Alert]
+    %% ─── Compute ───
+    subgraph Compute["ECS Fargate Cluster"]
+        Backend["Backend\nFastAPI :8000"]
+        Worker["Worker\n분석 파이프라인"]
+        Prom["Prometheus"]
+        Graf["Grafana"]
     end
 
+    %% ─── Data ───
+    subgraph Data["데이터 계층 (Region Services)"]
+        RDS[("RDS PostgreSQL 16\n+ PostGIS · Single-AZ")]
+        S3["S3 Evidence / Report\nSSE-KMS"]
+        SQS["SQS\n+ DLQ (redrive ×5)"]
+    end
+
+    %% ─── AI ───
+    subgraph AI["AI / ML Services"]
+        Bedrock["Bedrock\nClaude Sonnet 4"]
+        Transcribe["Amazon Transcribe"]
+        Translate["Amazon Translate"]
+    end
+
+    %% ─── Observability ───
+    subgraph Obs["Observability"]
+        CW["CloudWatch\nLogs · Alarms (14)"]
+        SNS["SNS → Email"]
+    end
+
+    %% ─── Flows ───
     Mobile -->|HTTPS| ALB
+    Mobile -->|OAuth PKCE| Cognito
+    Cognito -->|Token| Backend
     ALB --> Backend
+
     Backend --> RDS
     Backend --> S3
-    Backend --> SQS
-    SQS --> Worker
+    Backend -->|SendMessage| SQS
+
+    SQS -->|ReceiveMessage| Worker
     Worker --> Bedrock
-    Worker --> Translate
     Worker --> Transcribe
+    Worker --> Translate
     Worker --> RDS
     Worker --> S3
-    Mobile -->|OAuth| Cognito
-    Cognito --> Backend
-    Backend --> CW
-    Worker --> CW
+
+    Backend -.->|logs| CW
+    Worker -.->|logs| CW
     Prom --> Graf
-    Graf --> SNS
+    Graf -.->|alert| SNS
+    CW -.->|alarm| SNS
 ```
 
 ### 목표 (To-Be)
 
 ```mermaid
-graph TB
-    subgraph Client
-        Mobile[📱 Mobile App<br/>React Native + Expo]
+flowchart TB
+    %% ─── Client ───
+    Mobile["📱 Mobile App\n(React Native + Expo)"]
+
+    %% ─── Edge ───
+    subgraph Edge["Edge / Security"]
+        WAF["AWS WAF\nOWASP Managed Rules"]
+        ALB["ALB (Public Subnet)\nHTTPS · ACM"]
     end
 
-    subgraph AWS["☁️ AWS ap-northeast-2"]
-        WAF[AWS WAF<br/>OWASP Rules]
-        ALB[ALB<br/>HTTPS/ACM]
-
-        subgraph Public["Public Subnet"]
-            ALB
-            NAT[NAT Gateway]
-        end
-
-        subgraph Private["Private Subnet"]
-            subgraph ECS["ECS Fargate + Auto Scaling"]
-                Backend[Backend ×1~3<br/>CPU 70% scaling]
-                Worker[Worker ×1~3<br/>SQS backlog scaling<br/>Fargate Spot]
-                Prom[Prometheus]
-                Graf[Grafana]
-            end
-            RDS[(RDS PostgreSQL<br/>Multi-AZ + Encrypted)]
-        end
-
-        subgraph Data["데이터 계층"]
-            S3[S3<br/>Evidence / Report]
-            SQS[SQS + DLQ]
-        end
-
-        subgraph AI["AI 서비스"]
-            Bedrock[Bedrock<br/>Claude Sonnet 4]
-            Translate[Amazon Translate]
-            Transcribe[Amazon Transcribe]
-        end
-
-        subgraph Security["보안/관측성"]
-            GuardDuty[GuardDuty]
-            SecHub[Security Hub]
-            XRay[X-Ray<br/>분산 추적]
-        end
-
-        VPCE[VPC Endpoint<br/>S3/SQS/ECR]
-        Cognito[Cognito<br/>Google IdP]
-        CW[CloudWatch<br/>Logs / Alarms]
-        SNS[SNS Alert]
+    %% ─── Network ───
+    subgraph Network["Network"]
+        NAT["NAT Gateway"]
+        VPCE["VPC Endpoints\nS3 · SQS · ECR"]
     end
 
+    %% ─── Compute (Private Subnet) ───
+    subgraph Private["Private Subnet"]
+        subgraph ECS["ECS Fargate + Auto Scaling"]
+            Backend["Backend ×1~3\nCPU 70% scaling"]
+            Worker["Worker ×1~3 (Spot)\nSQS backlog scaling"]
+            Prom["Prometheus"]
+            Graf["Grafana"]
+        end
+        RDS[("RDS PostgreSQL 16\nMulti-AZ · Encrypted")]
+    end
+
+    %% ─── Data (Region Services) ───
+    subgraph Data["데이터 계층"]
+        S3["S3 Evidence / Report\nSSE-KMS · Lifecycle"]
+        SQS["SQS + DLQ"]
+    end
+
+    %% ─── AI ───
+    subgraph AI["AI / ML Services"]
+        Bedrock["Bedrock\nClaude Sonnet 4"]
+        Transcribe["Amazon Transcribe"]
+        Translate["Amazon Translate"]
+    end
+
+    %% ─── Security & Observability ───
+    subgraph SecObs["Security & Observability"]
+        XRay["X-Ray\n분산 추적"]
+        Guard["GuardDuty"]
+        SecHub["Security Hub"]
+        CW["CloudWatch"]
+        SNS["SNS → Email"]
+    end
+
+    %% ─── Auth ───
+    Cognito["Cognito\nGoogle IdP"]
+
+    %% ─── Flows ───
     Mobile -->|HTTPS| WAF
     WAF --> ALB
     ALB --> Backend
+    Mobile -->|OAuth PKCE| Cognito
+    Cognito -->|Token| Backend
+
     Backend --> RDS
     Backend -->|VPC Endpoint| S3
     Backend -->|VPC Endpoint| SQS
+
     SQS --> Worker
     Worker --> Bedrock
-    Worker --> Translate
     Worker --> Transcribe
+    Worker --> Translate
     Worker --> RDS
     Worker -->|VPC Endpoint| S3
-    ECS -->|NAT GW| AI
-    Mobile -->|OAuth| Cognito
-    Cognito --> Backend
-    Backend --> XRay
-    Worker --> XRay
-    Backend --> CW
-    Worker --> CW
-    Prom --> Graf
-    Graf --> SNS
-    GuardDuty --> SecHub
+
+    Private -->|outbound| NAT
+    Private -.-> VPCE
+
+    Backend -.-> XRay
+    Worker -.-> XRay
+    Backend -.->|logs| CW
+    Worker -.->|logs| CW
+    CW -.->|alarm| SNS
+    Graf -.->|alert| SNS
+    Guard --> SecHub
 ```
 
 > 상세 설계: `docs/infra/production-roadmap.md` · 의사결정: `docs/decisions/decision-record-20260625.md`
