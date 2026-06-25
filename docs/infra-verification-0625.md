@@ -24,6 +24,20 @@
 
 **결론**: 인프라 정상.
 
+### 1.1 최신 보정 (06/25 모니터링 provisioning 후)
+
+| 항목 | 상태 |
+|------|------|
+| Terraform plan | No changes |
+| Backend ECS | desired=1/running=1, Task :49 |
+| Worker ECS | desired=1/running=1, Task :19 |
+| Frontend ECS | desired=1/running=1, Task :3 |
+| Prometheus ECS | desired=1/running=1, Task :2 |
+| Grafana ECS | desired=1/running=1, Task :6 |
+| Grafana Alert | Contact Point `BADA-SNS`, Rule G1~G8 8개, Notification Policy receiver `BADA-SNS` |
+
+**남은 확인**: Grafana Alert의 실제 이메일 수신과 OK 복구 메일은 수신함 기준으로 확인한다.
+
 ---
 
 ## 2. 백엔드 요청사항 — 구현 현황
@@ -88,15 +102,14 @@ Worker E2E 검증(SQS → Worker → Bedrock → RDS → S3 Report)에 필요:
 
 ## 6. 모니터링 담당 요청사항
 
-인프라 준비 완료: Grafana ECS, Prometheus ECS, CloudWatch datasource, SNS Email Topic, Grafana Task Role SNS Publish 권한.
+인프라 준비 완료: Grafana ECS, Prometheus ECS, CloudWatch datasource, SNS Email Topic, Grafana Task Role SNS Publish 권한, `BADA-SNS` Contact Point, G1~G8 Alert Rule, `BADA-SNS` Notification Policy.
 
-Grafana Alert 완성에 필요:
+Grafana Alert 완성에 남은 확인:
 
-1. Alert Rule 목록 + 임계치
-2. 알림 수신자
-3. Contact Point 구성 방식
+1. 이메일 실수신 확인
+2. OK 복구 메일 확인
+3. 실제 운영 임계치 튜닝 필요 여부
 4. Dashboard JSON 최종본
-5. 테스트 알림 발생/복구 시나리오
 
 ---
 
