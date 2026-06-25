@@ -49,18 +49,75 @@ cd worker && pip install -r requirements.txt && pytest -q
 cd mobile-native && npm install && npx expo start
 ```
 
+## 아키텍처
+
+```mermaid
+graph TB
+    subgraph Client
+        Mobile[📱 Mobile App<br/>React Native + Expo]
+    end
+
+    subgraph AWS["☁️ AWS ap-northeast-2"]
+        ALB[ALB<br/>HTTPS/ACM]
+
+        subgraph ECS["ECS Fargate Cluster"]
+            Backend[Backend<br/>FastAPI]
+            Worker[Worker<br/>분석 파이프라인]
+            Prom[Prometheus]
+            Graf[Grafana]
+        end
+
+        subgraph Data["데이터 계층"]
+            RDS[(RDS PostgreSQL<br/>+ PostGIS)]
+            S3[S3<br/>Evidence / Report]
+            SQS[SQS + DLQ]
+        end
+
+        subgraph AI["AI 서비스"]
+            Bedrock[Bedrock<br/>Claude Sonnet 4]
+            Translate[Amazon Translate]
+            Transcribe[Amazon Transcribe]
+        end
+
+        Cognito[Cognito<br/>Google IdP]
+        CW[CloudWatch<br/>Logs / Alarms]
+        SNS[SNS Alert]
+    end
+
+    Mobile -->|HTTPS| ALB
+    ALB --> Backend
+    Backend --> RDS
+    Backend --> S3
+    Backend --> SQS
+    SQS --> Worker
+    Worker --> Bedrock
+    Worker --> Translate
+    Worker --> Transcribe
+    Worker --> RDS
+    Worker --> S3
+    Mobile -->|OAuth| Cognito
+    Cognito --> Backend
+    Backend --> CW
+    Worker --> CW
+    Prom --> Graf
+    Graf --> SNS
+```
+
 ## 스택
 
-**컴퓨트/배포**: ECR · ECS Fargate (ARM64) · ALB (HTTPS/ACM)
-**데이터**: RDS PostgreSQL+PostGIS · S3+KMS · SQS(+DLQ)
-**인증**: Cognito (Google IdP, Hosted UI + PKCE)
-**설정/보안**: Secrets Manager · SSM Parameter Store
-**AI**: Bedrock (Claude Sonnet 4) · Amazon Translate · Amazon Transcribe
-**관측성**: CloudWatch Logs/Alarms · Prometheus · Grafana · SNS Alert
-**PDF**: WeasyPrint
-**모바일**: React Native · Expo · EAS Build
+| 카테고리 | 서비스 |
+|----------|--------|
+| **컴퓨트** | ECS Fargate (ARM64) · ECR · ALB (HTTPS/ACM/TLS1.3) |
+| **데이터** | RDS PostgreSQL + PostGIS · S3 (SSE-KMS) · SQS + DLQ |
+| **인증** | Cognito (Hosted UI + PKCE + Google IdP) |
+| **AI** | Bedrock Claude Sonnet 4 · Amazon Translate · Amazon Transcribe |
+| **관측성** | CloudWatch Logs/Alarms · Prometheus · Grafana · SNS Alert |
+| **보안** | Secrets Manager · SSM Parameter Store · WAF (예정) |
+| **PDF** | WeasyPrint (다국어 폰트 임베딩) |
+| **모바일** | React Native · Expo · EAS Build |
+| **IaC** | Terraform · GitHub Actions OIDC |
 
-금지: K8s, Kafka, NAT Gateway(MVP), OpenAI, Textract, ReportLab.
+**금지 스택**: K8s, Kafka, OpenAI, Textract, ReportLab — 사유는 `.kiro/steering/` 참조.
 
 ## 배포 현황
 
