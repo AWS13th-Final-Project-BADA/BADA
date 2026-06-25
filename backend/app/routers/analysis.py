@@ -16,6 +16,7 @@ from ..models import AnalysisResult, Case, TimelineEvent, TranslationPair
 from ..schemas_analyze import AnalyzeRequest
 from ..schemas_report import AnalysisReport
 from ..services import analysis_service, report_builder, s3
+from ..services.queue import send_analysis_job
 
 router = APIRouter(prefix="/cases/{case_id}", tags=["analysis"])
 
@@ -63,6 +64,10 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
                                evidence_type=p.get("evidence_type"), related_issue=p.get("related_issue")))
     case.status = "completed"
     db.commit()
+
+    # Worker 비동기 후처리 (PDF 생성 등) — SQS 미설정 시 no-op
+    send_analysis_job(case_id)
+
     return report
 
 
