@@ -1,4 +1,4 @@
-"""Authentication routes for social login, Cognito login, and JWT user lookup."""
+"""Authentication routes for social OAuth login (Google/Kakao/Naver) and JWT user lookup."""
 from __future__ import annotations
 
 import base64
@@ -7,7 +7,6 @@ import secrets
 import string
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-import requests
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -16,7 +15,7 @@ from ..config import settings
 from ..db import get_db
 from ..deps import get_current_user
 from ..models import User
-from ..services import auth_service, cognito_auth_service
+from ..services import auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 _PROVIDERS = ("kakao", "google", "naver")
@@ -80,61 +79,6 @@ def _redirect_with_token(token: str, state: str = "") -> RedirectResponse:
 
     app_base_url = settings.app_base_url.rstrip("/")
     return RedirectResponse(f"{app_base_url}/#token={token}")
-
-
-@router.get("/cognito/login")
-def cognito_login(
-    identity_provider: str | None = None,
-    prompt: str | None = None,
-    redirect_uri: str | None = None,
-):
-    if not cognito_auth_service.is_configured():
-        raise HTTPException(status_code=503, detail="Cognito login is not configured")
-
-    state = _encode_state(redirect_uri)
-    url = cognito_auth_service.authorize_url(
-        state,
-        identity_provider=identity_provider,
-        prompt=prompt,
-    )
-    return RedirectResponse(url)
-
-
-@router.get("/cognito/callback")
-def cognito_callback(
-    code: str | None = None,
-    state: str = "",
-    error: str | None = None,
-    error_description: str | None = None,
-    db: Session = Depends(get_db),
-):
-    if error or error_description:
-        raise HTTPException(status_code=400, detail=f"Cognito authorization rejected: {error} / {error_description}")
-    if not code:
-        raise HTTPException(status_code=400, detail="Missing Cognito authorization code")
-
-    try:
-        tokens = cognito_auth_service.exchange_code(code)
-        token = tokens.get("id_token") or tokens.get("access_token")
-        if not token:
-            raise HTTPException(status_code=502, detail="Cognito token response did not include a usable token")
-        payload = cognito_auth_service.verify_cognito_token(token)
-        cognito_auth_service.get_or_create_user_from_claims(db, payload)
-    except cognito_auth_service.CognitoConfigError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except requests.HTTPError as exc:
-        body = exc.response.text if exc.response is not None else str(exc)
-        raise HTTPException(status_code=502, detail=f"Cognito token exchange failed: {body}") from exc
-
-    return _redirect_with_token(token, state)
-
-
-@router.get("/cognito/logout")
-def cognito_logout(logout_uri: str | None = None):
-    if not cognito_auth_service.is_configured():
-        app_base_url = settings.app_base_url.rstrip("/")
-        return RedirectResponse(app_base_url)
-    return RedirectResponse(cognito_auth_service.logout_url(_safe_return_to(logout_uri)))
 
 
 @router.get("/{provider}/login")

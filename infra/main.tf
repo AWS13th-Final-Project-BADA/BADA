@@ -985,6 +985,9 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "PROVIDER_MODE", value = var.backend_provider_mode },
         { name = "AUTH_MODE", value = var.backend_auth_mode },
         { name = "APP_BASE_URL", value = var.backend_app_base_url },
+        { name = "GOOGLE_REDIRECT_URI", value = "${var.backend_oauth_callback_base}/auth/google/callback" },
+        { name = "KAKAO_REDIRECT_URI", value = "${var.backend_oauth_callback_base}/auth/kakao/callback" },
+        { name = "NAVER_REDIRECT_URI", value = "${var.backend_oauth_callback_base}/auth/naver/callback" },
         { name = "CORS_ALLOWED_ORIGINS", value = join(",", var.backend_cors_allowed_origins) },
         { name = "AI_CHAT_MODE", value = var.backend_ai_chat_mode },
         { name = "EMBEDDING_MODE", value = var.backend_embedding_mode },
@@ -1011,7 +1014,14 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name      = "DATABASE_URL"
           valueFrom = "${aws_secretsmanager_secret.app.arn}:database_url::"
-        }
+        },
+        { name = "GOOGLE_CLIENT_ID", valueFrom = "${aws_secretsmanager_secret.app.arn}:google_client_id::" },
+        { name = "GOOGLE_CLIENT_SECRET", valueFrom = "${aws_secretsmanager_secret.app.arn}:google_client_secret::" },
+        { name = "KAKAO_REST_API_KEY", valueFrom = "${aws_secretsmanager_secret.app.arn}:kakao_rest_api_key::" },
+        { name = "KAKAO_CLIENT_SECRET", valueFrom = "${aws_secretsmanager_secret.app.arn}:kakao_client_secret::" },
+        { name = "NAVER_CLIENT_ID", valueFrom = "${aws_secretsmanager_secret.app.arn}:naver_client_id::" },
+        { name = "NAVER_CLIENT_SECRET", valueFrom = "${aws_secretsmanager_secret.app.arn}:naver_client_secret::" },
+        { name = "JWT_SECRET", valueFrom = "${aws_secretsmanager_secret.app.arn}:jwt_secret::" }
       ]
 
       logConfiguration = {
@@ -1563,6 +1573,15 @@ resource "aws_secretsmanager_secret_version" "app" {
     db_username  = var.db_username
     db_password  = var.db_password
     database_url = "postgresql+psycopg://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${aws_db_instance.postgres.address}:5432/bada"
+
+    # 소셜 OAuth (구글/카카오/네이버) + 자체 JWT 서명 — 값은 tfvars/CI로 주입
+    google_client_id     = var.google_client_id
+    google_client_secret = var.google_client_secret
+    kakao_rest_api_key   = var.kakao_rest_api_key
+    kakao_client_secret  = var.kakao_client_secret
+    naver_client_id      = var.naver_client_id
+    naver_client_secret  = var.naver_client_secret
+    jwt_secret           = var.jwt_secret
   })
 }
 

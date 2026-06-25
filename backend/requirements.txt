@@ -10,8 +10,7 @@ tzdata==2026.2          # GPS 라우터 ZoneInfo("Asia/Seoul") — Windows는 IA
 
 # AWS mode (PROVIDER_MODE=aws): Bedrock / Translate / Upstage
 boto3==1.35.30          # Bedrock (Claude Vision/Text), Amazon Translate
-requests==2.32.3        # Upstage Document Parse API
-PyJWT[crypto]==2.10.1   # Cognito JWT verification (RS256 + JWKS)
+requests==2.32.3        # Upstage Document Parse API + 소셜 OAuth 토큰 교환
 
 # Tests (pytest + FastAPI TestClient needs httpx)
 pytest==8.3.3

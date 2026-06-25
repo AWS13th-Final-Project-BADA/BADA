@@ -8,13 +8,13 @@ function clearToken(){ try{ localStorage.removeItem(BADA_TOKEN_KEY); }catch(e){}
 // 소셜 로그인 시작
 function kakaoLogin(){ location.href = apiUrl("/auth/kakao/login"); }
 function naverLogin(){ location.href = apiUrl("/auth/naver/login"); }
-function googleLogin(){ location.href = apiUrl("/auth/cognito/login?identity_provider=Google&prompt=select_account"); }
+function googleLogin(){ location.href = apiUrl("/auth/google/login"); }
 
 function goLogin(){ if(typeof goPage==="function") goPage("login"); }
 
 async function logout(){
   clearToken();
-  location.href = apiUrl("/auth/cognito/logout");
+  if(typeof goPage==="function") goPage("home",0);
 }
 
 // 콜백 리다이렉트(#token=...)에서 토큰 회수 → 저장 → URL 정리.

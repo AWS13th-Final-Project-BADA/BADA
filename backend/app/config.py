@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     provider_mode: str = "local"
     structured_engine: str = "vision"
-    auth_mode: str = "demo"  # demo | oauth | cognito
+    auth_mode: str = "demo"  # demo | oauth  (Cognito 제거됨 — 소셜 OAuth로 단일화)
     storage_mode: str = "local"  # local | s3
     upload_dir: str = "./uploads"
 
@@ -43,14 +43,6 @@ class Settings(BaseSettings):
     embedding_dimension: int = 1024
     upstage_api_key: str = ""
     parseur_api_key: str = ""
-
-    cognito_user_pool_id: str = ""
-    cognito_client_id: str = ""
-    cognito_client_secret: str = ""
-    cognito_domain: str = ""
-    cognito_redirect_uri: str = "http://localhost:8000/auth/cognito/callback"
-    cognito_logout_uri: str = "http://localhost:8000/"
-    cognito_scopes: str = "openid email profile"
 
     retention_days: int = 90
 
