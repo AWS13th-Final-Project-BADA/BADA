@@ -6,7 +6,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 const APP_REDIRECT = Linking.createURL("auth");
 
-type Provider = "cognito" | "kakao" | "google" | "naver";
+type Provider = "google" | "kakao" | "naver";
 
 function extractToken(url: string): string | null {
   const queryParts = url.split(/[?#]/).slice(1);
@@ -21,22 +21,13 @@ function extractToken(url: string): string | null {
 }
 
 function buildAuthUrl(provider: Provider): string {
+  // 소셜 OAuth(구글/카카오/네이버) 직접 구현. 백엔드가 redirect_uri를 state에 보존하고
+  // 콜백에서 앱 딥링크(bada://auth#token=)로 302 redirect 한다.
   const params = new URLSearchParams({ redirect_uri: APP_REDIRECT });
-
-  if (provider === "google") {
-    params.set("identity_provider", "Google");
-    params.set("prompt", "select_account");
-    return `${API_BASE}/auth/cognito/login?${params.toString()}`;
-  }
-
-  if (provider === "cognito") {
-    return `${API_BASE}/auth/cognito/login?${params.toString()}`;
-  }
-
   return `${API_BASE}/auth/${provider}/login?${params.toString()}`;
 }
 
-export async function login(provider: Provider = "cognito"): Promise<boolean> {
+export async function login(provider: Provider = "google"): Promise<boolean> {
   const result = await WebBrowser.openAuthSessionAsync(
     buildAuthUrl(provider),
     APP_REDIRECT
@@ -54,9 +45,8 @@ export async function login(provider: Provider = "cognito"): Promise<boolean> {
 }
 
 export async function logout(): Promise<void> {
+  // 자체 발급 JWT 기반이라 별도 Hosted UI 로그아웃이 없다. 로컬 토큰만 제거한다.
   await clearToken();
-  const params = new URLSearchParams({ logout_uri: APP_REDIRECT });
-  WebBrowser.openBrowserAsync(`${API_BASE}/auth/cognito/logout?${params.toString()}`).catch(() => {});
 }
 
 
