@@ -62,6 +62,10 @@
 - 기존 웹 `#token=` 흐름 무영향
 - 각 provider Redirect URI는 운영(`https://api.badasoft.com/auth/{provider}/callback`) 기준, `AUTH_MODE`를 cognito→oauth/jwt로 전환
 
+진행 현황:
+- ✅ 모바일(앱): `features/auth/api.ts` `buildAuthUrl` Cognito 제거 → `/auth/{provider}/login?redirect_uri=bada://auth` 호출로 전환, `logout` Hosted UI 호출 제거 (tsc 통과)
+- ⏳ 백엔드: `social_callback` 앱 딥링크 분기 + `AUTH_MODE` 전환 (인프라/백엔드 담당)
+
 ---
 
 ## 3. 모바일 담당 확인 필요사항
