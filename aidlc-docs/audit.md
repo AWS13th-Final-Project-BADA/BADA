@@ -186,3 +186,60 @@
 **Context**: 팀 협의로 모니터링 기능 추가 결정. 오픈소스(Prometheus+Grafana) 기반. 인프라 apply 완료 상태.
 
 ---
+
+
+## POST-MVP 의사결정 세션
+**Timestamp**: 2026-06-25T14:37:36+09:00
+**User Input**: "지금 까지 개발한 BADA 프로젝트 진행상황을 AI-DLC 이론 & 기법을 활용해서 분석해줘. 그리고 아직까지 남아있는 구현 과제, 수정해야할 포인트 MVP 구현 완료 후 리팩토링 또는 프로덕션 환경에 맞춘 변경 사항 등이 있으면 알려줘. 의사결정할 수 있게."
+**AI Response**: AI-DLC 기반 종합 분석 제공 — INCEPTION 100%, CONSTRUCTION ~85%, 5개 의사결정 항목 제시
+**Context**: POST-MVP 프로덕션 고도화 의사결정 세션 시작
+
+---
+
+## 의사결정 1~5번
+**Timestamp**: 2026-06-25T14:40:37+09:00 ~ 2026-06-25T14:52:23+09:00
+**User Input (순서대로)**:
+- 1번: "OAuth로 대체. 사유 : Google 만 되고 카카오/네이버 문제 많음 ㅈ박아서 못하겠다"
+- 2번: "B로 결정" (Phase A에서 RDS 암호화)
+- 3번: "A로 결정" (Cases + Evidences만 행 수준 인가)
+- 4번: "ㅇㅋ B로 감" (Auto Scaling min=1/max=3 + 부하 테스트)
+- 5번: "A로 가는데, 다른 태스크 완료되는거 보고 가능하면 진행해도 되는 부분?" → A 조건부
+**AI Response**: 각 항목별 옵션 분석 → 사용자 선택 → 확정
+**Context**: 핵심 의사결정 5건 확정
+
+---
+
+## 의사결정 6번 (Bedrock 모델 비교)
+**Timestamp**: 2026-06-25T15:00:47+09:00
+**User Input**: "ㅇㅇ 옵션 A로 가되, Sonnet 4.6 기준 한단계 상위 모델 / 하위 모델을 가지고 테스트를 했으면 좋겠어"
+**AI Response**: Opus 4 / Sonnet 4 / Haiku 3.5 × 10케이스 벤치마크 확정
+**Context**: 모델 비교 범위 확정
+
+---
+
+## 의사결정 7~11번
+**Timestamp**: 2026-06-25T15:02:36+09:00 ~ 2026-06-25T15:04:39+09:00
+**User Input**:
+- 7(WAF), 8(RDS Multi-AZ), 9(k6): "7, 8, 9 까지는 구현 해보는게 좋을 것 같아. 비효율적이더라도 기술 써보고 싶은 거 써도 괜찮은 게..."
+- 10(X-Ray): 상세 설명 요청 후 채택
+- 11(GuardDuty): "일단 10, 11도 진행하자"
+**AI Response**: 전체 채택 확정, 면접 논리("기술 비교 후 써보고 싶어서 채택") 적합 판단
+**Context**: 포트폴리오 관점 인프라 고도화 7건 확정
+
+---
+
+## 의사결정 12~18번
+**Timestamp**: 2026-06-25T15:18:40+09:00 ~ 2026-06-25T15:19:34+09:00
+**User Input**: "남아 있는거 싹다 같이 논의하자" → "전부 Y"
+**AI Response**: ECS Private Subnet, Task Role 분리, 구조화 로깅, Fargate Spot, TF Plan in PR, CI 강화, VPC Endpoint 전부 채택
+**Context**: 총 18건 의사결정 전체 확정. 총 비용 ~$144/2주 (예산 10%)
+
+---
+
+## 문서화
+**Timestamp**: 2026-06-25T15:19:57+09:00
+**User Input**: "일단 문서로 기룩해"
+**AI Response**: `docs/decision-record-20260625.md` 생성, `aidlc-docs/aidlc-state.md` 갱신, `aidlc-docs/audit.md` 갱신
+**Context**: 의사결정 기록 완료
+
+---
