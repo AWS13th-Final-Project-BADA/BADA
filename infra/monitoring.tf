@@ -19,6 +19,30 @@ locals {
   grafana_overview_dashboard_base64 = filebase64(
     "${path.module}/../monitoring/grafana/provisioning/dashboards/json/bada-overview.json"
   )
+  grafana_infrastructure_dashboard_base64 = base64encode(templatefile(
+    "${path.module}/../monitoring/grafana/provisioning/dashboards/json/bada-infrastructure.json",
+    {
+      aws_region      = var.aws_region
+      ecs_cluster     = aws_ecs_cluster.main.name
+      backend_service = aws_ecs_service.backend.name
+      worker_service  = aws_ecs_service.worker.name
+      rds_instance_id = aws_db_instance.postgres.identifier
+      alb_arn_suffix  = aws_lb.main.arn_suffix
+      sqs_queue_name  = aws_sqs_queue.analysis.name
+      sqs_dlq_name    = aws_sqs_queue.analysis_dlq.name
+    }
+  ))
+  grafana_backend_dashboard_base64 = filebase64(
+    "${path.module}/../monitoring/grafana/provisioning/dashboards/json/bada-backend.json"
+  )
+  grafana_worker_dashboard_base64 = base64encode(templatefile(
+    "${path.module}/../monitoring/grafana/provisioning/dashboards/json/bada-worker.json",
+    {
+      aws_region     = var.aws_region
+      sqs_queue_name = aws_sqs_queue.analysis.name
+      sqs_dlq_name   = aws_sqs_queue.analysis_dlq.name
+    }
+  ))
   grafana_alerting_contactpoints_base64 = base64encode(templatefile(
     "${path.module}/../monitoring/grafana/provisioning/alerting/contactpoints.yml",
     { sns_topic_arn = aws_sns_topic.alarms.arn }
@@ -322,12 +346,15 @@ resource "aws_ecs_task_definition" "grafana" {
         "-c"
       ]
       command = [
-        "set -eu; mkdir -p /config/datasources /config/dashboards/json /config/alerting; printf '%s' \"$DATASOURCES_BASE64\" | base64 -d > /config/datasources/datasources.yml; printf '%s' \"$DASHBOARDS_CONFIG_BASE64\" | base64 -d > /config/dashboards/dashboards.yml; printf '%s' \"$OVERVIEW_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-overview.json; printf '%s' \"$ALERTING_CONTACTPOINTS_BASE64\" | base64 -d > /config/alerting/contactpoints.yml; printf '%s' \"$ALERTING_RULES_BASE64\" | base64 -d > /config/alerting/rules.yml"
+        "set -eu; mkdir -p /config/datasources /config/dashboards/json /config/alerting; printf '%s' \"$DATASOURCES_BASE64\" | base64 -d > /config/datasources/datasources.yml; printf '%s' \"$DASHBOARDS_CONFIG_BASE64\" | base64 -d > /config/dashboards/dashboards.yml; printf '%s' \"$OVERVIEW_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-overview.json; printf '%s' \"$INFRA_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-infrastructure.json; printf '%s' \"$BACKEND_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-backend.json; printf '%s' \"$WORKER_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-worker.json; printf '%s' \"$ALERTING_CONTACTPOINTS_BASE64\" | base64 -d > /config/alerting/contactpoints.yml; printf '%s' \"$ALERTING_RULES_BASE64\" | base64 -d > /config/alerting/rules.yml"
       ]
       environment = [
         { name = "DATASOURCES_BASE64", value = local.grafana_datasources_base64 },
         { name = "DASHBOARDS_CONFIG_BASE64", value = local.grafana_dashboards_config_base64 },
         { name = "OVERVIEW_DASHBOARD_BASE64", value = local.grafana_overview_dashboard_base64 },
+        { name = "INFRA_DASHBOARD_BASE64", value = local.grafana_infrastructure_dashboard_base64 },
+        { name = "BACKEND_DASHBOARD_BASE64", value = local.grafana_backend_dashboard_base64 },
+        { name = "WORKER_DASHBOARD_BASE64", value = local.grafana_worker_dashboard_base64 },
         { name = "ALERTING_CONTACTPOINTS_BASE64", value = local.grafana_alerting_contactpoints_base64 },
         { name = "ALERTING_RULES_BASE64", value = local.grafana_alerting_rules_base64 }
       ]
