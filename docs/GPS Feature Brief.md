@@ -34,6 +34,31 @@
 
 ---
 
+### 모바일 네이티브 — 사건 종속 GPS (2026-06-24)
+
+> **기존 웹(gps.js)**: 전역 토글 1개 → 핑 전송 (사건 미지정 시 첫 사건).
+> **네이티브(mobile-native)**: 사건을 먼저 선택한 뒤, 해당 사건에 종속된 GPS 추적만 동작.
+
+```
+① 사건 선택 (gps.tsx 진입 시 사건 목록 표시)
+② 근무지 등록 (POST /cases/{id}/gps/workplace — 현재 위치 High accuracy 측정)
+③ 포그라운드 추적 시작 (watchPositionAsync — Balanced, 100m/5분 간격)
+④ 핑 → POST /cases/{id}/gps/ping → 서버 IN/OUT 즉시 판정
+⑤ 수동 판정 표시 (result.status 기반 배지 업데이트)
+```
+
+**기술 스택**: `expo-location` + `expo-task-manager` (백그라운드는 개발빌드 필요)
+
+| 항목 | 웹 (gps.js) | 모바일 (features/gps/api.ts) |
+|------|-------------|------------------------------|
+| 사건 선택 | 자동(첫 사건 또는 URL) | 명시적 선택 필수 |
+| 위치 측정 | `navigator.geolocation` | `expo-location` (High→Balanced) |
+| 추적 모드 | setInterval 30초 | `watchPositionAsync` (포그라운드) |
+| 백그라운드 | 불가 | 개발빌드+expo-task-manager (미완) |
+| 판정 | 서버 응답 UI 표시 | 서버 응답 배지(IN/OUT/OUTSIDE) |
+
+---
+
 ### 서버 엔드포인트
 
 | 메서드 | 경로 | 역할 |
@@ -111,6 +136,8 @@
 | `backend/app/services/analysis_service.py` | ctx에 GPS 핑·근무지 주입 |
 | `backend/app/static/js/gps.js` | 토글·핑전송·근무지등록·주소검색·정보표시·결과지도 |
 | `backend/app/static/js/analysis.js` | 분석 시 DB GPS 자동 수집 + 결과 화면 일별 테이블 |
+| `mobile-native/src/features/gps/api.ts` | 네이티브 GPS — 사건 종속 핑, 포그라운드 watch, 근무지 등록 |
+| `mobile-native/app/gps.tsx` | GPS 화면 — 사건 선택 → 근무지 등록 → 추적 UI |
 | `worker/rules/geofence.py` | tag_logs + cross_check + summarize_by_day |
 | `worker/pipeline.py` | GPS 단계 (태깅 → 교차검증 → 일별 요약) |
 

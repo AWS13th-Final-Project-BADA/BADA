@@ -14,7 +14,7 @@ All endpoints are prefixed based on their router registration in `main.py`.
 ### Evidences (`/cases/{case_id}/evidences`)
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/cases/{id}/evidences` | 증거 레코드 직접 생성 |
+| POST | `/cases/{id}/evidences` | Presigned PUT URL 발급 + 증거 레코드 생성 (body: file_name, file_type, category, content_type?) — content_type 지정 시 MIME 화이트리스트 검증 |
 | GET | `/cases/{id}/evidences` | 사건의 증거 목록 조회 |
 | DELETE | `/cases/{id}/evidences/{eid}` | 증거 삭제 |
 | POST | `/cases/{id}/evidences/manual` | 카테고리만 등록 (분류 전용) |
@@ -36,6 +36,7 @@ All endpoints are prefixed based on their router registration in `main.py`.
 | GET | `/cases/{id}/translation-pairs` | 원문-번역 대조표 |
 | GET | `/cases/{id}/missing` | 누락 증거 체크리스트 |
 | GET | `/cases/{id}/report.html` | 제출용 HTML 리포트 (Evidence Pack) |
+| GET | `/cases/{id}/report.pdf` | 제출용 PDF 다운로드 — S3 presigned GET으로 302 리다이렉트 (lang=ko\|native, 미생성 시 404) |
 
 ### GPS (`/cases/{case_id}/gps`)
 | Method | Path | Purpose |

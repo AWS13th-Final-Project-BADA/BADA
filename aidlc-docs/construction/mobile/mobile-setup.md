@@ -84,9 +84,9 @@ mobile-native/
 
 > 셋 다 "추가·게이트" 방식 — 기존 웹 동작 무영향. 상세·검증법은 `mobile-native/BACKEND-INTEGRATION.md`.
 
-1. **인증 딥링크 (최우선)** — `auth.py` 콜백이 토큰을 웹(`#token=`)으로만 반환 → 앱이 못 받음. `redirect_uri=bada://auth`면 앱 스킴으로 302 분기 추가. (인증/Cognito 담당)
-2. **챗봇 `case_id` 정합** — `schemas_ai_chat.py` `case_id: int` ↔ 사건 UUID 불일치. `str` 수용으로 변경. (GPS+Agent+OCR 담당)
-3. **`report.pdf` 다운로드** — 워커가 PDF를 S3(`pdf_ko_s3_key`)에 저장하나 노출 엔드포인트 없음. `presign_get` 302 엔드포인트 1개 추가. 후순위. (백엔드/분석 담당)
+1. **인증 딥링크 (최우선)** — `auth.py` 콜백이 토큰을 웹(`#token=`)으로만 반환 → 앱이 못 받음. `redirect_uri=bada://auth`면 앱 스킴으로 302 분기 추가. (인증/Cognito 담당) **← ❌ 미구현**
+2. **챗봇 `case_id` 정합** — `schemas_ai_chat.py` `case_id: int` ↔ 사건 UUID 불일치. `str` 수용으로 변경. (GPS+Agent+OCR 담당) **← ✅ 완료 (6/24, `a67fa14`)**
+3. **`report.pdf` 다운로드** — 워커가 PDF를 S3(`pdf_ko_s3_key`)에 저장하나 노출 엔드포인트 없음. `presign_get` 302 엔드포인트 1개 추가. (백엔드/분석 담당) **← ✅ 완료 (6/24, `3640e2c`)**
 
 ## 7. GPS — 사건 종속 + 포그라운드 (구현 완료)
 

@@ -1,0 +1,15 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: BADA-SNS
+    receivers:
+      - uid: bada-sns-receiver
+        type: sns
+        settings:
+          message: '{{ template "default.message" . }}'
+          sigv4:
+            region: ${aws_region}
+          subject: "[BADA Alert] {{ .CommonLabels.alertname }}"
+          topic_arn: ${sns_topic_arn}
+        disableResolveMessage: false
