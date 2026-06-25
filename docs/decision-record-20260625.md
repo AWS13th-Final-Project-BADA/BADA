@@ -28,7 +28,7 @@
 
 | # | 항목 | 결정 | 비용(2주) | 실행 조건 |
 |---|------|------|-----------|----------|
-| 1 | 모바일 인증 | OAuth 웹뷰 유지 (Google만, 카카오/네이버 제거) | $0 | 완료 |
+| 1 | 모바일 인증 | Cognito 제거 → 소셜 OAuth 직접 구현 (Google + Kakao + Naver) | $0 | 진행 |
 | 2 | RDS 암호화 | Phase A Terraform 분리 시 `storage_encrypted=true`로 신규 생성 | $0 | TF 분리 후 |
 | 3 | 행 수준 인가 | Cases + Evidences API에 `case.user_id == 요청자` 검증 | $0 | 즉시 |
 | 4 | Auto Scaling | Backend CPU 70% + Worker SQS backlog 기반 (min=1/max=3) | ~$5 | TF 분리 후 |
@@ -47,7 +47,7 @@
 | 17 | CI 강화 | pytest-cov + bandit (SAST) + ruff (lint) | $0 | 즉시 |
 | 18 | VPC Endpoint | S3 Gateway (무료) + SQS/ECR Interface Endpoint | ~$7 | 12번과 세트 |
 
-| 19 | 모바일 로그인 E2E | Cognito OAuth 웹뷰 → 토큰 수신 검증 | $0 | 즉시 |
+| 19 | 모바일 로그인 E2E | 소셜 OAuth(구글/카카오/네이버) → 토큰 수신 검증 | $0 | 즉시 |
 | 20 | APK 배포 파이프라인 | EAS Build + GH Action + Preview APK | $0 | 즉시 |
 
 **총 예상 추가 비용: ~$144/2주** (예산의 10%)
@@ -60,7 +60,7 @@
 
 | # | 작업 | 예상 시간 | 담당 |
 |---|------|----------|------|
-| 19 | 모바일 로그인 E2E (Cognito OAuth → 토큰 수신) | 2~3h | 모바일 + Backend |
+| 19 | 모바일 로그인 E2E (소셜 OAuth 구글/카카오/네이버 → 토큰 수신) | 2~3h | 모바일 + Backend |
 | 20 | APK 배포 파이프라인 (EAS Build + GH Action) | 반나절 | 모바일 + 인프라 |
 | 3 | 행 수준 인가 (deps.py + routers) | 2~3h | Backend |
 | 6 | Bedrock 모델 비교 (eval 스크립트) | 반나절 | Agent/OCR |
@@ -100,9 +100,10 @@
 
 ## 의사결정 근거 요약
 
-### 1번: OAuth 웹뷰 (카카오/네이버 제거)
-- 사유: Google만 정상 동작, 카카오/네이버 연동 문제 해결 불가
-- 기존 `WebBrowser.openAuthSessionAsync` + Cognito Hosted UI로 이미 동작
+### 1번: 소셜 OAuth 직접 구현 (Cognito 제거, 구글/카카오/네이버)
+- 결정: Cognito Hosted UI를 제거하고 백엔드 소셜 OAuth(구글/카카오/네이버)로 전환
+- 백엔드에 소셜 OAuth(`/auth/{provider}/login`·`/callback`, `auth_service.py`)는 이미 구현됨 → 콜백에 앱 딥링크(`bada://auth#token=`) 분기 추가 + `AUTH_MODE` 전환 필요
+- 앱은 `WebBrowser.openAuthSessionAsync`로 `/auth/{provider}/login?redirect_uri=bada://auth` 호출
 
 ### 2번: RDS 암호화 — Phase A에서
 - 사유: 인플레이스 불가 → 재생성 필요 → TF 분리와 동시에 하면 state 충돌 0
@@ -144,7 +145,8 @@
 - [ ] Secrets Manager 시크릿 삭제
 - [ ] ECR 이미지 삭제
 - [ ] CloudWatch Log Group 삭제
-- [ ] Cognito User Pool 삭제 (사용자 데이터)
+- [ ] Cognito User Pool 삭제 (OAuth 전환으로 미사용 — 잔여 리소스 정리)
+- [ ] 소셜 OAuth(구글/카카오/네이버) Client Secret 정리 (Secrets Manager/SSM)
 
 상세: `docs/runbooks/project-closure.md` 참조.
 
