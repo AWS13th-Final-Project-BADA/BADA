@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialIcons } from "@expo/vector-icons";
+import { ApiError, fetchApi } from "@/lib/api";
 import { uploadEvidence, type PickedFile } from "@/lib/evidence";
-import type { Category, FileType } from "@/lib/types";
+import type { Case, Category, FileType } from "@/lib/types";
 import { Card, Chip, RemoteImage, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { stitchImages } from "@/lib/stitchAssets";
 
@@ -19,22 +20,63 @@ const categories: Array<{ key: Category; label: string; type: FileType }> = [
 ];
 
 export default function UploadScreen() {
-  const { caseId = "demo-case-1" } = useLocalSearchParams<{ caseId?: string }>();
+  const router = useRouter();
+  const { caseId } = useLocalSearchParams<{ caseId?: string }>();
+  const routeCaseId = typeof caseId === "string" && caseId.trim() ? caseId : null;
+  const [activeCaseId, setActiveCaseId] = useState<string | null>(routeCaseId);
+  const [cases, setCases] = useState<Case[]>([]);
+  const [loadingCases, setLoadingCases] = useState(!routeCaseId);
   const [category, setCategory] = useState<Category>("contract");
   const [busy, setBusy] = useState(false);
-  const [files, setFiles] = useState<Array<{ name: string; status: string }>>([
-    { name: "근로계약서.pdf", status: "1.2 MB · 업로드 중" },
-    { name: "입금내역_20260624.jpg", status: "완료 · 2026.06.24" },
-  ]);
+  const [files, setFiles] = useState<Array<{ name: string; status: string }>>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (routeCaseId) {
+      setActiveCaseId(routeCaseId);
+      setLoadingCases(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    async function loadCases() {
+      try {
+        const data = await fetchApi<Case[]>("/cases");
+        if (!mounted) return;
+        const list = Array.isArray(data) ? data : [];
+        setCases(list);
+        setActiveCaseId(list[0]?.id ?? null);
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) router.replace("/login");
+      } finally {
+        if (mounted) setLoadingCases(false);
+      }
+    }
+
+    void loadCases();
+    return () => {
+      mounted = false;
+    };
+  }, [routeCaseId, router]);
 
   const selected = categories.find((item) => item.key === category) || categories[0];
+  const selectedCase = useMemo(
+    () => cases.find((item) => item.id === activeCaseId) ?? null,
+    [activeCaseId, cases],
+  );
 
   async function upload(file: PickedFile) {
+    if (!activeCaseId) {
+      Alert.alert("사건이 필요해요", "자료를 올리려면 먼저 사건을 만들거나 선택해야 합니다.");
+      return;
+    }
+
     setBusy(true);
     try {
-      await uploadEvidence(caseId, file, selected.key, selected.type);
-      setFiles((prev) => [{ name: file.name, status: "완료 · 방금 전" }, ...prev]);
-      Alert.alert("업로드 완료", "증거자료가 사건 폴더에 추가됐어요.");
+      await uploadEvidence(activeCaseId, file, selected.key, selected.type);
+      setFiles((prev) => [{ name: file.name, status: "업로드 완료" }, ...prev]);
+      Alert.alert("업로드 완료", "증거 자료가 사건 폴더에 추가되었어요.");
     } catch (e: any) {
       Alert.alert("업로드 실패", String(e?.message ?? e));
     } finally {
@@ -45,7 +87,7 @@ export default function UploadScreen() {
   async function pickCamera() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("권한 필요", "카메라 권한을 허용해 주세요.");
+      Alert.alert("권한이 필요해요", "문서를 촬영하려면 카메라 권한을 허용해 주세요.");
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
@@ -83,14 +125,63 @@ export default function UploadScreen() {
     }
   }
 
+  if (loadingCases) {
+    return (
+      <StitchScreen active="upload">
+        <TopBar title="자료 업로드" back right="help-outline" />
+        <View style={styles.loading}>
+          <ActivityIndicator color={stitch.blue} />
+          <Text style={styles.loadingText}>업로드할 사건을 확인하고 있어요</Text>
+        </View>
+      </StitchScreen>
+    );
+  }
+
+  if (!activeCaseId) {
+    return (
+      <StitchScreen active="upload">
+        <TopBar title="자료 업로드" back right="help-outline" />
+        <View style={styles.empty}>
+          <View style={styles.emptyIcon}>
+            <MaterialIcons name="folder-open" size={54} color={stitch.blue} />
+          </View>
+          <Text style={styles.emptyTitle}>먼저 사건을 만들어 주세요</Text>
+          <Text style={styles.emptyBody}>계약서나 급여명세서는 사건 폴더에 연결되어야 상담 준비 자료로 정리할 수 있어요.</Text>
+          <StitchButton onPress={() => router.push("/cases/new")}>새 사건 만들기</StitchButton>
+          <Pressable style={styles.secondaryButton} onPress={() => router.push("/cases")}>
+            <Text style={styles.secondaryButtonText}>내 사건 목록 보기</Text>
+          </Pressable>
+        </View>
+      </StitchScreen>
+    );
+  }
+
   return (
     <StitchScreen active="upload">
       <TopBar title="자료 업로드" back right="help-outline" />
       <View style={styles.content}>
         <View style={styles.stepHeader}>
-          <Text style={styles.title}>자료 종류를 선택하세요</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>자료 종류를 선택하세요</Text>
+            <Text style={styles.subtitle}>
+              {selectedCase?.workplace_name || selectedCase?.employer_name || "선택된 사건"}에 자료를 추가합니다.
+            </Text>
+          </View>
           <Text style={styles.step}>Step 1 of 2</Text>
         </View>
+
+        {!routeCaseId && cases.length > 1 ? (
+          <View style={styles.caseStrip}>
+            {cases.slice(0, 4).map((item) => (
+              <Pressable key={item.id} onPress={() => setActiveCaseId(item.id)}>
+                <Chip
+                  label={item.workplace_name || item.employer_name || `사건 ${item.id.slice(0, 4)}`}
+                  active={item.id === activeCaseId}
+                />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         <View style={styles.categoryGrid}>
           {categories.map((item) => (
@@ -110,34 +201,37 @@ export default function UploadScreen() {
 
         <Card style={styles.privacy}>
           <MaterialIcons name="shield" size={24} color={stitch.blue} />
-          <Text style={styles.privacyText}>업로드한 자료는 상담 준비와 분석을 위해 안전하게 보관됩니다.</Text>
+          <Text style={styles.privacyText}>업로드한 자료는 상담 준비와 분석을 위해 사건에 안전하게 연결됩니다.</Text>
         </Card>
 
         <View style={styles.attachTop}>
-          <Text style={styles.sectionTitle}>첨부한 증거</Text>
+          <Text style={styles.sectionTitle}>이번 세션에 추가한 자료</Text>
           <Text style={styles.count}>{files.length} items</Text>
         </View>
         <Card style={styles.fileList}>
-          {files.map((file, index) => (
-            <View key={`${file.name}-${index}`} style={[styles.fileRow, index < files.length - 1 && styles.fileDivider]}>
-              <MaterialIcons name="description" size={24} color={stitch.blue} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
-                <Text style={styles.fileStatus}>{file.status}</Text>
+          {files.length ? (
+            files.map((file, index) => (
+              <View key={`${file.name}-${index}`} style={[styles.fileRow, index < files.length - 1 && styles.fileDivider]}>
+                <MaterialIcons name="description" size={24} color={stitch.blue} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
+                  <Text style={styles.fileStatus}>{file.status}</Text>
+                </View>
+                <MaterialIcons name="check-circle" size={22} color={stitch.green} />
               </View>
-              <MaterialIcons name={index === 0 ? "close" : "visibility"} size={22} color={stitch.outline} />
+            ))
+          ) : (
+            <View style={styles.noFiles}>
+              <MaterialIcons name="cloud-upload" size={34} color={stitch.outline} />
+              <Text style={styles.noFilesText}>아직 추가한 자료가 없어요</Text>
             </View>
-          ))}
+          )}
         </Card>
 
-        <Pressable style={styles.addMore} onPress={pickFile}>
+        <Pressable style={styles.addMore} onPress={pickFile} disabled={busy}>
           <MaterialIcons name="add-circle-outline" size={22} color={stitch.blue} />
-          <Text style={styles.addMoreText}>파일 더 추가하기</Text>
+          <Text style={styles.addMoreText}>파일 추가하기</Text>
         </Pressable>
-
-        <StitchButton tone="primary" disabled={busy}>
-          {busy ? <ActivityIndicator color="#fff" /> : "검토 후 확인"}
-        </StitchButton>
       </View>
     </StitchScreen>
   );
@@ -165,9 +259,19 @@ function UploadMethod({
 
 const styles = StyleSheet.create({
   content: { padding: 20, gap: 18 },
-  stepHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  loading: { paddingTop: 120, alignItems: "center", gap: 12 },
+  loadingText: { color: stitch.outline, fontSize: 13, fontWeight: "700" },
+  empty: { padding: 28, paddingTop: 110, gap: 16, alignItems: "center" },
+  emptyIcon: { width: 92, height: 92, borderRadius: 46, alignItems: "center", justifyContent: "center", backgroundColor: stitch.blueSoft },
+  emptyTitle: { color: stitch.text, fontSize: 24, fontWeight: "900", textAlign: "center" },
+  emptyBody: { color: stitch.muted, fontSize: 14, lineHeight: 22, textAlign: "center", marginBottom: 8 },
+  secondaryButton: { height: 48, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 18 },
+  secondaryButtonText: { color: stitch.blue, fontSize: 14, fontWeight: "900" },
+  stepHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   title: { color: stitch.text, fontSize: 24, fontWeight: "900" },
-  step: { color: stitch.outline, fontSize: 12, fontWeight: "800" },
+  subtitle: { marginTop: 5, color: stitch.muted, fontSize: 13, lineHeight: 19, fontWeight: "700" },
+  step: { color: stitch.outline, fontSize: 12, fontWeight: "800", marginTop: 4 },
+  caseStrip: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   uploadPreview: { height: 150, borderRadius: 12 },
   methodGrid: { flexDirection: "row", gap: 10 },
@@ -184,6 +288,8 @@ const styles = StyleSheet.create({
   fileDivider: { borderBottomWidth: 1, borderBottomColor: "rgba(198,198,205,0.28)" },
   fileName: { color: stitch.text, fontSize: 14, fontWeight: "900" },
   fileStatus: { marginTop: 3, color: stitch.outline, fontSize: 12, fontWeight: "700" },
+  noFiles: { minHeight: 92, alignItems: "center", justifyContent: "center", gap: 8 },
+  noFilesText: { color: stitch.outline, fontSize: 13, fontWeight: "800" },
   addMore: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 48, borderRadius: 8, borderWidth: 1, borderColor: "rgba(0,81,213,0.16)", backgroundColor: "rgba(0,81,213,0.04)" },
   addMoreText: { color: stitch.blue, fontSize: 14, fontWeight: "900" },
 });

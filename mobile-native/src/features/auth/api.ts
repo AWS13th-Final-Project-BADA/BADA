@@ -1,7 +1,6 @@
-import * as Linking from "expo-linking";
+﻿import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { API_BASE, clearToken, setToken } from "@/lib/api";
-import { DEMO_TOKEN } from "@/lib/demoApi";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -13,7 +12,8 @@ function extractToken(url: string): string | null {
   const queryParts = url.split(/[?#]/).slice(1);
   for (const query of queryParts) {
     for (const part of query.split("&")) {
-      const [k, v] = part.split("=");
+      const [k, ...rest] = part.split("=");
+      const v = rest.join("=");
       if (k === "token" && v) return decodeURIComponent(v);
     }
   }
@@ -55,15 +55,9 @@ export async function login(provider: Provider = "cognito"): Promise<boolean> {
 
 export async function logout(): Promise<void> {
   await clearToken();
-  WebBrowser.openBrowserAsync(`${API_BASE}/auth/cognito/logout`).catch(() => {});
+  const params = new URLSearchParams({ logout_uri: APP_REDIRECT });
+  WebBrowser.openBrowserAsync(`${API_BASE}/auth/cognito/logout?${params.toString()}`).catch(() => {});
 }
 
-export async function setTokenManually(token: string): Promise<void> {
-  await setToken(token);
-}
-
-export async function startDemoSession(): Promise<void> {
-  await setToken(DEMO_TOKEN);
-}
 
 export { APP_REDIRECT };

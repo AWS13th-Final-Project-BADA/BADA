@@ -33,10 +33,10 @@ export default function CasesList() {
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>내 사건</Text>
-            <Text style={styles.subtitle}>상담 준비 상태를 한눈에 확인하세요.</Text>
+            <Text style={styles.subtitle}>상담 준비 상태와 업로드한 자료를 확인하세요.</Text>
           </View>
-          <Pressable style={styles.iconButton}>
-            <MaterialIcons name="search" size={22} color={stitch.navy} />
+          <Pressable style={styles.iconButton} onPress={() => router.push("/cases/new")}>
+            <MaterialIcons name="add" size={24} color={stitch.navy} />
           </Pressable>
         </View>
 
@@ -44,12 +44,11 @@ export default function CasesList() {
           <ActivityIndicator color={stitch.blue} style={{ marginTop: 48 }} />
         ) : cases.length > 0 ? (
           <View style={styles.list}>
-            {cases.map((item, index) => (
+            {cases.map((item) => (
               <CaseCard
                 key={item.id}
                 item={item}
-                completed={item.status === "completed" || index === 1}
-                onPress={() => router.push(`/cases/${item.id}`)}
+                onPress={() => router.push({ pathname: "/cases/[id]", params: { id: item.id } })}
               />
             ))}
           </View>
@@ -59,7 +58,7 @@ export default function CasesList() {
               <MaterialIcons name="folder-open" size={72} color={stitch.line} />
             </View>
             <Text style={styles.emptyTitle}>진행 중인 사건이 없어요</Text>
-            <Text style={styles.emptyBody}>자료를 모아 상담 가능한 사건 파일을 만들어보세요.</Text>
+            <Text style={styles.emptyBody}>자료를 모아 상담 가능한 사건 파일을 만들어 보세요.</Text>
             <StitchButton onPress={() => router.push("/cases/new")}>새 사건 시작하기</StitchButton>
           </View>
         )}
@@ -70,14 +69,12 @@ export default function CasesList() {
 
 function CaseCard({
   item,
-  completed,
   onPress,
 }: {
   item: Case;
-  completed?: boolean;
   onPress: () => void;
 }) {
-  const readiness = completed ? 100 : 75;
+  const readiness = item.status === "completed" ? 100 : 65;
   const issueLabel = item.issue_types?.includes("deduction") ? "공제 확인" : "임금 확인";
 
   return (
@@ -86,11 +83,11 @@ function CaseCard({
         <View style={{ flex: 1 }}>
           <Text style={styles.caseTitle}>{item.workplace_name || item.employer_name || "사업장 미입력"}</Text>
           <View style={styles.tagRow}>
-            <Chip label={issueLabel} tone={completed ? "blue" : "red"} />
-            {!completed ? <Chip label="상담 준비" /> : null}
+            <Chip label={issueLabel} tone="blue" />
+            <Chip label={item.status === "completed" ? "완료" : "상담 준비"} tone={item.status === "completed" ? "green" : "blue"} />
           </View>
         </View>
-        <Chip label={completed ? "완료" : "진행 중"} tone={completed ? "green" : "blue"} />
+        <MaterialIcons name="chevron-right" size={24} color={stitch.outline} />
       </View>
 
       <View style={styles.readinessRow}>
@@ -102,13 +99,8 @@ function CaseCard({
       </View>
 
       <View style={styles.metaRow}>
-        <Meta icon="description" text={`${completed ? 24 : 12}개 자료`} />
         <Meta icon="event" text={item.work_start_date || "기간 미입력"} />
-      </View>
-
-      <View style={styles.detailRow}>
-        <Text style={styles.detailText}>{completed ? "리포트 보기" : "자세히 보기"}</Text>
-        <MaterialIcons name="chevron-right" size={22} color={stitch.outline} />
+        <Meta icon="payments" text={item.agreed_hourly_wage ? `${item.agreed_hourly_wage.toLocaleString()}원` : "임금 미입력"} />
       </View>
     </Pressable>
   );
@@ -142,8 +134,6 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 20 },
   meta: { flexDirection: "row", alignItems: "center", gap: 6 },
   metaText: { color: stitch.outline, fontSize: 12, fontWeight: "700" },
-  detailRow: { borderTopWidth: 1, borderTopColor: "rgba(198,198,205,0.28)", paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  detailText: { color: stitch.blue, fontSize: 14, fontWeight: "900" },
   empty: { alignItems: "center", paddingTop: 80, gap: 16 },
   emptyImage: { width: 180, height: 130, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: stitch.surfaceLow },
   emptyTitle: { color: stitch.text, fontSize: 20, fontWeight: "900", textAlign: "center" },

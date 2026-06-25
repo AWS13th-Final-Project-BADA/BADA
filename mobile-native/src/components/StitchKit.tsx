@@ -65,7 +65,7 @@ export function TopBar({
   return (
     <View style={s.topbar}>
       <Pressable style={s.topIcon} onPress={() => (back ? router.back() : undefined)}>
-        <MaterialIcons name={back ? "arrow-back" : "account-circle"} size={24} color={stitch.navy} />
+        <MaterialIcons name={back ? "arrow-back" : "account-circle"} size={24} color={back ? stitch.navy : "transparent"} />
       </Pressable>
       <Text style={s.topTitle} numberOfLines={1}>{title}</Text>
       <Pressable style={s.topIcon}>
@@ -116,10 +116,11 @@ export function StitchButton({
   icon?: keyof typeof MaterialIcons.glyphMap;
   disabled?: boolean;
 }) {
+  const darkText = tone === "secondary" || tone === "google" || tone === "kakao";
   return (
     <Pressable onPress={onPress} disabled={disabled} style={({ pressed }) => [s.button, buttonTone[tone], pressed && s.pressed, disabled && s.disabled]}>
-      {icon ? <MaterialIcons name={icon} size={22} color={tone === "primary" || tone === "blue" || tone === "naver" ? "#fff" : stitch.text} /> : null}
-      {typeof children === "string" ? <Text style={[s.buttonText, (tone === "secondary" || tone === "google" || tone === "kakao") && s.buttonTextDark]}>{children}</Text> : children}
+      {icon ? <MaterialIcons name={icon} size={22} color={darkText ? stitch.text : "#fff"} /> : null}
+      {typeof children === "string" ? <Text style={[s.buttonText, darkText && s.buttonTextDark]}>{children}</Text> : children}
     </Pressable>
   );
 }
@@ -161,7 +162,7 @@ export const s = StyleSheet.create({
     borderBottomColor: "rgba(198,198,205,0.32)",
   },
   topIcon: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 20 },
-  topTitle: { color: stitch.navy, fontSize: 24, lineHeight: 32, fontWeight: "800", letterSpacing: -0.2, flex: 1, textAlign: "center" },
+  topTitle: { color: stitch.navy, fontSize: 22, lineHeight: 30, fontWeight: "900", flex: 1, textAlign: "center" },
   bottomNav: {
     position: "absolute",
     left: 0,
@@ -178,7 +179,7 @@ export const s = StyleSheet.create({
     justifyContent: "space-around",
   },
   tab: { flex: 1, height: 58, alignItems: "center", justifyContent: "center", gap: 2 },
-  tabText: { color: stitch.outline, fontSize: 11, lineHeight: 14, fontWeight: "600" },
+  tabText: { color: stitch.outline, fontSize: 11, lineHeight: 14, fontWeight: "700" },
   tabTextOn: { color: stitch.blue },
   centerTab: {
     width: 64,

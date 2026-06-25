@@ -1,6 +1,5 @@
-import Constants from "expo-constants";
+﻿import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
-import { handleDemoApi, isDemoToken } from "@/lib/demoApi";
 
 const API_BASE: string =
   (Constants.expoConfig?.extra?.apiBase as string) || "https://api.badasoft.com";
@@ -34,9 +33,6 @@ export async function fetchApi<T = any>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = await getToken();
-  if (isDemoToken(token)) {
-    return handleDemoApi<T>(path, options);
-  }
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -60,4 +56,4 @@ export async function fetchApi<T = any>(
   return (text ? JSON.parse(text) : null) as T;
 }
 
-export { API_BASE, isDemoToken as isDemoAccessToken };
+export { API_BASE };
