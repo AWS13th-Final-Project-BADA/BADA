@@ -8,7 +8,8 @@
 | `worker/` | SQS 비동기 분석 워커 (규칙 엔진 + LLM 보조) | ⚠️ 코드 완성, 미기동 |
 | `frontend/` (계획) | Next.js + next-intl 프론트엔드 (미구현, README만 존재) | ❌ 미구현 |
 | `backend/app/static/` | Vanilla JS SPA 프론트엔드 (실제 사용 중) | ✅ 운영 중 |
-| `mobile/` | Capacitor 네이티브 앱 래퍼 (스트레치) | ⚠️ 골격만 |
+| `mobile/` | Capacitor 네이티브 앱 래퍼 (레거시, 전환 완료) | 🔒 이력 보존 |
+| `mobile-native/` | React Native + Expo 네이티브 앱 (SDK 51, expo-router) | ✅ M1~M3 완료 |
 
 ## Infrastructure Packages
 
@@ -42,11 +43,11 @@
 
 | Category | Count |
 |----------|------:|
-| **Application** | 4 (backend, worker, static frontend, mobile) |
+| **Application** | 5 (backend, worker, static frontend, mobile-legacy, mobile-native) |
 | **Infrastructure** | 5 (Terraform + 4 workflows) |
 | **Shared** | 5 (prompts, locales, rag_seed, steering, specs) |
 | **Test** | 3 (backend tests, worker tests, eval) |
-| **Total Packages** | **17** |
+| **Total Packages** | **18** |
 
 ## Implementation Completeness
 
@@ -61,5 +62,6 @@
 | CI/CD | 90% | Worker 실행 검증 미완 |
 | RAG 챗봇 | 70% | Mock 모드에서 동작, Bedrock 연동 검증 필요 |
 | GPS | 80% | 수집/판정 동작, E2E 분석 연결 미완 |
+| Mobile Native | 75% | M1~M3 화면 완료, 백그라운드 GPS·인증 딥링크·출시빌드 미완 |
 | PDF 생성 | 40% | report_builder.py 골격, WeasyPrint 렌더 미검증 |
 | 커뮤니티 | 85% | 게시판 CRUD/번역/신고 완성, 실서비스 미검증 |
