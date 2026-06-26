@@ -78,10 +78,10 @@ export default function AnalysisScreen() {
 
         <View style={styles.twoCol}>
           <Card style={styles.foundCard}>
-            <SectionTitle icon="check-circle" title="확인된 자료" color={stitch.green} />
-            <CheckRow text="급여명세서" />
-            <CheckRow text="계좌 입금내역" />
-            <CheckRow text="근로계약서" />
+            <SectionTitle icon="check-circle" title={t("analysis.title")} color={stitch.green} />
+            <CheckRow text={t("upload.categories.statement")} />
+            <CheckRow text={t("upload.categories.payment")} />
+            <CheckRow text={t("upload.categories.contract")} />
           </Card>
 
           <Card style={styles.missingCard}>

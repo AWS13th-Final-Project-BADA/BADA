@@ -157,11 +157,11 @@ export default function GpsScreen() {
 
           <View style={styles.statsGrid}>
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>최근 기록</Text>
-              <Text style={styles.statValue}>{tracking ? "방금 전" : "없음"}</Text>
+              <Text style={styles.statLabel}>{t("gps.logs")}</Text>
+              <Text style={styles.statValue}>{tracking ? t("gps.active") : t("gps.empty")}</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>기록 반경</Text>
+              <Text style={styles.statLabel}>{t("gps.summary")}</Text>
               <Text style={styles.statValue}>±{workplace?.radius_m ?? radiusM}m</Text>
             </View>
           </View>
@@ -220,9 +220,9 @@ export default function GpsScreen() {
           </Pressable>
         </View>
         <View style={styles.logs}>
-          <Log icon="check-circle" title="출근 위치 확인" detail={lastStatus} badge={tracking ? "자동" : "대기"} color={stitch.green} />
-          <Log icon="sensors" title="주기 기록" detail="5분 또는 100m 이동 시 확인" badge="설정" color={stitch.blue} />
-          <Log icon="location-on" title="현재 케이스" detail={cases.find((item) => item.id === caseId)?.workplace_name || "바다식품"} badge="연결됨" color={stitch.muted} />
+          <Log icon="check-circle" title={t("gps.inside")} detail={lastStatus} badge={tracking ? t("gps.active") : t("gps.inactive")} color={stitch.green} />
+          <Log icon="sensors" title={t("gps.summary")} detail={t("gps.subtitle")} badge={t("common.confirm")} color={stitch.blue} />
+          <Log icon="location-on" title={t("cases.detail")} detail={cases.find((item) => item.id === caseId)?.workplace_name || ""} badge={t("common.confirm")} color={stitch.muted} />
         </View>
       </ScrollView>
     </StitchScreen>
@@ -257,11 +257,11 @@ function Log({
 }
 
 function formatStatus(result: PingResult | null): string {
-  if (!result) return "아직 기록 없음";
-  if (result.status === "IN_WORKPLACE" || result.inside) return `근무지 안 (${result.distance_m ?? "?"}m)`;
-  if (result.status === "OUTSIDE") return `근무지 밖 (${result.distance_m ?? "?"}m)`;
-  if (result.status === null) return "위치 위조 또는 상태 확인 필요";
-  return result.status || "기록됨";
+  if (!result) return t("gps.empty");
+  if (result.status === "IN_WORKPLACE" || result.inside) return `${t("gps.inside")} (${result.distance_m ?? "?"}m)`;
+  if (result.status === "OUTSIDE") return `${t("gps.outside")} (${result.distance_m ?? "?"}m)`;
+  if (result.status === null) return t("gps.permissionError");
+  return result.status || t("gps.active");
 }
 
 const styles = StyleSheet.create({

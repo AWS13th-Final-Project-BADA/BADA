@@ -6,11 +6,14 @@ import { fetchApi } from "@/lib/api";
 import type { CommunityCategory, CommunityPost } from "@/lib/types";
 import { COMMUNITY_CATEGORY_LABELS } from "@/lib/types";
 import { Card, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 const CATEGORIES: CommunityCategory[] = ["free", "wage", "petition", "review", "translation"];
 
 export default function NewPost() {
   const router = useRouter();
+  const { locale } = useLocale();
   const [category, setCategory] = useState<CommunityCategory>("free");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -43,11 +46,11 @@ export default function NewPost() {
 
   return (
     <StitchScreen active="community">
-      <TopBar title="글쓰기" back />
+      <TopBar title={t("community.write")} back />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View>
-          <Text style={styles.title}>익명으로 질문을 남겨보세요</Text>
-          <Text style={styles.subtitle}>상황을 구체적으로 적되, 이름·전화번호·회사 고유정보는 빼고 작성해 주세요.</Text>
+          <Text style={styles.title}>{t("community.write")}</Text>
+          <Text style={styles.subtitle}>{t("community.subtitle")}</Text>
         </View>
 
         <Card style={styles.formCard}>
@@ -63,7 +66,7 @@ export default function NewPost() {
                     onPress={() => setCategory(item)}
                   >
                     <Text style={[styles.chipText, active && styles.chipTextOn]}>
-                      {COMMUNITY_CATEGORY_LABELS[item]}
+                      {t("community.categories." + item)}
                     </Text>
                   </Pressable>
                 );
@@ -72,24 +75,24 @@ export default function NewPost() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>제목</Text>
+            <Text style={styles.label}>{t("community.titlePlaceholder")}</Text>
             <TextInput
               style={styles.input}
               value={title}
               onChangeText={setTitle}
-              placeholder="예: 급여명세서와 입금액이 달라요"
+              placeholder={t("community.titlePlaceholder")}
               placeholderTextColor={stitch.outline}
               maxLength={160}
             />
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>내용</Text>
+            <Text style={styles.label}>{t("community.contentPlaceholder")}</Text>
             <TextInput
               style={[styles.input, styles.textarea]}
               value={content}
               onChangeText={setContent}
-              placeholder="상담 전에 궁금한 점이나 비슷한 상황을 적어주세요."
+              placeholder={t("community.contentPlaceholder")}
               placeholderTextColor={stitch.outline}
               multiline
               maxLength={5000}
@@ -99,13 +102,11 @@ export default function NewPost() {
 
         <Card style={styles.safety}>
           <MaterialIcons name="verified-user" size={22} color={stitch.blue} />
-          <Text style={styles.safetyText}>
-            작성 전 안전검사가 적용됩니다. 개인정보 노출이나 법률 판단을 요구하는 표현은 안내 문구로 조정될 수 있습니다.
-          </Text>
+          <Text style={styles.safetyText}>{t("disclaimer")}</Text>
         </Card>
 
         <StitchButton icon="edit" onPress={submit} disabled={busy}>
-          {busy ? <ActivityIndicator color="#fff" /> : "게시하기"}
+          {busy ? <ActivityIndicator color="#fff" /> : t("community.submit")}
         </StitchButton>
       </ScrollView>
     </StitchScreen>

@@ -5,10 +5,13 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { fetchApi } from "@/lib/api";
 import type { Case, EvidenceItem } from "@/lib/types";
 import { Card, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 export default function CaseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { locale } = useLocale();
   const [data, setData] = useState<Case | null>(null);
   const [evidences, setEvidences] = useState<EvidenceItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,67 +41,67 @@ export default function CaseDetailScreen() {
     );
   }
 
-  const title = data?.workplace_name || data?.employer_name || "상담 준비 사건";
+  const title = data?.workplace_name || data?.employer_name || t("cases.detail");
   const completedEvidence = evidences.filter((item) => item.ocr_status === "done" || item.ocr_status === "completed").length;
   const readiness = Math.min(100, 35 + evidences.length * 15 + completedEvidence * 10);
 
   return (
     <StitchScreen active="cases">
-      <TopBar title="사건 상세" back />
+      <TopBar title={t("cases.detail")} back />
       <View style={styles.content}>
         <View style={styles.caseHead}>
           <Text style={styles.caseId}>Case #{String(id || "").slice(0, 8)}</Text>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.status}>
-            상태: <Text style={styles.statusStrong}>{data?.status === "completed" ? "완료" : "상담 준비 중"}</Text>
+            {t("cases.status")}: <Text style={styles.statusStrong}>{data?.status === "completed" ? t("home.stats.ready") : t("home.stats.preparing")}</Text>
           </Text>
         </View>
 
         <View style={styles.actionRow}>
-          <Action icon="upload-file" label="자료 업로드" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId: id } })} />
-          <Action icon="analytics" label="분석 보기" onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: id } })} />
+          <Action icon="upload-file" label={t("cases.upload")} onPress={() => router.push({ pathname: "/cases/upload", params: { caseId: id } })} />
+          <Action icon="analytics" label={t("cases.analysis")} onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: id } })} />
         </View>
 
         <Card style={styles.readiness}>
           <View style={styles.readinessTop}>
             <View style={styles.readinessIcon}><MaterialIcons name="verified-user" size={24} color={stitch.blue} /></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.readinessLabel}>상담 준비도</Text>
-              <Text style={styles.readinessBody}>자료가 추가될수록 AI 분석과 상담 질문 정리가 더 정확해집니다.</Text>
+              <Text style={styles.readinessLabel}>{t("cases.readiness")}</Text>
+              <Text style={styles.readinessBody}>{t("home.dashboardSubtitle")}</Text>
             </View>
             <Text style={styles.percent}>{readiness}%</Text>
           </View>
           <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${readiness}%` }]} /></View>
         </Card>
 
-        <Section title="증거 체크리스트" action="더 올리기" onAction={() => router.push({ pathname: "/cases/upload", params: { caseId: id } })}>
+        <Section title={t("cases.evidenceCount")} action={t("cases.actions.addMore")} onAction={() => router.push({ pathname: "/cases/upload", params: { caseId: id } })}>
           {evidences.length ? (
             evidences.slice(0, 5).map((item) => (
               <EvidenceRow
                 key={item.id}
                 ok={item.ocr_status === "done" || item.ocr_status === "completed"}
                 title={item.file_name}
-                body={item.category || "분류 미지정"}
+                body={item.category ? t("upload.categories." + item.category) : t("upload.category")}
               />
             ))
           ) : (
-            <EvidenceRow warning title="아직 업로드된 자료가 없어요" body="계약서, 급여명세서, 입금내역부터 올려보세요." />
+            <EvidenceRow warning title={t("upload.emptyTitle")} body={t("upload.emptyBody")} />
           )}
         </Section>
 
         <Pressable style={styles.aiCard} onPress={() => router.push({ pathname: "/chat", params: { caseId: id } })}>
           <View style={styles.aiIcon}><MaterialIcons name="smart-toy" size={26} color={stitch.blue} /></View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.aiTitle}>BADA AI 챗봇</Text>
-            <Text style={styles.aiBody}>이 사건 자료를 기준으로 상담 전 질문을 정리해 보세요.</Text>
+            <Text style={styles.aiTitle}>{t("chat.title")}</Text>
+            <Text style={styles.aiBody}>{t("chat.subtitle")}</Text>
           </View>
-          <Text style={styles.aiButton}>열기</Text>
+          <Text style={styles.aiButton}>{t("common.confirm")}</Text>
         </Pressable>
 
-        <Section title="다음에 하면 좋은 일">
-          <Timeline icon="description" title="계약서와 급여명세서 확인" time="1단계" body="같은 기간의 자료끼리 묶으면 상담 때 설명하기 쉽습니다." />
-          <Timeline icon="payments" title="입금내역 추가" time="2단계" body="실제 입금액이 보이는 캡처나 PDF를 준비해 주세요." />
-          <Timeline icon="chat" title="상담 질문 정리" time="3단계" body="AI 챗봇으로 상담기관에 물어볼 질문 목록을 만들 수 있습니다." />
+        <Section title={t("home.nextTitle")}>
+          <Timeline icon="description" title={t("cases.actions.upload")} time="1" body={t("cases.actions.uploadBody")} />
+          <Timeline icon="payments" title={t("cases.actions.addMore")} time="2" body={t("cases.actions.addMoreBody")} />
+          <Timeline icon="chat" title={t("cases.actions.chat")} time="3" body={t("cases.actions.chatBody")} />
         </Section>
       </View>
     </StitchScreen>
