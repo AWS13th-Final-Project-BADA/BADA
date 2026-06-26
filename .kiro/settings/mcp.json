@@ -8,25 +8,17 @@
       },
       "disabled": false
     },
-    "aws-cloudformation": {
+    "aws-iac": {
       "command": "uvx",
-      "args": ["awslabs.cfn-mcp-server@latest"],
+      "args": ["awslabs.aws-iac-mcp-server@latest"],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR"
       },
       "disabled": false
     },
-    "aws-cdk": {
+    "aws-pricing": {
       "command": "uvx",
-      "args": ["awslabs.cdk-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
-      "disabled": false
-    },
-    "aws-cost-analysis": {
-      "command": "uvx",
-      "args": ["awslabs.cost-analysis-mcp-server@latest"],
+      "args": ["awslabs.aws-pricing-mcp-server@latest"],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR",
         "AWS_REGION": "ap-northeast-2"
@@ -34,11 +26,8 @@
       "disabled": false
     },
     "terraform": {
-      "command": "uvx",
-      "args": ["awslabs.terraform-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
+      "command": "npx",
+      "args": ["-y", "@hashicorp/terraform-mcp-server"],
       "disabled": false
     },
     "mermaid": {

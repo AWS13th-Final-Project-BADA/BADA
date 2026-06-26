@@ -57,6 +57,7 @@ export default function CaseDetailScreen() {
         <View style={styles.actionRow}>
           <Action icon="upload-file" label="자료 업로드" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId: id } })} />
           <Action icon="analytics" label="분석 보기" onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: id } })} />
+          <Action icon="location-on" label="GPS 기록" onPress={() => router.push({ pathname: "/gps", params: { caseId: id } })} />
         </View>
 
         <Card style={styles.readiness}>
