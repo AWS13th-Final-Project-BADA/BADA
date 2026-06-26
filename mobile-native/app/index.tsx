@@ -6,6 +6,8 @@ import { ApiError, fetchApi, isLoggedIn } from "@/lib/api";
 import { logout } from "@/lib/auth";
 import { stitchImages } from "@/lib/stitchAssets";
 import { Card, RemoteImage, SectionLabel, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 interface CurrentUser {
   id: string;
@@ -17,6 +19,7 @@ interface CurrentUser {
 
 export default function Home() {
   const router = useRouter();
+  const { locale } = useLocale(); // locale 변경 시 리렌더 트리거
   const [checking, setChecking] = useState(true);
   const [user, setUser] = useState<CurrentUser | null>(null);
 
@@ -56,7 +59,7 @@ export default function Home() {
       <StitchScreen scroll={false} bottom={false}>
         <View style={styles.center}>
           <ActivityIndicator color={stitch.blue} />
-          <Text style={styles.loadingText}>계정 정보를 확인하고 있어요</Text>
+          <Text style={styles.loadingText}>{t("common.loading")}</Text>
         </View>
       </StitchScreen>
     );
@@ -77,11 +80,11 @@ export default function Home() {
       <View style={styles.content}>
         <View style={styles.greetingRow}>
           <View style={styles.greeting}>
-            <Text style={styles.greetingTitle}>반가워요, {displayName} 님</Text>
-            <Text style={styles.greetingBody}>오늘은 상담에 필요한 자료를 차근차근 정리해볼게요.</Text>
+            <Text style={styles.greetingTitle}>{displayName} 님</Text>
+            <Text style={styles.greetingBody}>{t("home.dashboardSubtitle")}</Text>
           </View>
           <Pressable style={styles.logoutButton} onPress={signOut}>
-            <Text style={styles.logoutText}>로그아웃</Text>
+            <Text style={styles.logoutText}>{t("common.logout")}</Text>
           </Pressable>
         </View>
 
@@ -89,7 +92,7 @@ export default function Home() {
           <View style={styles.currentTop}>
             <View>
               <Text style={styles.badge}>CASE WORKFLOW</Text>
-              <Text style={styles.currentTitle}>증거 패키지를 만들고 상담 준비까지 이어가세요</Text>
+              <Text style={styles.currentTitle}>{t("home.title")}</Text>
             </View>
             <MaterialIcons name="description" size={30} color={stitch.blueStrong} />
           </View>
@@ -97,39 +100,39 @@ export default function Home() {
           <View style={styles.stepWrap}>
             <View style={styles.stepLine} />
             <View style={styles.stepLineOn} />
-            <Step done label="사건 생성" />
-            <Step current label="자료 업로드" value="2" />
-            <Step label="AI 분석" value="3" />
-            <Step label="상담 준비" value="4" />
+            <Step done label={t("home.steps.case")} />
+            <Step current label={t("home.steps.upload")} value="2" />
+            <Step label={t("home.steps.organize")} value="3" />
+            <Step label={t("home.steps.consult")} value="4" />
           </View>
 
-          <StitchButton onPress={() => router.push("/cases/new")}>새 사건 만들기</StitchButton>
+          <StitchButton onPress={() => router.push("/cases/new")}>{t("cases.create")}</StitchButton>
         </Card>
 
-        <SectionLabel>빠른 실행</SectionLabel>
+        <SectionLabel>{t("home.quickTitle")}</SectionLabel>
         <View style={styles.quickGrid}>
           <QuickCard
             icon="folder-open"
             color={stitch.blue}
             bg="rgba(0,81,213,0.1)"
-            title="내 사건"
-            body="진행 중인 사건 보기"
+            title={t("home.quick.case")}
+            body={t("home.quick.caseBody")}
             onPress={() => router.push("/cases")}
           />
           <QuickCard
             icon="add-circle"
             color={stitch.green}
             bg="rgba(0,150,104,0.1)"
-            title="증거 추가"
-            body="문서와 사진 업로드"
+            title={t("home.quick.upload")}
+            body={t("home.quick.uploadBody")}
             onPress={() => router.push("/cases/upload")}
           />
           <QuickCard
             icon="smart-toy"
             color={stitch.blue}
             bg={stitch.blueSoft}
-            title="AI 챗봇"
-            body="상담 전 질문 정리"
+            title={t("home.quick.chat")}
+            body={t("home.quick.chatBody")}
             onPress={() => router.push("/chat")}
           />
           <QuickCard
@@ -144,8 +147,8 @@ export default function Home() {
             icon="forum"
             color={stitch.amber}
             bg={stitch.amberSoft}
-            title="커뮤니티"
-            body="비슷한 상황 찾아보기"
+            title={t("home.quick.community")}
+            body={t("home.quick.communityBody")}
             onPress={() => router.push("/community")}
           />
         </View>
@@ -155,13 +158,13 @@ export default function Home() {
             <MaterialIcons name="upload-file" size={22} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.recommendLabel}>다음 추천 작업</Text>
-            <Text style={styles.recommendText}>계약서, 급여명세서, 입금내역을 먼저 올려보세요</Text>
+            <Text style={styles.recommendLabel}>{t("home.nextTitle")}</Text>
+            <Text style={styles.recommendText}>{t("home.next.uploadBody")}</Text>
           </View>
           <MaterialIcons name="chevron-right" size={24} color="#fff" />
         </Pressable>
 
-        <SectionLabel action={<Text style={styles.viewAll}>전체보기</Text>}>최근 커뮤니티</SectionLabel>
+        <SectionLabel action={<Text style={styles.viewAll}>{t("home.recentTitle")}</Text>}>{t("community.title")}</SectionLabel>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.communityScroll}>
           <CommunityPreview
             image={stitchImages.office}

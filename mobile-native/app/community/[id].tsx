@@ -17,14 +17,19 @@ import type { CommunityComment, CommunityPost } from "@/lib/types";
 import { COMMUNITY_CATEGORY_LABELS } from "@/lib/types";
 import { Card, RemoteImage, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { stitchImages } from "@/lib/stitchAssets";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 export default function CommunityPostDetail() {
   const { id = "demo-post-1" } = useLocalSearchParams<{ id?: string }>();
+  const { locale } = useLocale();
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState("");
   const [sending, setSending] = useState(false);
+  const [translated, setTranslated] = useState<{ title?: string; content?: string } | null>(null);
+  const [translating, setTranslating] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -48,6 +53,28 @@ export default function CommunityPostDetail() {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (post && locale !== "ko" && !translated && !translating) {
+      void translatePost();
+    }
+  }, [post, locale]);
+
+  async function translatePost() {
+    if (!post) return;
+    setTranslating(true);
+    try {
+      const res = await fetchApi<{ translated_text: string }>("/community/translate", {
+        method: "POST",
+        body: JSON.stringify({ target_type: "post", target_id: post.id, target_language: locale }),
+      });
+      setTranslated({ title: res.translated_text, content: res.translated_text });
+    } catch {
+      // 번역 실패 시 원문 유지
+    } finally {
+      setTranslating(false);
+    }
+  }
+
   async function sendComment() {
     const text = comment.trim();
     if (!text || sending) return;
@@ -67,7 +94,7 @@ export default function CommunityPostDetail() {
   if (loading) {
     return (
       <StitchScreen scroll={false} bottom={false}>
-        <TopBar title="게시글" back right="more-horiz" />
+        <TopBar title={t("community.title")} back right="more-horiz" />
         <View style={styles.center}>
           <ActivityIndicator color={stitch.blue} />
         </View>
@@ -78,9 +105,9 @@ export default function CommunityPostDetail() {
   if (!post) {
     return (
       <StitchScreen bottom={false}>
-        <TopBar title="게시글" back right="more-horiz" />
+        <TopBar title={t("community.title")} back right="more-horiz" />
         <View style={styles.center}>
-          <Text style={styles.emptyText}>게시글을 찾을 수 없어요.</Text>
+          <Text style={styles.emptyText}>{t("community.emptyTitle")}</Text>
         </View>
       </StitchScreen>
     );
@@ -93,7 +120,7 @@ export default function CommunityPostDetail() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={8}
       >
-        <TopBar title="게시글" back right="more-horiz" />
+        <TopBar title={t("community.title")} back right="more-horiz" />
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.authorMeta}>
             <View style={styles.authorRow}>
@@ -101,12 +128,12 @@ export default function CommunityPostDetail() {
                 <MaterialIcons name="person" size={20} color={stitch.blue} />
               </View>
               <View>
-                <Text style={styles.author}>{post.anonymous_name || "익명"}</Text>
-                <Text style={styles.time}>{post.created_at?.slice(0, 10) || "방금 전"} · 인증 사용자</Text>
+                <Text style={styles.author}>{post.anonymous_name || t("community.title")}</Text>
+                <Text style={styles.time}>{post.created_at?.slice(0, 10) || ""}</Text>
               </View>
             </View>
             <Pressable style={styles.followButton}>
-              <Text style={styles.followText}>팔로우</Text>
+              <Text style={styles.followText}>{t("common.confirm")}</Text>
             </Pressable>
           </View>
 
@@ -114,14 +141,18 @@ export default function CommunityPostDetail() {
 
           <View style={styles.postBodyBlock}>
             <View style={styles.postTitleRow}>
-              <Text style={styles.title}>{post.title}</Text>
-              <Pressable style={styles.translateButton}>
-                <MaterialIcons name="translate" size={18} color={stitch.blue} />
-                <Text style={styles.translateText}>번역 보기</Text>
-              </Pressable>
+              <Text style={styles.title}>{translated?.title || post.title}</Text>
+              {translating ? (
+                <ActivityIndicator size="small" color={stitch.blue} />
+              ) : (
+                <Pressable style={styles.translateButton} onPress={translatePost}>
+                  <MaterialIcons name="translate" size={18} color={stitch.blue} />
+                  <Text style={styles.translateText}>{t("community.translate")}</Text>
+                </Pressable>
+              )}
             </View>
 
-            <Text style={styles.body}>{post.content}</Text>
+            <Text style={styles.body}>{translated?.content || post.content}</Text>
 
             <View style={styles.tags}>
               <Text style={styles.tag}>#{COMMUNITY_CATEGORY_LABELS[post.category] ?? post.category}</Text>
@@ -134,14 +165,13 @@ export default function CommunityPostDetail() {
             <View style={styles.socialLeft}>
               <Social icon={post.my_liked ? "favorite" : "favorite-border"} label={String(post.like_count || 0)} active={post.my_liked} />
               <Social icon="chat-bubble-outline" label={String(comments.length || post.comment_count || 0)} />
-              <Social icon="share" label="공유" />
+              <Social icon="share" label={t("common.send")} />
             </View>
             <MaterialIcons name="bookmark-border" size={24} color={stitch.outline} />
           </View>
 
           <View style={styles.commentsHeader}>
-            <Text style={styles.commentsTitle}>댓글 <Text style={styles.commentsCount}>({comments.length})</Text></Text>
-            <Text style={styles.sortText}>최신순</Text>
+            <Text style={styles.commentsTitle}>{t("community.comments")} <Text style={styles.commentsCount}>({comments.length})</Text></Text>
           </View>
 
           <View style={styles.comments}>
@@ -150,7 +180,7 @@ export default function CommunityPostDetail() {
             ))}
             {!comments.length ? (
               <Card style={styles.emptyComment}>
-                <Text style={styles.emptyText}>첫 댓글을 남겨보세요.</Text>
+                <Text style={styles.emptyText}>{t("community.emptyBody")}</Text>
               </Card>
             ) : null}
           </View>
@@ -161,7 +191,7 @@ export default function CommunityPostDetail() {
             <TextInput
               value={comment}
               onChangeText={setComment}
-              placeholder="댓글 달기"
+              placeholder={t("community.commentPlaceholder")}
               placeholderTextColor={stitch.outline}
               style={styles.input}
             />

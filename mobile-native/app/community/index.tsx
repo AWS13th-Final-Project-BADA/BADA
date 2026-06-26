@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -16,11 +16,14 @@ import type { CommunityPost } from "@/lib/types";
 import { COMMUNITY_CATEGORY_LABELS } from "@/lib/types";
 import { Card, Chip, RemoteImage, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { stitchImages } from "@/lib/stitchAssets";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 const FILTERS = ["all", "free", "wage", "petition", "review"] as const;
 
 export default function CommunityFeed() {
   const router = useRouter();
+  const { locale } = useLocale();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
@@ -64,7 +67,7 @@ export default function CommunityFeed() {
 
   return (
     <StitchScreen scroll={false} active="community">
-      <TopBar title="커뮤니티" right="add-circle-outline" />
+      <TopBar title={t("community.title")} right="add-circle-outline" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
@@ -76,7 +79,7 @@ export default function CommunityFeed() {
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="비슷한 상황 검색하기"
+              placeholder={t("community.search")}
               placeholderTextColor={stitch.outline}
               style={styles.searchInput}
             />
@@ -88,7 +91,7 @@ export default function CommunityFeed() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
             {FILTERS.map((item) => {
               const active = filter === item;
-              const label = item === "all" ? "전체" : COMMUNITY_CATEGORY_LABELS[item];
+              const label = item === "all" ? t("community.categories.all") : (t("community.categories." + item) || COMMUNITY_CATEGORY_LABELS[item]);
               return (
                 <Pressable
                   key={item}
@@ -111,8 +114,8 @@ export default function CommunityFeed() {
           {!loading && visiblePosts.length === 0 ? (
             <Card style={styles.empty}>
               <MaterialIcons name="forum" size={34} color={stitch.outline} />
-              <Text style={styles.emptyTitle}>아직 게시글이 없어요</Text>
-              <Text style={styles.emptyBody}>첫 질문을 익명으로 남겨보세요.</Text>
+              <Text style={styles.emptyTitle}>{t("community.emptyTitle")}</Text>
+              <Text style={styles.emptyBody}>{t("community.emptyBody")}</Text>
             </Card>
           ) : null}
 
@@ -129,7 +132,7 @@ export default function CommunityFeed() {
 
       <Pressable style={styles.fab} onPress={() => router.push("/community/new")}>
         <MaterialIcons name="edit" size={20} color="#fff" />
-        <Text style={styles.fabText}>글쓰기</Text>
+        <Text style={styles.fabText}>{t("community.write")}</Text>
       </Pressable>
     </StitchScreen>
   );
@@ -144,6 +147,38 @@ function PostCard({
   image: string;
   onPress: () => void;
 }) {
+  const { locale } = useLocale();
+  const [translated, setTranslated] = useState<{ title?: string; content?: string } | null>(null);
+  const [translating, setTranslating] = useState(false);
+
+  const needsTranslation = locale !== "ko" && !translated;
+
+  useEffect(() => {
+    if (locale !== "ko" && !translated && !translating) {
+      void autoTranslate();
+    }
+  }, [locale]);
+
+  async function autoTranslate() {
+    setTranslating(true);
+    try {
+      const [titleRes, contentRes] = await Promise.all([
+        fetchApi<{ translated_text: string }>("/community/translate", {
+          method: "POST",
+          body: JSON.stringify({ target_type: "post", target_id: post.id, target_language: locale }),
+        }),
+      ]);
+      setTranslated({ title: titleRes.translated_text, content: undefined });
+    } catch {
+      // 번역 실패 시 원문 유지
+    } finally {
+      setTranslating(false);
+    }
+  }
+
+  const displayTitle = translated?.title || post.title;
+  const displayContent = translated?.content || post.content;
+
   return (
     <Pressable onPress={onPress}>
       <Card style={styles.post}>
@@ -154,19 +189,26 @@ function PostCard({
             </View>
             <View>
               <Text style={styles.author}>{post.anonymous_name || "익명"}</Text>
-              <Text style={styles.time}>{post.created_at?.slice(0, 10) || "방금 전"}</Text>
+              <Text style={styles.time}>{post.created_at?.slice(0, 10) || ""}</Text>
             </View>
           </View>
-          <Text style={styles.category}>{COMMUNITY_CATEGORY_LABELS[post.category] ?? post.category}</Text>
+          <Text style={styles.category}>{t("community.categories." + post.category) || post.category}</Text>
         </View>
 
-        <Text style={styles.postTitle}>{post.title}</Text>
-        <Text style={styles.postBody} numberOfLines={3}>{post.content}</Text>
+        <Text style={styles.postTitle}>{displayTitle}</Text>
+        <Text style={styles.postBody} numberOfLines={3}>{displayContent}</Text>
 
-        <Pressable style={styles.translateButton}>
-          <MaterialIcons name="translate" size={16} color={stitch.blue} />
-          <Text style={styles.translateText}>번역 보기</Text>
-        </Pressable>
+        {locale === "ko" && !translated ? (
+          <Pressable style={styles.translateButton} onPress={autoTranslate} disabled={translating}>
+            <MaterialIcons name="translate" size={16} color={stitch.blue} />
+            <Text style={styles.translateText}>{t("community.translate")}</Text>
+          </Pressable>
+        ) : translating ? (
+          <View style={styles.translateButton}>
+            <ActivityIndicator size="small" color={stitch.blue} />
+            <Text style={styles.translateText}>{t("common.loading")}</Text>
+          </View>
+        ) : null}
 
         <RemoteImage uri={image} style={styles.feedImage} />
 

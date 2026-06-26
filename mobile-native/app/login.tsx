@@ -1,14 +1,24 @@
 ﻿import { useState } from "react";
-import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { login } from "@/lib/auth";
 import { stitchImages } from "@/lib/stitchAssets";
 import { Card, RemoteImage, StitchButton, StitchScreen, stitch } from "@/components/StitchKit";
+import { SUPPORTED, setLocale, t, i18n } from "@/i18n";
+import type { Locale } from "@/i18n";
 
 export default function Login() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [locale, setLocaleState] = useState<Locale>(i18n.locale as Locale);
+  const [langOpen, setLangOpen] = useState(false);
+
+  function changeLanguage(lang: Locale) {
+    setLocale(lang);
+    setLocaleState(lang);
+    setLangOpen(false);
+  }
 
   async function doLogin(provider: "google" | "kakao" | "naver") {
     setBusy(true);
@@ -27,41 +37,54 @@ export default function Login() {
     <StitchScreen bottom={false}>
       <View style={styles.header}>
         <Text style={styles.logo}>BADA</Text>
-        <Pressable style={styles.lang}>
+        <Pressable style={styles.lang} onPress={() => setLangOpen(true)}>
           <MaterialIcons name="translate" size={20} color={stitch.text} />
-          <Text style={styles.langText}>한국어</Text>
+          <Text style={styles.langText}>{t("common.locales." + locale)}</Text>
           <MaterialIcons name="expand-more" size={22} color={stitch.text} />
         </Pressable>
       </View>
 
+      <Modal visible={langOpen} transparent animationType="fade" onRequestClose={() => setLangOpen(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setLangOpen(false)}>
+          <View style={styles.langMenu}>
+            {SUPPORTED.map((lang) => (
+              <Pressable key={lang} style={[styles.langOption, lang === locale && styles.langOptionActive]} onPress={() => changeLanguage(lang)}>
+                <Text style={[styles.langOptionText, lang === locale && styles.langOptionTextActive]}>
+                  {t("common.locales." + lang)}
+                </Text>
+                {lang === locale && <MaterialIcons name="check" size={18} color={stitch.blue} />}
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
+
       <View style={styles.content}>
         <RemoteImage uri={stitchImages.loginSecurity} style={styles.securityImage} />
 
-        <Text style={styles.title}>로그인하고{"\n"}내 사건을 안전하게 관리하세요</Text>
-        <Text style={styles.subtitle}>업로드한 자료와 분석 결과를 내 계정에 보관하고, 상담 준비 과정을 이어갈 수 있어요.</Text>
+        <Text style={styles.title}>{t("login.title")}</Text>
+        <Text style={styles.subtitle}>{t("login.subtitle")}</Text>
 
         <View style={styles.trustGrid}>
-          <TrustCard icon="shield" title="자료 보호" />
-          <TrustCard icon="gavel" title="법률 판단 없음" />
+          <TrustCard icon="shield" title={t("login.trustData")} />
+          <TrustCard icon="gavel" title={t("login.trustNoJudge")} />
         </View>
 
 
         <Pressable style={styles.googleButton} onPress={() => doLogin("google")} disabled={busy}>
           <Image source={{ uri: stitchImages.google }} style={styles.googleIcon} />
-          <Text style={styles.googleText}>구글로 시작하기</Text>
+          <Text style={styles.googleText}>{t("login.google")}</Text>
         </Pressable>
         <StitchButton tone="kakao" icon="chat-bubble-outline" onPress={() => doLogin("kakao")} disabled={busy}>
-          <Text style={styles.kakaoText}>카카오로 시작하기</Text>
+          <Text style={styles.kakaoText}>{t("login.kakao")}</Text>
         </StitchButton>
         <StitchButton tone="naver" onPress={() => doLogin("naver")} disabled={busy}>
-          <Text style={styles.naverText}>N  네이버로 시작하기</Text>
+          <Text style={styles.naverText}>{t("login.naver")}</Text>
         </StitchButton>
 
         <Card style={styles.notice}>
           <MaterialIcons name="info-outline" size={22} color={stitch.outline} />
-          <Text style={styles.noticeText}>
-            BADA는 법률 판단을 하지 않습니다. AI가 생성한 결과는 상담 전 자료 정리를 돕기 위한 참고용입니다.
-          </Text>
+          <Text style={styles.noticeText}>{t("login.safe")}</Text>
         </Card>
 
         <View style={styles.terms}>
@@ -117,4 +140,10 @@ const styles = StyleSheet.create({
   terms: { flexDirection: "row", justifyContent: "center", gap: 14, marginTop: 10, marginBottom: 12 },
   termText: { color: stitch.outline, fontSize: 12, fontWeight: "800" },
   dot: { color: stitch.line },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "flex-start", alignItems: "flex-end", paddingTop: 100, paddingRight: 32 },
+  langMenu: { backgroundColor: stitch.surface, borderRadius: 12, paddingVertical: 8, minWidth: 160, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
+  langOption: { paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  langOptionActive: { backgroundColor: "rgba(0,81,213,0.08)" },
+  langOptionText: { fontSize: 15, fontWeight: "700", color: stitch.text },
+  langOptionTextActive: { color: stitch.blue, fontWeight: "900" },
 });

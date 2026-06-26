@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,6 +15,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { fetchApi } from "@/lib/api";
 import type { ChatResponse } from "@/lib/types";
 import { Card, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 interface Msg {
   role: "user" | "ai";
@@ -24,13 +26,14 @@ interface Msg {
 }
 
 const suggested = [
-  "이 패키지에서 중요한 내용이 뭐예요?",
-  "상담하러 가면 뭐부터 말하면 좋을까요?",
-  "진정서에는 어떤 내용을 적어야 해요?",
+  "chat.quick1",
+  "chat.quick2",
+  "chat.quick3",
 ];
 
 export default function ChatScreen() {
   const { caseId } = useLocalSearchParams<{ caseId?: string }>();
+  const { locale } = useLocale();
   const activeCaseId = typeof caseId === "string" && caseId.trim() ? caseId : null;
   const scrollRef = useRef<ScrollView>(null);
   const [input, setInput] = useState("");
@@ -38,11 +41,20 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "ai",
-      text:
-        "안녕하세요. 업로드한 자료를 기준으로 상담 전에 정리할 쟁점과 질문을 도와드릴게요. BADA는 법률 판단이 아니라 상담 준비 안내를 제공합니다.",
-      sources: activeCaseId ? [{ title: "현재 사건 자료" }] : undefined,
+      text: t("chat.emptyBody"),
+      sources: activeCaseId ? [{ title: t("chat.caseContext") }] : undefined,
     },
   ]);
+
+  // 언어 변경 시 초기 AI 인사 메시지 갱신
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].role === "ai") {
+        return [{ role: "ai", text: t("chat.emptyBody"), sources: activeCaseId ? [{ title: t("chat.caseContext") }] : undefined }];
+      }
+      return prev;
+    });
+  }, [locale]);
 
   async function send(textOverride?: string) {
     const text = (textOverride ?? input).trim();
@@ -75,7 +87,7 @@ export default function ChatScreen() {
         ...prev,
         {
           role: "ai",
-          text: `지금은 답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.\n(${String(e?.message ?? e)})`,
+          text: `${t("chat.error")}\n(${String(e?.message ?? e)})`,
         },
       ]);
     } finally {
@@ -91,12 +103,12 @@ export default function ChatScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={16}
       >
-        <TopBar title="BADA AI" back right="info-outline" />
+        <TopBar title={t("chat.title")} back right="info-outline" />
 
         <View style={styles.contextBar}>
           <View style={styles.liveDot} />
           <Text style={styles.contextText}>
-            {activeCaseId ? `현재 사건: ${activeCaseId.slice(0, 8)}` : "사건을 선택하면 자료 기반 답변이 더 정확해져요"}
+            {activeCaseId ? `${t("chat.caseContext")}: ${activeCaseId.slice(0, 8)}` : t("chat.emptyTitle")}
           </Text>
           <MaterialIcons name="description" size={18} color={stitch.outline} />
         </View>
@@ -124,11 +136,11 @@ export default function ChatScreen() {
           ) : null}
 
           <View style={styles.suggestedBlock}>
-            <Text style={styles.suggestedLabel}>추천 질문</Text>
+            <Text style={styles.suggestedLabel}>{t("chat.nextActions")}</Text>
             <View style={styles.suggestedList}>
-              {suggested.map((item) => (
-                <Pressable key={item} style={styles.suggestedChip} onPress={() => send(item)}>
-                  <Text style={styles.suggestedText}>{item}</Text>
+              {suggested.map((key) => (
+                <Pressable key={key} style={styles.suggestedChip} onPress={() => send(t(key))}>
+                  <Text style={styles.suggestedText}>{t(key)}</Text>
                   <MaterialIcons name="chevron-right" size={18} color={stitch.blue} />
                 </Pressable>
               ))}
@@ -141,7 +153,7 @@ export default function ChatScreen() {
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder="상담 준비에 대해 물어보세요"
+              placeholder={t("chat.placeholder")}
               placeholderTextColor={stitch.outline}
               style={styles.input}
               multiline
@@ -152,7 +164,7 @@ export default function ChatScreen() {
           </Card>
           <View style={styles.guardrail}>
             <MaterialIcons name="verified-user" size={16} color={stitch.outline} />
-            <Text style={styles.guardrailText}>법률 판단 대신 상담 준비와 자료 정리를 도와드려요</Text>
+            <Text style={styles.guardrailText}>{t("disclaimer")}</Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -195,7 +207,7 @@ function Bubble({ message }: { message: Msg }) {
             {message.sources.slice(0, 2).map((source, index) => (
               <View key={`${source.title}-${index}`} style={styles.sourceChip}>
                 <MaterialIcons name="link" size={14} color={stitch.outline} />
-                <Text style={styles.sourceText} numberOfLines={1}>{source.title || "참고 자료"}</Text>
+                <Text style={styles.sourceText} numberOfLines={1}>{source.title || t("chat.sources")}</Text>
               </View>
             ))}
           </View>

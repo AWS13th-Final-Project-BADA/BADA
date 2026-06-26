@@ -1,8 +1,12 @@
 import type { ReactNode } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { useState } from "react";
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
+import { SUPPORTED, t, i18n } from "@/i18n";
+import type { Locale } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 export const stitch = {
   bg: "#f7f9fb",
@@ -62,15 +66,43 @@ export function TopBar({
   right?: keyof typeof MaterialIcons.glyphMap;
 }) {
   const router = useRouter();
+  const { locale, changeLocale } = useLocale();
+  const [langOpen, setLangOpen] = useState(false);
+
+  function handleChangeLanguage(lang: Locale) {
+    changeLocale(lang);
+    setLangOpen(false);
+  }
+
   return (
     <View style={s.topbar}>
       <Pressable style={s.topIcon} onPress={() => (back ? router.back() : undefined)}>
         <MaterialIcons name={back ? "arrow-back" : "account-circle"} size={24} color={back ? stitch.navy : "transparent"} />
       </Pressable>
       <Text style={s.topTitle} numberOfLines={1}>{title}</Text>
-      <Pressable style={s.topIcon}>
-        <MaterialIcons name={right} size={24} color={right === "more-horiz" ? stitch.outline : stitch.navy} />
-      </Pressable>
+      <View style={s.topRightGroup}>
+        <Pressable style={s.topIcon} onPress={() => setLangOpen(true)}>
+          <MaterialIcons name="translate" size={22} color={stitch.navy} />
+        </Pressable>
+        <Pressable style={s.topIcon}>
+          <MaterialIcons name={right} size={24} color={right === "more-horiz" ? stitch.outline : stitch.navy} />
+        </Pressable>
+      </View>
+
+      <Modal visible={langOpen} transparent animationType="fade" onRequestClose={() => setLangOpen(false)}>
+        <Pressable style={s.modalOverlay} onPress={() => setLangOpen(false)}>
+          <View style={s.langMenu}>
+            {SUPPORTED.map((lang) => (
+              <Pressable key={lang} style={[s.langOption, lang === locale && s.langOptionActive]} onPress={() => handleChangeLanguage(lang)}>
+                <Text style={[s.langOptionText, lang === locale && s.langOptionTextActive]}>
+                  {t("common.locales." + lang)}
+                </Text>
+                {lang === locale && <MaterialIcons name="check" size={18} color={stitch.blue} />}
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -79,13 +111,13 @@ export function BottomNav({ active }: { active?: "home" | "cases" | "upload" | "
   const router = useRouter();
   return (
     <View style={s.bottomNav}>
-      <Tab icon="home" label="홈" active={active === "home"} onPress={() => router.push("/")} />
-      <Tab icon="folder-open" label="사건" active={active === "cases"} onPress={() => router.push("/cases")} />
+      <Tab icon="home" label={t("nav.home")} active={active === "home"} onPress={() => router.push("/")} />
+      <Tab icon="folder-open" label={t("nav.cases")} active={active === "cases"} onPress={() => router.push("/cases")} />
       <Pressable style={s.centerTab} onPress={() => router.push("/cases/upload")}>
         <MaterialIcons name="add" size={32} color="#fff" />
       </Pressable>
-      <Tab icon="smart-toy" label="AI" active={active === "assistant"} onPress={() => router.push("/chat")} />
-      <Tab icon="forum" label="커뮤니티" active={active === "community"} onPress={() => router.push("/community")} />
+      <Tab icon="smart-toy" label={t("nav.chat")} active={active === "assistant"} onPress={() => router.push("/chat")} />
+      <Tab icon="forum" label={t("nav.community")} active={active === "community"} onPress={() => router.push("/community")} />
     </View>
   );
 }
@@ -163,6 +195,13 @@ export const s = StyleSheet.create({
   },
   topIcon: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 20 },
   topTitle: { color: stitch.navy, fontSize: 22, lineHeight: 30, fontWeight: "900", flex: 1, textAlign: "center" },
+  topRightGroup: { flexDirection: "row", alignItems: "center" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "flex-start", alignItems: "flex-end", paddingTop: 60, paddingRight: 16 },
+  langMenu: { backgroundColor: stitch.surface, borderRadius: 12, paddingVertical: 8, minWidth: 160, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
+  langOption: { paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  langOptionActive: { backgroundColor: "rgba(0,81,213,0.08)" },
+  langOptionText: { fontSize: 15, fontWeight: "700", color: stitch.text },
+  langOptionTextActive: { color: stitch.blue, fontWeight: "900" },
   bottomNav: {
     position: "absolute",
     left: 0,

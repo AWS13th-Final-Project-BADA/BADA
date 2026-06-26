@@ -84,7 +84,9 @@
     "kakao": "Continue with Kakao",
     "naver": "Continue with Naver",
     "notice": "Your account is created automatically on first login.",
-    "safe": "BADA does not make legal judgments."
+    "safe": "BADA does not make legal judgments.",
+    "trustData": "Data protection",
+    "trustNoJudge": "No legal judgment"
   },
   "cases": {
     "title": "My cases",
@@ -181,6 +183,14 @@
       "chat": "Chat capture",
       "statement": "Payslip",
       "other": "Other"
+    },
+    "method": {
+      "camera": "Camera",
+      "cameraBody": "Photograph a document",
+      "gallery": "Gallery",
+      "galleryBody": "Pick an image",
+      "file": "File",
+      "fileBody": "Select PDF/document"
     }
   },
   "analysis": {

@@ -9,18 +9,21 @@ import { uploadEvidence, type PickedFile } from "@/lib/evidence";
 import type { Case, Category, FileType } from "@/lib/types";
 import { Card, Chip, RemoteImage, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { stitchImages } from "@/lib/stitchAssets";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
-const categories: Array<{ key: Category; label: string; type: FileType }> = [
-  { key: "contract", label: "계약서", type: "pdf" },
-  { key: "statement", label: "급여명세서", type: "pdf" },
-  { key: "payment", label: "입금내역", type: "image" },
-  { key: "chat", label: "대화 캡처", type: "image" },
-  { key: "schedule", label: "근무기록", type: "image" },
-  { key: "other", label: "기타", type: "image" },
+const categories: Array<{ key: Category; type: FileType }> = [
+  { key: "contract", type: "pdf" },
+  { key: "statement", type: "pdf" },
+  { key: "payment", type: "image" },
+  { key: "chat", type: "image" },
+  { key: "schedule", type: "image" },
+  { key: "other", type: "image" },
 ];
 
 export default function UploadScreen() {
   const router = useRouter();
+  const { locale } = useLocale();
   const { caseId } = useLocalSearchParams<{ caseId?: string }>();
   const routeCaseId = typeof caseId === "string" && caseId.trim() ? caseId : null;
   const [activeCaseId, setActiveCaseId] = useState<string | null>(routeCaseId);
@@ -128,10 +131,10 @@ export default function UploadScreen() {
   if (loadingCases) {
     return (
       <StitchScreen active="upload">
-        <TopBar title="자료 업로드" back right="help-outline" />
+        <TopBar title={t("upload.title")} back right="help-outline" />
         <View style={styles.loading}>
           <ActivityIndicator color={stitch.blue} />
-          <Text style={styles.loadingText}>업로드할 사건을 확인하고 있어요</Text>
+          <Text style={styles.loadingText}>{t("common.loading")}</Text>
         </View>
       </StitchScreen>
     );
@@ -140,16 +143,16 @@ export default function UploadScreen() {
   if (!activeCaseId) {
     return (
       <StitchScreen active="upload">
-        <TopBar title="자료 업로드" back right="help-outline" />
+        <TopBar title={t("upload.title")} back right="help-outline" />
         <View style={styles.empty}>
           <View style={styles.emptyIcon}>
             <MaterialIcons name="folder-open" size={54} color={stitch.blue} />
           </View>
-          <Text style={styles.emptyTitle}>먼저 사건을 만들어 주세요</Text>
-          <Text style={styles.emptyBody}>계약서나 급여명세서는 사건 폴더에 연결되어야 상담 준비 자료로 정리할 수 있어요.</Text>
-          <StitchButton onPress={() => router.push("/cases/new")}>새 사건 만들기</StitchButton>
+          <Text style={styles.emptyTitle}>{t("upload.emptyTitle")}</Text>
+          <Text style={styles.emptyBody}>{t("upload.emptyBody")}</Text>
+          <StitchButton onPress={() => router.push("/cases/new")}>{t("cases.create")}</StitchButton>
           <Pressable style={styles.secondaryButton} onPress={() => router.push("/cases")}>
-            <Text style={styles.secondaryButtonText}>내 사건 목록 보기</Text>
+            <Text style={styles.secondaryButtonText}>{t("home.secondary")}</Text>
           </Pressable>
         </View>
       </StitchScreen>
@@ -158,13 +161,13 @@ export default function UploadScreen() {
 
   return (
     <StitchScreen active="upload">
-      <TopBar title="자료 업로드" back right="help-outline" />
+      <TopBar title={t("upload.title")} back right="help-outline" />
       <View style={styles.content}>
         <View style={styles.stepHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>자료 종류를 선택하세요</Text>
+            <Text style={styles.title}>{t("upload.selectCategory")}</Text>
             <Text style={styles.subtitle}>
-              {selectedCase?.workplace_name || selectedCase?.employer_name || "선택된 사건"}에 자료를 추가합니다.
+              {selectedCase?.workplace_name || selectedCase?.employer_name || t("cases.detail")}
             </Text>
           </View>
           <Text style={styles.step}>Step 1 of 2</Text>
@@ -186,7 +189,7 @@ export default function UploadScreen() {
         <View style={styles.categoryGrid}>
           {categories.map((item) => (
             <Pressable key={item.key} onPress={() => setCategory(item.key)}>
-              <Chip label={item.label} active={item.key === category} />
+              <Chip label={t("upload.categories." + item.key)} active={item.key === category} />
             </Pressable>
           ))}
         </View>
@@ -194,18 +197,18 @@ export default function UploadScreen() {
         <RemoteImage uri={stitchImages.uploadDoc} style={styles.uploadPreview} />
 
         <View style={styles.methodGrid}>
-          <UploadMethod icon="photo-camera" title="사진 촬영" body="종이 문서 촬영" onPress={pickCamera} />
-          <UploadMethod icon="image" title="갤러리" body="이미지 선택" onPress={pickGallery} />
-          <UploadMethod icon="upload-file" title="파일" body="PDF/문서 선택" onPress={pickFile} />
+          <UploadMethod icon="photo-camera" title={t("upload.method.camera")} body={t("upload.method.cameraBody")} onPress={pickCamera} />
+          <UploadMethod icon="image" title={t("upload.method.gallery")} body={t("upload.method.galleryBody")} onPress={pickGallery} />
+          <UploadMethod icon="upload-file" title={t("upload.method.file")} body={t("upload.method.fileBody")} onPress={pickFile} />
         </View>
 
         <Card style={styles.privacy}>
           <MaterialIcons name="shield" size={24} color={stitch.blue} />
-          <Text style={styles.privacyText}>업로드한 자료는 상담 준비와 분석을 위해 사건에 안전하게 연결됩니다.</Text>
+          <Text style={styles.privacyText}>{t("upload.tip")}</Text>
         </Card>
 
         <View style={styles.attachTop}>
-          <Text style={styles.sectionTitle}>이번 세션에 추가한 자료</Text>
+          <Text style={styles.sectionTitle}>{t("upload.currentFiles")}</Text>
           <Text style={styles.count}>{files.length} items</Text>
         </View>
         <Card style={styles.fileList}>
@@ -223,14 +226,14 @@ export default function UploadScreen() {
           ) : (
             <View style={styles.noFiles}>
               <MaterialIcons name="cloud-upload" size={34} color={stitch.outline} />
-              <Text style={styles.noFilesText}>아직 추가한 자료가 없어요</Text>
+              <Text style={styles.noFilesText}>{t("upload.emptyTitle")}</Text>
             </View>
           )}
         </Card>
 
         <Pressable style={styles.addMore} onPress={pickFile} disabled={busy}>
           <MaterialIcons name="add-circle-outline" size={22} color={stitch.blue} />
-          <Text style={styles.addMoreText}>파일 추가하기</Text>
+          <Text style={styles.addMoreText}>{t("upload.dropzone")}</Text>
         </Pressable>
       </View>
     </StitchScreen>

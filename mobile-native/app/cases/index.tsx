@@ -5,9 +5,12 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { ApiError, fetchApi } from "@/lib/api";
 import type { Case } from "@/lib/types";
 import { Chip, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 export default function CasesList() {
   const router = useRouter();
+  const { locale } = useLocale();
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,12 +31,12 @@ export default function CasesList() {
 
   return (
     <StitchScreen active="cases">
-      <TopBar title="사건 목록" />
+      <TopBar title={t("cases.title")} />
       <View style={styles.content}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>내 사건</Text>
-            <Text style={styles.subtitle}>상담 준비 상태와 업로드한 자료를 확인하세요.</Text>
+            <Text style={styles.title}>{t("cases.title")}</Text>
+            <Text style={styles.subtitle}>{t("cases.listHeroBody")}</Text>
           </View>
           <Pressable style={styles.iconButton} onPress={() => router.push("/cases/new")}>
             <MaterialIcons name="add" size={24} color={stitch.navy} />
@@ -57,9 +60,9 @@ export default function CasesList() {
             <View style={styles.emptyImage}>
               <MaterialIcons name="folder-open" size={72} color={stitch.line} />
             </View>
-            <Text style={styles.emptyTitle}>진행 중인 사건이 없어요</Text>
-            <Text style={styles.emptyBody}>자료를 모아 상담 가능한 사건 파일을 만들어 보세요.</Text>
-            <StitchButton onPress={() => router.push("/cases/new")}>새 사건 시작하기</StitchButton>
+            <Text style={styles.emptyTitle}>{t("cases.emptyTitle")}</Text>
+            <Text style={styles.emptyBody}>{t("cases.emptyBody")}</Text>
+            <StitchButton onPress={() => router.push("/cases/new")}>{t("cases.create")}</StitchButton>
           </View>
         )}
       </View>
@@ -75,23 +78,23 @@ function CaseCard({
   onPress: () => void;
 }) {
   const readiness = item.status === "completed" ? 100 : 65;
-  const issueLabel = item.issue_types?.includes("deduction") ? "공제 확인" : "임금 확인";
+  const issueLabel = item.issue_types?.includes("deduction") ? t("cases.issueTypes.deduction") : t("cases.issueTypes.wage_unpaid");
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.cardTop}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.caseTitle}>{item.workplace_name || item.employer_name || "사업장 미입력"}</Text>
+          <Text style={styles.caseTitle}>{item.workplace_name || item.employer_name || t("cases.workplace")}</Text>
           <View style={styles.tagRow}>
             <Chip label={issueLabel} tone="blue" />
-            <Chip label={item.status === "completed" ? "완료" : "상담 준비"} tone={item.status === "completed" ? "green" : "blue"} />
+            <Chip label={item.status === "completed" ? t("home.stats.ready") : t("home.stats.preparing")} tone={item.status === "completed" ? "green" : "blue"} />
           </View>
         </View>
         <MaterialIcons name="chevron-right" size={24} color={stitch.outline} />
       </View>
 
       <View style={styles.readinessRow}>
-        <Text style={styles.readinessLabel}>준비도</Text>
+        <Text style={styles.readinessLabel}>{t("cases.readiness")}</Text>
         <Text style={styles.readinessValue}>{readiness}%</Text>
       </View>
       <View style={styles.progressTrack}>
