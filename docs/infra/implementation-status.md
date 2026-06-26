@@ -263,29 +263,39 @@ Idempotency     : 동일 사건 재처리 후 분석 결과 1건 유지
 
 주의: 현재 GitHub 기본 브랜치가 `main`이므로, `develop`에만 존재하는 신규 workflow는 GitHub Actions 수동 실행 목록에 바로 노출되지 않을 수 있다. Worker workflow 실제 실행 검증은 `worker/**` 변경이 `develop`에 push될 때 자동 실행되거나, workflow가 default branch에 반영된 뒤 수동 실행으로 진행한다.
 
-### Frontend 자동배포
+### 모바일 앱 빌드 자동화
 
 ```text
-frontend/** develop push
-  -> GitHub Actions OIDC Role Assume
-  -> ARM64 Next.js image build
-  -> Frontend ECR push
-  -> ECS Task Definition 새 revision 등록
-  -> ECS Service update
-  -> https://badasoft.com/api/health 검증
+mobile-native/** develop push 또는 workflow_dispatch
+  -> GitHub Actions checkout
+  -> Node.js 20 + npm ci
+  -> Expo GitHub Action + EXPO_TOKEN 인증
+  -> EAS Build Android 제출
+  -> Expo 대시보드에서 결과 확인
 ```
 
 | 항목 | 상태 |
 | --- | --- |
-| Workflow | `.github/workflows/deploy-dev-frontend.yml` |
-| Trigger | `frontend/**` 변경이 포함된 `develop` push 또는 수동 실행 |
-| 인증 방식 | GitHub Actions OIDC |
-| 배포 대상 | `bada-dev-frontend` ECS Service |
-| 이미지 아키텍처 | `linux/arm64` |
-| 실행 상태 | `desired=1`, `running=1`, Target healthy |
-| 배포 후 검증 | `https://badasoft.com/api/health` 200 |
+| Workflow | `.github/workflows/build-mobile.yml` |
+| Trigger | `mobile-native/**` 변경이 포함된 `develop` push 또는 수동 실행 |
+| 인증 방식 | `EXPO_TOKEN` GitHub Secret |
+| 빌드 방식 | Expo EAS Build (클라우드) |
+| 기본 프로필 | `preview` |
+| 수동 실행 옵션 | `preview`, `production` |
+| 현재 동작 | GitHub Actions는 build 제출까지만 수행 (`--no-wait`) |
 
-최초 배포는 ECR/Task Definition/Service를 `desired=0`으로 먼저 생성하고, 이미지 push 성공 후 `desired=1`로 전환하는 2단계로 수행했다. 빈 ECR 상태에서 Service가 반복 실패하거나 빈 Target Group으로 트래픽이 전달되는 것을 방지하기 위한 순서다.
+이 workflow는 AWS 인프라를 변경하지 않는다. 모바일 앱 Android 빌드를 Expo 클라우드에 제출하는 자동화다. `preview`는 APK 테스트 배포용, `production`은 AAB 릴리스용으로 사용한다.
+
+### Frontend 배포 상태
+
+Frontend ECS 자동배포는 현재 운영 대상이 아니다. `frontend_enabled=false` 적용 이후 Frontend ECS/ECR/Target Group/Alarm/Log Group과 `deploy-dev-frontend.yml` 워크플로는 제거됐다.
+
+| 항목 | 상태 |
+| --- | --- |
+| 현재 배포 방식 | Frontend ECS 미사용 |
+| 서비스 진입 | `https://badasoft.com` → Backend 폴백 |
+| Frontend workflow | 제거 완료 |
+| 비고 | 모바일 앱 중심 운영 전환. 웹 프론트 재도입 시 별도 workflow 재설계 필요 |
 
 ### Backend 수동 롤백
 
@@ -304,19 +314,18 @@ workflow_dispatch
 | 입력값 | 롤백할 Backend Task Definition |
 | 제한사항 | DB migration, 데이터 변경, Secrets 변경은 별도 복구 필요 |
 
-### Frontend · Worker · Grafana 수동 롤백 (ECS CLI)
+### Worker · Grafana 수동 롤백 (ECS CLI)
 
-Frontend·Worker·Grafana는 전용 롤백 workflow가 없으므로 ECS CLI로 실행 전 검증한 ACTIVE Task Definition 후보를 적용한다. Backend·Frontend·Worker는 deployment circuit breaker 자동 rollback이 활성이고, Prometheus·Grafana는 수동 stable 확인이 필요하다.
+Worker·Grafana는 전용 롤백 workflow가 없으므로 ECS CLI로 실행 전 검증한 ACTIVE Task Definition 후보를 적용한다. Backend·Worker는 deployment circuit breaker 자동 rollback이 활성이고, Prometheus·Grafana는 수동 stable 확인이 필요하다.
 
 ```bash
 aws ecs update-service --region ap-northeast-2 --cluster bada-dev-cluster \
-  --service <bada-dev-frontend|bada-dev-worker> --task-definition <family:revision>
+  --service <bada-dev-worker|bada-dev-grafana> --task-definition <family:revision>
 aws ecs wait services-stable --region ap-northeast-2 --cluster bada-dev-cluster --services <service>
 ```
 
 | 서비스 | ACTIVE 후보 예시(2026-06-25) | 롤백 후 필수 검증 |
 | --- | --- | --- |
-| Frontend | `bada-dev-frontend:2` | `https://badasoft.com/api/health` 200 |
 | Worker | `bada-dev-worker:18` | consumer 시작 로그 + 테스트 메시지 처리 + SQS/DLQ 정상 |
 | Grafana | `bada-dev-grafana:5` 또는 기본형 `:1` | `https://monitor.badasoft.com/api/health` 200 + Contact Point·Rule·Policy 확인 |
 
@@ -403,7 +412,7 @@ Pillar별 리스크:
 | `docs/OWNERSHIP.md` | 파트별 담당 영역 |
 | `.github/workflows/deploy-dev.yml` | Backend 자동배포 workflow |
 | `.github/workflows/deploy-dev-worker.yml` | Worker 자동배포 workflow |
-| `.github/workflows/deploy-dev-frontend.yml` | Frontend 자동배포 workflow |
+| `.github/workflows/build-mobile.yml` | 모바일 앱 EAS Build workflow |
 | `.github/workflows/rollback-dev-backend.yml` | Backend 수동 롤백 workflow |
 | `docs/runbooks/rollback-and-recovery.md` | ECS 롤백·복구 절차 |
 | `docs/runbooks/demo-incident-response.md` | 데모 핵심 경로 장애 진단·대응 |
