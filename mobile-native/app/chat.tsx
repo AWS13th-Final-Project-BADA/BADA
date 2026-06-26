@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -45,6 +45,16 @@ export default function ChatScreen() {
       sources: activeCaseId ? [{ title: t("chat.caseContext") }] : undefined,
     },
   ]);
+
+  // 언어 변경 시 초기 AI 인사 메시지 갱신
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].role === "ai") {
+        return [{ role: "ai", text: t("chat.emptyBody"), sources: activeCaseId ? [{ title: t("chat.caseContext") }] : undefined }];
+      }
+      return prev;
+    });
+  }, [locale]);
 
   async function send(textOverride?: string) {
     const text = (textOverride ?? input).trim();
