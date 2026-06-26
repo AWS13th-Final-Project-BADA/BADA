@@ -142,7 +142,24 @@ aws secretsmanager get-secret-value \
   --output text
 ```
 
+### GPS 체인 해시 무결성
+
+**파일**: `backend/app/routers/gps.py`
+
+| 엔드포인트 | 설명 |
+|-----------|------|
+| `POST /cases/{id}/gps/ping` | 핑 저장 시 `chain_hash` 자동 생성 및 체인 연결 |
+| `GET /cases/{id}/gps/verify` | 체인 연속성 검증 — 중간 조작 탐지 |
+| `GET /cases/{id}/gps/summary` | 일별 요약 + 전체 SHA-256 무결성 해시 |
+
+체인 구조: `SHA-256(prev_hash | ts | lat | lng | status)` — 중간 행 조작 시 이후 모든 hash 불일치로 탐지됨.
+
 완료 기준:
+- [x] 핑 저장 시 chain_hash 생성
+- [x] /verify 엔드포인트 — 체인 연속성 검증
+- [x] 중간 조작 탐지 테스트 (`tests/test_gps_chain.py`) 통과
+
+
 
 - Prometheus와 Grafana ECS Service가 각각 `desired=1`, `running=1`, `rollout=COMPLETED`
 - Grafana Target Group `healthy`
