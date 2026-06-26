@@ -33,7 +33,7 @@ export default function GpsScreen() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [tracking, setTracking] = useState(false);
-  const [lastStatus, setLastStatus] = useState("아직 기록 없음");
+  const [lastStatus, setLastStatus] = useState(t("gps.empty"));
   const subRef = useRef<Location.LocationSubscription | null>(null);
 
   const load = useCallback(async () => {
@@ -65,21 +65,21 @@ export default function GpsScreen() {
   async function onRegisterWorkplace() {
     const ok = await requestForeground();
     if (!ok) {
-      Alert.alert("위치 권한 필요", "근무지 등록을 위해 위치 권한을 허용해 주세요.");
+      Alert.alert(t("gps.permissionError"), t("gps.permissionError"));
       return;
     }
     setBusy(true);
     try {
       const loc = await getCurrent();
       if (!loc) {
-        Alert.alert("위치 확인 실패", "현재 위치를 가져오지 못했어요.");
+        Alert.alert(t("gps.saveError"), t("gps.saveError"));
         return;
       }
       const wp = await registerWorkplace(caseId, loc.coords.latitude, loc.coords.longitude, radiusM);
       setWorkplace(wp);
-      setLastStatus("근무지 기준점이 등록됐어요.");
+      setLastStatus(t("gps.saveWorkplace"));
     } catch (e: any) {
-      Alert.alert("등록 실패", String(e?.message ?? e));
+      Alert.alert(t("gps.saveError"), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -88,12 +88,12 @@ export default function GpsScreen() {
   async function pingOnce() {
     const ok = await requestForeground();
     if (!ok) {
-      Alert.alert("위치 권한 필요", "위치 권한을 허용해 주세요.");
+      Alert.alert(t("gps.permissionError"), t("gps.permissionError"));
       return null;
     }
     const loc = await getCurrent();
     if (!loc) {
-      Alert.alert("위치 확인 실패", "현재 위치를 가져오지 못했어요.");
+      Alert.alert(t("gps.saveError"), t("gps.saveError"));
       return null;
     }
     const result = await sendPing(caseId, loc);
@@ -106,7 +106,7 @@ export default function GpsScreen() {
       subRef.current?.remove();
       subRef.current = null;
       setTracking(false);
-      setLastStatus("기록이 일시 중지됐어요.");
+      setLastStatus(t("gps.inactive"));
       return;
     }
 
@@ -117,7 +117,7 @@ export default function GpsScreen() {
       });
       setTracking(true);
     } catch (e: any) {
-      Alert.alert("기록 시작 실패", String(e?.message ?? e));
+      Alert.alert(t("gps.saveError"), String(e?.message ?? e));
     }
   }
 
@@ -186,7 +186,7 @@ export default function GpsScreen() {
         </View>
 
         <Card style={styles.radiusCard}>
-          <Text style={styles.radiusTitle}>반경 설정</Text>
+          <Text style={styles.radiusTitle}>{t("gps.saveWorkplace")}</Text>
           <View style={styles.radiusChips}>
             {RADIUS_PRESETS.map((r) => (
               <Pressable
@@ -199,17 +199,15 @@ export default function GpsScreen() {
             ))}
           </View>
           <StitchButton tone="secondary" onPress={onRegisterWorkplace} disabled={busy}>
-            <Text style={styles.registerText}>{busy ? "등록 중..." : workplace ? "현재 위치로 근무지 다시 등록" : "현재 위치를 근무지로 등록"}</Text>
+            <Text style={styles.registerText}>{busy ? t("common.loading") : workplace ? t("gps.saveWorkplace") : t("gps.saveWorkplace")}</Text>
           </StitchButton>
         </Card>
 
         <Card style={styles.privacy}>
           <MaterialIcons name="verified-user" size={34} color={stitch.blueSoft} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.privacyTitle}>개인정보 보호 기록</Text>
-            <Text style={styles.privacyBody}>
-              지정한 근무지 반경 안에서만 출근 증거로 쓸 수 있는 위치 기록을 남깁니다. 기록은 상담 준비 자료로만 사용됩니다.
-            </Text>
+            <Text style={styles.privacyTitle}>{t("gps.subtitle")}</Text>
+            <Text style={styles.privacyBody}>{t("gps.workplaceHint")}</Text>
           </View>
         </Card>
 
