@@ -22,9 +22,17 @@ env:
   AWS_REGION: ap-northeast-2
   AWS_PLAN_ROLE_ARN: arn:aws:iam::165749212250:role/bada-dev-github-actions-plan-role
   WORKDIR: infra
-  # db_password 는 default 가 없는 필수 변수이므로 plan 시 주입이 필요하다.
-  # GitHub repo secret 'TF_DB_PASSWORD' 를 등록해야 한다(실제 값이어야 secret_version diff 노이즈가 없다).
+  # 필수 민감 변수는 PR plan에서도 모두 주입해야 한다.
+  # 실제 값이 없으면 terraform plan 자체가 실패한다.
+  # 실제 값과 다르면 secret_version diff 노이즈가 발생할 수 있다.
   TF_VAR_db_password: ${{ secrets.TF_DB_PASSWORD }}
+  TF_VAR_google_client_id: ${{ secrets.TF_GOOGLE_CLIENT_ID }}
+  TF_VAR_google_client_secret: ${{ secrets.TF_GOOGLE_CLIENT_SECRET }}
+  TF_VAR_kakao_rest_api_key: ${{ secrets.TF_KAKAO_REST_API_KEY }}
+  TF_VAR_kakao_client_secret: ${{ secrets.TF_KAKAO_CLIENT_SECRET }}
+  TF_VAR_naver_client_id: ${{ secrets.TF_NAVER_CLIENT_ID }}
+  TF_VAR_naver_client_secret: ${{ secrets.TF_NAVER_CLIENT_SECRET }}
+  TF_VAR_jwt_secret: ${{ secrets.TF_JWT_SECRET }}
 
 jobs:
   plan:
