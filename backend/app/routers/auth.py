@@ -9,6 +9,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -162,6 +163,7 @@ def _upsert_social_user(
     email: str | None,
     name: str | None,
 ) -> User:
+    # 1) (provider, provider_id)로 기존 유저 조회 — 기존 동작 유지
     user = db.query(User).filter(User.provider == provider, User.provider_id == provider_id).first()
     if user:
         if name and user.name != name:
@@ -169,6 +171,19 @@ def _upsert_social_user(
             db.commit()
         return user
 
+    # 2) 같은 이메일이 이미 있으면(다른 provider로 먼저 가입 등) 그 계정에 연결.
+    #    email이 있을 때만 — 카카오/네이버는 이메일 미동의 시 None일 수 있음.
+    if email:
+        existing = db.query(User).filter(User.email == email).first()
+        if existing:
+            existing.provider = provider
+            existing.provider_id = provider_id
+            if name and existing.name != name:
+                existing.name = name
+            db.commit()
+            return existing
+
+    # 3) 신규 생성 — 기존 동작 유지 + 동시 로그인 레이스 안전망
     user = User(
         provider=provider,
         provider_id=provider_id,
@@ -177,6 +192,15 @@ def _upsert_social_user(
         preferred_lang="ko",
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        user = db.query(User).filter(User.provider == provider, User.provider_id == provider_id).first()
+        if user is None and email:
+            user = db.query(User).filter(User.email == email).first()
+        if user is None:
+            raise
+        return user
     db.refresh(user)
     return user
