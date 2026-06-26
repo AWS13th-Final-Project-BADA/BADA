@@ -84,7 +84,9 @@
     "kakao": "Tiếp tục với Kakao",
     "naver": "Tiếp tục với Naver",
     "notice": "Đăng nhập lần đầu sẽ tự động tạo tài khoản.",
-    "safe": "BADA không đưa ra phán đoán pháp lý."
+    "safe": "BADA không đưa ra phán đoán pháp lý.",
+    "trustData": "Bảo vệ dữ liệu",
+    "trustNoJudge": "Không phán đoán pháp lý"
   },
   "cases": {
     "title": "Hồ sơ của tôi",

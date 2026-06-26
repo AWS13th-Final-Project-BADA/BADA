@@ -84,7 +84,9 @@
     "kakao": "Continue with Kakao",
     "naver": "Continue with Naver",
     "notice": "Your account is created automatically on first login.",
-    "safe": "BADA does not make legal judgments."
+    "safe": "BADA does not make legal judgments.",
+    "trustData": "Data protection",
+    "trustNoJudge": "No legal judgment"
   },
   "cases": {
     "title": "My cases",

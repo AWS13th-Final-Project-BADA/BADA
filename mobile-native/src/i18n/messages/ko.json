@@ -84,7 +84,9 @@
     "kakao": "카카오로 시작하기",
     "naver": "네이버로 시작하기",
     "notice": "처음 로그인하면 자동으로 가입됩니다.",
-    "safe": "BADA는 법률 판단을 하지 않습니다."
+    "safe": "BADA는 법률 판단을 하지 않습니다.",
+    "trustData": "자료 보호",
+    "trustNoJudge": "법률 판단 없음"
   },
   "cases": {
     "title": "내 사건",
