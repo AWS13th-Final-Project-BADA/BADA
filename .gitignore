@@ -46,6 +46,7 @@ Thumbs.db
 
 # Data (민감 — 절대 커밋 금지)
 eval/dataset/raw/
+eval/dataset/benchmark/
 *.local.json
 uploads/
 

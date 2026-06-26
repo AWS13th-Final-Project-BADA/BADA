@@ -29,20 +29,6 @@ OAuth 콜백 수신. JWT 발급 후 앱으로 리다이렉트.
 | 인증 | 불필요 |
 | 응답 | 302 → `bada://auth?token={jwt}` 또는 `{app_base_url}/#token={jwt}` |
 
-### `GET /auth/cognito/login`
-
-Cognito Hosted UI 리다이렉트 (레거시).
-
-| Query | `identity_provider` (선택), `prompt` (선택), `redirect_uri` (선택) |
-|-------|---|
-| 응답 | 302 → Cognito authorize URL |
-
-### `GET /auth/cognito/callback`
-
-| Query | `code`, `state`, `error` |
-|-------|---|
-| 응답 | 302 → 앱/웹으로 토큰 전달 |
-
 ### `GET /auth/me`
 
 현재 로그인 유저 정보.

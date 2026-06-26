@@ -136,6 +136,14 @@ export default function Home() {
             onPress={() => router.push("/chat")}
           />
           <QuickCard
+            icon="location-on"
+            color={stitch.green}
+            bg="rgba(0,150,104,0.1)"
+            title="GPS 기록"
+            body="출근 증거 실시간 기록"
+            onPress={() => router.push("/gps")}
+          />
+          <QuickCard
             icon="forum"
             color={stitch.amber}
             bg={stitch.amberSoft}
