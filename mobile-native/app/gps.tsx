@@ -17,12 +17,15 @@ import {
 } from "@/lib/gps";
 import { Card, RemoteImage, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { stitchImages } from "@/lib/stitchAssets";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 const RADIUS_PRESETS = [50, 80, 100, 200, 500];
 
 export default function GpsScreen() {
   const params = useLocalSearchParams<{ caseId?: string }>();
   const router = useRouter();
+  const { locale } = useLocale();
   const [caseId, setCaseId] = useState<string>(params.caseId || "demo-case-1");
   const [cases, setCases] = useState<Case[]>([]);
   const [workplace, setWorkplace] = useState<Workplace | null>(null);
@@ -121,7 +124,7 @@ export default function GpsScreen() {
   if (loading) {
     return (
       <StitchScreen scroll={false} active="cases">
-        <TopBar title="GPS 기록" back />
+        <TopBar title={t("gps.title")} back />
         <View style={styles.center}>
           <ActivityIndicator color={stitch.blue} />
         </View>
@@ -131,16 +134,16 @@ export default function GpsScreen() {
 
   return (
     <StitchScreen scroll={false} active="cases">
-      <TopBar title="GPS 기록" back right="notifications-none" />
+      <TopBar title={t("gps.title")} back right="notifications-none" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Card style={styles.hero}>
           <View style={styles.heroTop}>
             <View>
-              <Text style={styles.heroTitle}>근무지 GPS 기록</Text>
+              <Text style={styles.heroTitle}>{t("gps.title")}</Text>
               <View style={styles.statusLine}>
                 <View style={[styles.statusDot, tracking && styles.statusDotOn]} />
                 <Text style={[styles.statusText, tracking && styles.statusTextOn]}>
-                  {tracking ? "기록 중" : "기록 대기"}
+                  {tracking ? t("gps.active") : t("gps.inactive")}
                 </Text>
               </View>
             </View>
@@ -165,7 +168,7 @@ export default function GpsScreen() {
         </Card>
 
         <View style={styles.sectionTop}>
-          <Text style={styles.sectionTitle}>근무지 반경</Text>
+          <Text style={styles.sectionTitle}>{t("gps.saveWorkplace")}</Text>
           <Text style={styles.sectionAction}>구역 확인</Text>
         </View>
         <View style={styles.mapCard}>
@@ -177,7 +180,7 @@ export default function GpsScreen() {
           </View>
           <View style={styles.legend}>
             <Text style={styles.legendText}>
-              {workplace ? `${workplace.center_lat.toFixed(4)}, ${workplace.center_lng.toFixed(4)}` : "근무지 기준점 미등록"}
+              {workplace ? `${workplace.center_lat.toFixed(4)}, ${workplace.center_lng.toFixed(4)}` : t("gps.workplaceHint")}
             </Text>
           </View>
         </View>
@@ -211,9 +214,9 @@ export default function GpsScreen() {
         </Card>
 
         <View style={styles.sectionTop}>
-          <Text style={styles.sectionTitle}>최근 증거 로그</Text>
+          <Text style={styles.sectionTitle}>{t("gps.logs")}</Text>
           <Pressable onPress={pingOnce}>
-            <Text style={styles.sectionAction}>새로고침</Text>
+            <Text style={styles.sectionAction}>{t("common.refresh")}</Text>
           </Pressable>
         </View>
         <View style={styles.logs}>

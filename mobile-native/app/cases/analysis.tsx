@@ -5,13 +5,16 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { fetchApi } from "@/lib/api";
 import type { AnalysisReport, MissingItem, TimelineItem } from "@/lib/types";
 import { Card, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 const won = (n?: number | null) =>
-  n == null ? "확인 필요" : `${Math.round(n).toLocaleString("ko-KR")}원`;
+  n == null ? t("analysis.suspected") : `${Math.round(n).toLocaleString("ko-KR")}원`;
 
 export default function AnalysisScreen() {
   const { caseId = "demo-case-1" } = useLocalSearchParams<{ caseId?: string }>();
   const router = useRouter();
+  const { locale } = useLocale();
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -44,10 +47,10 @@ export default function AnalysisScreen() {
 
   return (
     <StitchScreen active="assistant">
-      <TopBar title="분석 결과" back />
+      <TopBar title={t("analysis.title")} back />
       <View style={styles.content}>
         <View>
-          <Text style={styles.screenTitle}>상담 준비 분석</Text>
+          <Text style={styles.screenTitle}>{t("analysis.title")}</Text>
           <Text style={styles.caseId}>Case #{String(caseId).slice(0, 8)}</Text>
         </View>
 
@@ -55,7 +58,7 @@ export default function AnalysisScreen() {
 
         <Card style={styles.summary}>
           <View style={styles.summaryTop}>
-            <Text style={styles.summaryTitle}>분석 요약</Text>
+            <Text style={styles.summaryTitle}>{t("analysis.title")}</Text>
             <Text style={styles.badge}>자료 기준</Text>
           </View>
           <Text style={styles.summaryBody}>
@@ -64,13 +67,13 @@ export default function AnalysisScreen() {
           </Text>
           <View style={styles.infoStrip}>
             <MaterialIcons name="info-outline" size={20} color={stitch.blue} />
-            <Text style={styles.infoText}>확인된 차이: {won(diff)}</Text>
+            <Text style={styles.infoText}>{t("analysis.suspected")}: {won(diff)}</Text>
           </View>
         </Card>
 
         <View style={styles.grid}>
-          <AmountCard label="명세서 기준" value={won(expected)} progress={1} color={stitch.navy} />
-          <AmountCard label="실제 입금" value={won(received)} progress={0.82} color={stitch.blue} />
+          <AmountCard label={t("analysis.expected")} value={won(expected)} progress={1} color={stitch.navy} />
+          <AmountCard label={t("analysis.received")} value={won(received)} progress={0.82} color={stitch.blue} />
         </View>
 
         <View style={styles.twoCol}>
@@ -96,7 +99,7 @@ export default function AnalysisScreen() {
         </View>
 
         <View style={styles.sectionBlock}>
-          <Text style={styles.sectionLabel}>분석 타임라인</Text>
+          <Text style={styles.sectionLabel}>{t("analysis.timeline")}</Text>
           <Card style={styles.timelineCard}>
             {timeline.slice(0, 3).map((item, index) => (
               <Timeline key={`${item.date}-${index}`} item={item} active={index === 0} />
@@ -107,7 +110,7 @@ export default function AnalysisScreen() {
         <Card style={styles.questionCard}>
           <View style={styles.questionHeader}>
             <MaterialIcons name="smart-toy" size={22} color={stitch.blue} />
-            <Text style={styles.questionTitle}>상담 때 물어볼 질문</Text>
+            <Text style={styles.questionTitle}>{t("chat.emptyTitle")}</Text>
           </View>
           <Question text="급여명세서와 실제 입금액 차이를 어떤 순서로 설명하면 좋을까요?" />
           <Question text="공제 항목은 어떤 자료로 확인받아야 하나요?" />
@@ -123,10 +126,10 @@ export default function AnalysisScreen() {
         </Card>
 
         <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
-          {running ? "분석 중..." : report ? "분석 다시 실행" : "분석 실행"}
+          {running ? t("common.loading") : report ? t("cases.actions.rerun") : t("cases.runAnalysis")}
         </StitchButton>
         <StitchButton tone="secondary" onPress={() => router.push({ pathname: "/chat", params: { caseId } })}>
-          <Text style={styles.secondaryButton}>AI에게 이어서 질문하기</Text>
+          <Text style={styles.secondaryButton}>{t("cases.actions.chatBody")}</Text>
         </StitchButton>
       </View>
     </StitchScreen>

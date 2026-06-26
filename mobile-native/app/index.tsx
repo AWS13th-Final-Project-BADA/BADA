@@ -80,8 +80,8 @@ export default function Home() {
       <View style={styles.content}>
         <View style={styles.greetingRow}>
           <View style={styles.greeting}>
-            <Text style={styles.greetingTitle}>반가워요, {displayName} 님</Text>
-            <Text style={styles.greetingBody}>오늘은 상담에 필요한 자료를 차근차근 정리해볼게요.</Text>
+            <Text style={styles.greetingTitle}>{t("home.dashboardTitle")}</Text>
+            <Text style={styles.greetingBody}>{t("home.dashboardSubtitle")}</Text>
           </View>
           <Pressable style={styles.logoutButton} onPress={signOut}>
             <Text style={styles.logoutText}>{t("common.logout")}</Text>
@@ -92,7 +92,7 @@ export default function Home() {
           <View style={styles.currentTop}>
             <View>
               <Text style={styles.badge}>CASE WORKFLOW</Text>
-              <Text style={styles.currentTitle}>증거 패키지를 만들고 상담 준비까지 이어가세요</Text>
+              <Text style={styles.currentTitle}>{t("home.title")}</Text>
             </View>
             <MaterialIcons name="description" size={30} color={stitch.blueStrong} />
           </View>
@@ -100,16 +100,16 @@ export default function Home() {
           <View style={styles.stepWrap}>
             <View style={styles.stepLine} />
             <View style={styles.stepLineOn} />
-            <Step done label="사건 생성" />
-            <Step current label="자료 업로드" value="2" />
-            <Step label="AI 분석" value="3" />
-            <Step label="상담 준비" value="4" />
+            <Step done label={t("home.steps.case")} />
+            <Step current label={t("home.steps.upload")} value="2" />
+            <Step label={t("home.steps.organize")} value="3" />
+            <Step label={t("home.steps.consult")} value="4" />
           </View>
 
           <StitchButton onPress={() => router.push("/cases/new")}>{t("cases.create")}</StitchButton>
         </Card>
 
-        <SectionLabel>빠른 실행</SectionLabel>
+        <SectionLabel>{t("home.quickTitle")}</SectionLabel>
         <View style={styles.quickGrid}>
           <QuickCard
             icon="folder-open"
@@ -150,13 +150,13 @@ export default function Home() {
             <MaterialIcons name="upload-file" size={22} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.recommendLabel}>다음 추천 작업</Text>
-            <Text style={styles.recommendText}>계약서, 급여명세서, 입금내역을 먼저 올려보세요</Text>
+            <Text style={styles.recommendLabel}>{t("home.nextTitle")}</Text>
+            <Text style={styles.recommendText}>{t("home.next.uploadBody")}</Text>
           </View>
           <MaterialIcons name="chevron-right" size={24} color="#fff" />
         </Pressable>
 
-        <SectionLabel action={<Text style={styles.viewAll}>전체보기</Text>}>최근 커뮤니티</SectionLabel>
+        <SectionLabel action={<Text style={styles.viewAll}>{t("home.recentTitle")}</Text>}>{t("community.title")}</SectionLabel>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.communityScroll}>
           <CommunityPreview
             image={stitchImages.office}
