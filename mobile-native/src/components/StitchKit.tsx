@@ -4,8 +4,9 @@ import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, type Style
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import { SUPPORTED, setLocale, t, i18n } from "@/i18n";
+import { SUPPORTED, t, i18n } from "@/i18n";
 import type { Locale } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 export const stitch = {
   bg: "#f7f9fb",
@@ -65,13 +66,12 @@ export function TopBar({
   right?: keyof typeof MaterialIcons.glyphMap;
 }) {
   const router = useRouter();
+  const { locale, changeLocale } = useLocale();
   const [langOpen, setLangOpen] = useState(false);
-  const [, forceUpdate] = useState(0);
 
-  function changeLanguage(lang: Locale) {
-    setLocale(lang);
+  function handleChangeLanguage(lang: Locale) {
+    changeLocale(lang);
     setLangOpen(false);
-    forceUpdate((n) => n + 1);
   }
 
   return (
@@ -93,11 +93,11 @@ export function TopBar({
         <Pressable style={s.modalOverlay} onPress={() => setLangOpen(false)}>
           <View style={s.langMenu}>
             {SUPPORTED.map((lang) => (
-              <Pressable key={lang} style={[s.langOption, lang === i18n.locale && s.langOptionActive]} onPress={() => changeLanguage(lang)}>
-                <Text style={[s.langOptionText, lang === i18n.locale && s.langOptionTextActive]}>
+              <Pressable key={lang} style={[s.langOption, lang === locale && s.langOptionActive]} onPress={() => handleChangeLanguage(lang)}>
+                <Text style={[s.langOptionText, lang === locale && s.langOptionTextActive]}>
                   {t("common.locales." + lang)}
                 </Text>
-                {lang === i18n.locale && <MaterialIcons name="check" size={18} color={stitch.blue} />}
+                {lang === locale && <MaterialIcons name="check" size={18} color={stitch.blue} />}
               </Pressable>
             ))}
           </View>
@@ -111,13 +111,13 @@ export function BottomNav({ active }: { active?: "home" | "cases" | "upload" | "
   const router = useRouter();
   return (
     <View style={s.bottomNav}>
-      <Tab icon="home" label="홈" active={active === "home"} onPress={() => router.push("/")} />
-      <Tab icon="folder-open" label="사건" active={active === "cases"} onPress={() => router.push("/cases")} />
+      <Tab icon="home" label={t("nav.home")} active={active === "home"} onPress={() => router.push("/")} />
+      <Tab icon="folder-open" label={t("nav.cases")} active={active === "cases"} onPress={() => router.push("/cases")} />
       <Pressable style={s.centerTab} onPress={() => router.push("/cases/upload")}>
         <MaterialIcons name="add" size={32} color="#fff" />
       </Pressable>
-      <Tab icon="smart-toy" label="AI" active={active === "assistant"} onPress={() => router.push("/chat")} />
-      <Tab icon="forum" label="커뮤니티" active={active === "community"} onPress={() => router.push("/community")} />
+      <Tab icon="smart-toy" label={t("nav.chat")} active={active === "assistant"} onPress={() => router.push("/chat")} />
+      <Tab icon="forum" label={t("nav.community")} active={active === "community"} onPress={() => router.push("/community")} />
     </View>
   );
 }
