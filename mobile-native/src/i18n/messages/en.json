@@ -190,7 +190,9 @@
       "gallery": "Gallery",
       "galleryBody": "Pick an image",
       "file": "File",
-      "fileBody": "Select PDF/document"
+      "fileBody": "Select PDF/document",
+      "audio": "Audio",
+      "audioBody": "Select recording"
     }
   },
   "analysis": {

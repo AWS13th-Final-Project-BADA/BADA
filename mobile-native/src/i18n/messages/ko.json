@@ -190,7 +190,9 @@
       "gallery": "갤러리",
       "galleryBody": "이미지 선택",
       "file": "파일",
-      "fileBody": "PDF/문서 선택"
+      "fileBody": "PDF/문서 선택",
+      "audio": "음성 파일",
+      "audioBody": "녹음 파일 선택"
     }
   },
   "analysis": {

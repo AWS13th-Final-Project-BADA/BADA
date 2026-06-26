@@ -190,7 +190,9 @@
       "gallery": "Thư viện",
       "galleryBody": "Chọn hình ảnh",
       "file": "Tệp",
-      "fileBody": "Chọn PDF/tài liệu"
+      "fileBody": "Chọn PDF/tài liệu",
+      "audio": "Âm thanh",
+      "audioBody": "Chọn file ghi âm"
     }
   },
   "analysis": {
