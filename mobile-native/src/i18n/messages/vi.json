@@ -17,7 +17,9 @@
     "locales": {
       "ko": "한국어",
       "vi": "Tiếng Việt",
-      "en": "English"
+      "en": "English",
+      "km": "ភាសាខ្មែរ",
+      "ja": "日本語"
     }
   },
   "nav": {
@@ -190,7 +192,9 @@
       "gallery": "Thư viện",
       "galleryBody": "Chọn hình ảnh",
       "file": "Tệp",
-      "fileBody": "Chọn PDF/tài liệu"
+      "fileBody": "Chọn PDF/tài liệu",
+      "audio": "Âm thanh",
+      "audioBody": "Chọn file ghi âm"
     }
   },
   "analysis": {

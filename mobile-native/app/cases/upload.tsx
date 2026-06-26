@@ -128,6 +128,21 @@ export default function UploadScreen() {
     }
   }
 
+  async function pickAudio() {
+    const result = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+      type: ["audio/*"],
+    });
+    if (!result.canceled) {
+      const asset = result.assets[0];
+      await upload({
+        uri: asset.uri,
+        name: asset.name,
+        mimeType: asset.mimeType || "audio/mpeg",
+      });
+    }
+  }
+
   if (loadingCases) {
     return (
       <StitchScreen active="upload">
@@ -200,6 +215,7 @@ export default function UploadScreen() {
           <UploadMethod icon="photo-camera" title={t("upload.method.camera")} body={t("upload.method.cameraBody")} onPress={pickCamera} />
           <UploadMethod icon="image" title={t("upload.method.gallery")} body={t("upload.method.galleryBody")} onPress={pickGallery} />
           <UploadMethod icon="upload-file" title={t("upload.method.file")} body={t("upload.method.fileBody")} onPress={pickFile} />
+          <UploadMethod icon="mic" title={t("upload.method.audio")} body={t("upload.method.audioBody")} onPress={pickAudio} />
         </View>
 
         <Card style={styles.privacy}>
