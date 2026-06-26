@@ -183,6 +183,14 @@
       "chat": "Ảnh tin nhắn",
       "statement": "Bảng lương",
       "other": "Khác"
+    },
+    "method": {
+      "camera": "Chụp ảnh",
+      "cameraBody": "Chụp tài liệu giấy",
+      "gallery": "Thư viện",
+      "galleryBody": "Chọn hình ảnh",
+      "file": "Tệp",
+      "fileBody": "Chọn PDF/tài liệu"
     }
   },
   "analysis": {

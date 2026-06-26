@@ -12,13 +12,13 @@ import { stitchImages } from "@/lib/stitchAssets";
 import { t } from "@/i18n";
 import { useLocale } from "@/i18n/LocaleContext";
 
-const categories: Array<{ key: Category; label: string; type: FileType }> = [
-  { key: "contract", label: t("upload.categories.contract"), type: "pdf" },
-  { key: "statement", label: t("upload.categories.statement"), type: "pdf" },
-  { key: "payment", label: t("upload.categories.payment"), type: "image" },
-  { key: "chat", label: t("upload.categories.chat"), type: "image" },
-  { key: "schedule", label: t("upload.categories.schedule"), type: "image" },
-  { key: "other", label: t("upload.categories.other"), type: "image" },
+const categories: Array<{ key: Category; type: FileType }> = [
+  { key: "contract", type: "pdf" },
+  { key: "statement", type: "pdf" },
+  { key: "payment", type: "image" },
+  { key: "chat", type: "image" },
+  { key: "schedule", type: "image" },
+  { key: "other", type: "image" },
 ];
 
 export default function UploadScreen() {
@@ -189,7 +189,7 @@ export default function UploadScreen() {
         <View style={styles.categoryGrid}>
           {categories.map((item) => (
             <Pressable key={item.key} onPress={() => setCategory(item.key)}>
-              <Chip label={item.label} active={item.key === category} />
+              <Chip label={t("upload.categories." + item.key)} active={item.key === category} />
             </Pressable>
           ))}
         </View>
@@ -197,9 +197,9 @@ export default function UploadScreen() {
         <RemoteImage uri={stitchImages.uploadDoc} style={styles.uploadPreview} />
 
         <View style={styles.methodGrid}>
-          <UploadMethod icon="photo-camera" title="사진 촬영" body="종이 문서 촬영" onPress={pickCamera} />
-          <UploadMethod icon="image" title="갤러리" body="이미지 선택" onPress={pickGallery} />
-          <UploadMethod icon="upload-file" title="파일" body="PDF/문서 선택" onPress={pickFile} />
+          <UploadMethod icon="photo-camera" title={t("upload.method.camera")} body={t("upload.method.cameraBody")} onPress={pickCamera} />
+          <UploadMethod icon="image" title={t("upload.method.gallery")} body={t("upload.method.galleryBody")} onPress={pickGallery} />
+          <UploadMethod icon="upload-file" title={t("upload.method.file")} body={t("upload.method.fileBody")} onPress={pickFile} />
         </View>
 
         <Card style={styles.privacy}>

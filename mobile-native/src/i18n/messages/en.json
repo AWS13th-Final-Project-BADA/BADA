@@ -183,6 +183,14 @@
       "chat": "Chat capture",
       "statement": "Payslip",
       "other": "Other"
+    },
+    "method": {
+      "camera": "Camera",
+      "cameraBody": "Photograph a document",
+      "gallery": "Gallery",
+      "galleryBody": "Pick an image",
+      "file": "File",
+      "fileBody": "Select PDF/document"
     }
   },
   "analysis": {
