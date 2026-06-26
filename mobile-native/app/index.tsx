@@ -80,7 +80,7 @@ export default function Home() {
       <View style={styles.content}>
         <View style={styles.greetingRow}>
           <View style={styles.greeting}>
-            <Text style={styles.greetingTitle}>{t("home.dashboardTitle")}</Text>
+            <Text style={styles.greetingTitle}>{displayName} 님</Text>
             <Text style={styles.greetingBody}>{t("home.dashboardSubtitle")}</Text>
           </View>
           <Pressable style={styles.logoutButton} onPress={signOut}>
