@@ -139,8 +139,8 @@ export default function Home() {
             icon="location-on"
             color={stitch.green}
             bg="rgba(0,150,104,0.1)"
-            title="GPS 기록"
-            body="출근 증거 실시간 기록"
+            title={t("home.quick.gps")}
+            body={t("home.quick.gpsBody")}
             onPress={() => router.push("/gps")}
           />
           <QuickCard
