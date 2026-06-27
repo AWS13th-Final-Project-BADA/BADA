@@ -1,24 +1,15 @@
 """Bedrock Claude — Vision(OCR+엔티티) / Text(문장화·요약).
 
 핵심: 출력을 Pydantic 스키마로 강제하고, 실패 시 재시도(architecture.md).
-실제 호출은 W2 bolt에서 완성. 여기선 인터페이스 + 재시도 골격.
+실제 호출은 providers/_bedrock.py 공통 헬퍼를 통한다.
 """
 from __future__ import annotations
 
 import json
 
-import boto3
-
-# backend 스키마 재사용 (모노레포 공유). 경로는 배포 시 패키징으로 정리.
-# from backend.app.schemas import OcrResult
-
 
 class SchemaValidationError(Exception):
     pass
-
-
-def _client(region: str = "ap-northeast-2"):
-    return boto3.client("bedrock-runtime", region_name=region)
 
 
 def invoke_vision_with_schema(prompt: str, image_bytes: bytes, schema_model, *, max_retries: int = 2):
@@ -26,22 +17,32 @@ def invoke_vision_with_schema(prompt: str, image_bytes: bytes, schema_model, *, 
 
     절대 임의 값을 지어내지 않는다. 최종 실패 시 예외 → 호출부에서 ocr_status='failed'.
     """
-    last_err = None
-    for attempt in range(max_retries + 1):
-        raw = _call_vision(prompt, image_bytes)  # TODO(W2): 실제 Bedrock 호출
-        try:
-            data = json.loads(raw)
-            return schema_model.model_validate(data)
-        except Exception as e:  # JSON/스키마 실패
-            last_err = e
-            prompt = prompt + "\n\n반드시 유효한 JSON만 출력하세요. 이전 출력이 형식에 맞지 않았습니다."
-    raise SchemaValidationError(str(last_err))
+    from providers import _bedrock
+
+    system = (
+        "당신은 임금체불 사건 증거에서 텍스트와 엔티티를 추출하는 도우미입니다. "
+        "읽어서 구조화만 하고 위법 여부·금액을 판단하지 마세요. "
+        "보이지 않는 값은 지어내지 말고, 불확실하면 confidence를 low로 표기하세요. "
+        "반드시 유효한 JSON만 출력하세요."
+    )
+    blocks = [
+        _bedrock.file_block(image_bytes),
+        _bedrock.text_block(prompt),
+    ]
+    try:
+        return _bedrock.extract_json(system, blocks, schema_model, max_retries=max_retries)
+    except Exception as e:
+        raise SchemaValidationError(str(e)) from e
 
 
-def _call_vision(prompt: str, image_bytes: bytes) -> str:  # pragma: no cover - W2에서 구현
-    raise NotImplementedError("W2 bolt: Bedrock Vision 호출 구현")
-
-
-def invoke_text(prompt: str) -> str:  # pragma: no cover - W2에서 구현
+def invoke_text(prompt: str, *, system: str | None = None, max_tokens: int = 800) -> str:
     """타임라인 문장화·요약. 계산값을 만들지 않고 주어진 사실을 문장으로만 정리."""
-    raise NotImplementedError("W2 bolt: Bedrock Text 호출 구현")
+    from providers import _bedrock
+
+    _system = system or (
+        "주어진 사실을 자연스러운 한국어로 정리하세요. "
+        "사실을 추가하거나 판단하지 마세요. "
+        "금지 표현(불법/확정/무조건/바로 신고)을 쓰지 말고, "
+        "미지급 '의심'·'확인 필요' 톤만 사용하세요."
+    )
+    return _bedrock.invoke(_system, [_bedrock.text_block(prompt)], max_tokens=max_tokens)

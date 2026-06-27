@@ -7,7 +7,42 @@ on:
     branches: [main, develop]
 
 jobs:
+  lint:
+    name: Ruff Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install ruff==0.11.12
+
+      - name: Ruff check
+        run: ruff check backend/ worker/ --output-format=github --exit-zero
+
+  security:
+    name: Bandit SAST
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install bandit
+        run: pip install bandit==1.8.3
+
+      - name: Bandit scan
+        run: bandit -r backend/app worker/ -c pyproject.toml --severity-level medium --confidence-level high -f txt
+
   test:
+    name: Tests + Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,14 +57,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
           pip install -r worker/requirements.txt
+          pip install -r dev-requirements.txt
 
-      - name: Worker rule-engine tests
+      - name: Worker rule-engine tests + coverage
         working-directory: worker
-        run: pytest -q
+        run: pytest -q --cov=. --cov-report=term-missing --cov-fail-under=30
 
-      - name: Backend API tests
+      - name: Backend API tests + coverage
         working-directory: backend
-        run: pytest -q
+        run: pytest -q --cov=app --cov-report=term-missing --cov-fail-under=30
 
       - name: Eval harness (regression)
         working-directory: eval

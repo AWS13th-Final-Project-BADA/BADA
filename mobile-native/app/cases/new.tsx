@@ -1,23 +1,16 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  Pressable,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { fetchApi } from "@/lib/api";
 import type { Case, CaseCreate } from "@/lib/types";
-import { ISSUE_TYPES, ISSUE_LABELS } from "@/lib/types";
+import { ISSUE_LABELS, ISSUE_TYPES } from "@/lib/types";
+import { Card, Chip, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { t } from "@/i18n";
-import { colors, spacing, radius } from "@/theme";
+import { useLocale } from "@/i18n/LocaleContext";
 
 export default function NewCase() {
   const router = useRouter();
+  const { locale } = useLocale();
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<CaseCreate>({
     workplace_name: "",
@@ -28,19 +21,17 @@ export default function NewCase() {
     issue_types: [],
   });
 
-  function set<K extends keyof CaseCreate>(k: K, v: CaseCreate[K]) {
-    setForm((f) => ({ ...f, [k]: v }));
+  function set<K extends keyof CaseCreate>(key: K, value: CaseCreate[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function toggleIssue(issue: string) {
-    const cur = form.issue_types ?? [];
-    set(
-      "issue_types",
-      cur.includes(issue) ? cur.filter((i) => i !== issue) : [...cur, issue]
-    );
+    const current = form.issue_types ?? [];
+    set("issue_types", current.includes(issue) ? current.filter((item) => item !== issue) : [...current, issue]);
   }
 
   async function submit() {
+    if (busy) return;
     setBusy(true);
     try {
       const payload: CaseCreate = {
@@ -64,87 +55,94 @@ export default function NewCase() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Field label={t("cases.workplace")}>
-        <TextInput
-          style={styles.input}
-          value={form.workplace_name ?? ""}
-          onChangeText={(v) => set("workplace_name", v)}
-          placeholder="예: ○○물산"
-        />
-      </Field>
-
-      <Field label={t("cases.employer")}>
-        <TextInput
-          style={styles.input}
-          value={form.employer_name ?? ""}
-          onChangeText={(v) => set("employer_name", v)}
-          placeholder="예: 홍길동 사장"
-        />
-      </Field>
-
-      <View style={styles.rowFields}>
-        <Field label="근무 시작 (YYYY-MM-DD)" flex>
-          <TextInput
-            style={styles.input}
-            value={form.work_start_date ?? ""}
-            onChangeText={(v) => set("work_start_date", v)}
-            placeholder="2025-01-01"
-            autoCapitalize="none"
-          />
-        </Field>
-        <Field label="근무 종료" flex>
-          <TextInput
-            style={styles.input}
-            value={form.work_end_date ?? ""}
-            onChangeText={(v) => set("work_end_date", v)}
-            placeholder="진행중이면 비움"
-            autoCapitalize="none"
-          />
-        </Field>
-      </View>
-
-      <Field label={t("cases.wage")}>
-        <TextInput
-          style={styles.input}
-          value={form.agreed_hourly_wage ? String(form.agreed_hourly_wage) : ""}
-          onChangeText={(v) =>
-            set("agreed_hourly_wage", v ? parseInt(v.replace(/[^0-9]/g, ""), 10) : null)
-          }
-          placeholder="예: 9860"
-          keyboardType="number-pad"
-        />
-      </Field>
-
-      <Field label={t("cases.issueType")}>
-        <View style={styles.chips}>
-          {ISSUE_TYPES.map((issue) => {
-            const on = (form.issue_types ?? []).includes(issue);
-            return (
-              <Pressable
-                key={issue}
-                style={[styles.chip, on && styles.chipOn]}
-                onPress={() => toggleIssue(issue)}
-              >
-                <Text style={[styles.chipText, on && styles.chipTextOn]}>
-                  {ISSUE_LABELS[issue]}
-                </Text>
-              </Pressable>
-            );
-          })}
+    <StitchScreen active="cases">
+      <TopBar title={t("cases.newTitle")} back />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View>
+          <Text style={styles.title}>{t("cases.newTitle")}</Text>
+          <Text style={styles.subtitle}>{t("cases.newSubtitle")}</Text>
         </View>
-      </Field>
 
-      <Pressable style={styles.submit} onPress={submit} disabled={busy}>
-        {busy ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.submitText}>{t("common.save")}</Text>
-        )}
-      </Pressable>
+        <Card style={styles.formCard}>
+          <Field label={t("cases.workplace")}>
+            <TextInput
+              style={styles.input}
+              value={form.workplace_name ?? ""}
+              onChangeText={(value) => set("workplace_name", value)}
+              placeholder={t("cases.workplacePlaceholder")}
+              placeholderTextColor={stitch.outline}
+            />
+          </Field>
 
-      <Text style={styles.disclaimer}>{t("disclaimer")}</Text>
-    </ScrollView>
+          <Field label={t("cases.employer")}>
+            <TextInput
+              style={styles.input}
+              value={form.employer_name ?? ""}
+              onChangeText={(value) => set("employer_name", value)}
+              placeholder={t("cases.employerPlaceholder")}
+              placeholderTextColor={stitch.outline}
+            />
+          </Field>
+
+          <View style={styles.rowFields}>
+            <Field label={t("cases.startDate")} flex>
+              <TextInput
+                style={styles.input}
+                value={form.work_start_date ?? ""}
+                onChangeText={(value) => set("work_start_date", value)}
+                placeholder="2026-05-01"
+                placeholderTextColor={stitch.outline}
+                autoCapitalize="none"
+              />
+            </Field>
+            <Field label={t("cases.endDate")} flex>
+              <TextInput
+                style={styles.input}
+                value={form.work_end_date ?? ""}
+                onChangeText={(value) => set("work_end_date", value)}
+                placeholder=""
+                placeholderTextColor={stitch.outline}
+                autoCapitalize="none"
+              />
+            </Field>
+          </View>
+
+          <Field label={t("cases.wage")}>
+            <TextInput
+              style={styles.input}
+              value={form.agreed_hourly_wage ? String(form.agreed_hourly_wage) : ""}
+              onChangeText={(value) =>
+                set("agreed_hourly_wage", value ? parseInt(value.replace(/[^0-9]/g, ""), 10) : null)
+              }
+              placeholder="예: 10030"
+              placeholderTextColor={stitch.outline}
+              keyboardType="number-pad"
+            />
+          </Field>
+
+          <Field label={t("cases.issueType")}>
+            <View style={styles.chips}>
+              {ISSUE_TYPES.map((issue) => {
+                const active = (form.issue_types ?? []).includes(issue);
+                return (
+                  <Pressable key={issue} onPress={() => toggleIssue(issue)}>
+                    <Chip label={ISSUE_LABELS[issue]} active={active} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Field>
+        </Card>
+
+        <StitchButton icon="folder-open" onPress={submit} disabled={busy}>
+          {busy ? <ActivityIndicator color="#fff" /> : t("cases.create")}
+        </StitchButton>
+
+        <Card style={styles.note}>
+          <Text style={styles.noteText}>{t("disclaimer")}</Text>
+        </Card>
+      </ScrollView>
+    </StitchScreen>
   );
 }
 
@@ -166,42 +164,15 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md },
-  field: { gap: spacing.xs },
-  rowFields: { flexDirection: "row", gap: spacing.sm },
-  label: { fontSize: 13, color: colors.textMuted, fontWeight: "600" },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    backgroundColor: "#fff",
-    fontSize: 15,
-  },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: "#fff",
-  },
-  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { color: colors.text, fontSize: 13 },
-  chipTextOn: { color: "#fff", fontWeight: "600" },
-  submit: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: "center",
-    marginTop: spacing.sm,
-  },
-  submitText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  disclaimer: {
-    fontSize: 12,
-    color: colors.textMuted,
-    lineHeight: 18,
-    marginTop: spacing.md,
-  },
+  content: { padding: 20, gap: 18, paddingBottom: 112 },
+  title: { color: stitch.text, fontSize: 26, lineHeight: 34, fontWeight: "900" },
+  subtitle: { marginTop: 6, color: stitch.muted, fontSize: 14, lineHeight: 21, fontWeight: "700" },
+  formCard: { padding: 18, gap: 16 },
+  field: { gap: 8 },
+  rowFields: { flexDirection: "row", gap: 10 },
+  label: { color: stitch.muted, fontSize: 12, fontWeight: "900" },
+  input: { minHeight: 48, borderWidth: 1, borderColor: "rgba(198,198,205,0.65)", borderRadius: 8, paddingHorizontal: 12, backgroundColor: stitch.surface, color: stitch.text, fontSize: 15, fontWeight: "700" },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  note: { padding: 14, backgroundColor: stitch.surfaceLow },
+  noteText: { color: stitch.muted, fontSize: 12, lineHeight: 18, fontWeight: "700" },
 });

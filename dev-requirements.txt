@@ -1,0 +1,4 @@
+# CI/CD quality tools (not required for runtime)
+pytest-cov==6.1.1
+bandit==1.8.3
+ruff==0.11.12

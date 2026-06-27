@@ -156,8 +156,7 @@ develop push
   -> Backend Docker image build / ECR push
   -> ECS Task Definition 새 revision 등록
   -> ECS Service update
-  -> ALB DNS lookup
-  -> ALB /health check
+  -> https://api.badasoft.com/health 확인
 ```
 
 - Workflow: `.github/workflows/deploy-dev.yml`
@@ -165,7 +164,7 @@ develop push
 - Deploy Role: `arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role`
 - Trigger: `develop` push 또는 수동 실행
 - Scope: Backend ECS Service 우선 배포
-- Health Check: 고정 DNS가 아니라 `bada-dev-alb` 이름으로 ALB DNS를 조회한 뒤 `/health` 확인
+- Health Check: 고정 URL `https://api.badasoft.com/health`에 대해 HTTP 200을 검증
 - Terraform은 ECS Service 골격을 관리하고, 배포 후 task definition revision 변경은 GitHub Actions가 관리한다. 따라서 ECS Service의 `task_definition` drift는 Terraform에서 무시한다.
 
 GitHub Actions Worker 자동배포:

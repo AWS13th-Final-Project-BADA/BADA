@@ -325,6 +325,50 @@ variable "backend_app_base_url" {
   default     = "http://localhost:3000"
 }
 
+# ---- 소셜 OAuth (Cognito 제거, 구글/카카오/네이버 직접) ----
+# 값은 prod tfvars / CI Secret(TF_VAR_*)으로 주입. git 커밋 금지. (db_password와 동일하게 필수)
+variable "google_client_id" {
+  description = "Google OAuth 2.0 client ID for backend social login"
+  type        = string
+  sensitive   = true
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth 2.0 client secret for backend social login"
+  type        = string
+  sensitive   = true
+}
+
+variable "kakao_rest_api_key" {
+  description = "Kakao REST API key for social login"
+  type        = string
+  sensitive   = true
+}
+
+variable "kakao_client_secret" {
+  description = "Kakao client secret for social login"
+  type        = string
+  sensitive   = true
+}
+
+variable "naver_client_id" {
+  description = "Naver OAuth client ID for social login"
+  type        = string
+  sensitive   = true
+}
+
+variable "naver_client_secret" {
+  description = "Naver OAuth client secret for social login"
+  type        = string
+  sensitive   = true
+}
+
+variable "jwt_secret" {
+  description = "Secret for signing/verifying backend-issued HS256 JWT (social OAuth)"
+  type        = string
+  sensitive   = true
+}
+
 variable "backend_cors_allowed_origins" {
   description = "Origins allowed to call the Backend API"
   type        = list(string)

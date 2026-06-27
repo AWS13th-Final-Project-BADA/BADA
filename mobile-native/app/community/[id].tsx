@@ -1,83 +1,91 @@
-import { useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  Pressable,
   ActivityIndicator,
-  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
-import { useLocalSearchParams, useFocusEffect } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
 import { fetchApi } from "@/lib/api";
-import type { CommunityPost, CommunityComment } from "@/lib/types";
+import type { CommunityComment, CommunityPost } from "@/lib/types";
 import { COMMUNITY_CATEGORY_LABELS } from "@/lib/types";
-import { colors, spacing, radius } from "@/theme";
+import { Card, RemoteImage, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
+import { stitchImages } from "@/lib/stitchAssets";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
-export default function PostDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+export default function CommunityPostDetail() {
+  const { id = "demo-post-1" } = useLocalSearchParams<{ id?: string }>();
+  const { locale } = useLocale();
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [comments, setComments] = useState<CommunityComment[]>([]);
-  const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
+  const [comment, setComment] = useState("");
   const [sending, setSending] = useState(false);
+  const [translated, setTranslated] = useState<{ title?: string; content?: string } | null>(null);
+  const [translating, setTranslating] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const [p, c] = await Promise.all([
-        fetchApi<CommunityPost>(`/community/posts/${id}`),
-        fetchApi<{ comments: CommunityComment[] }>(
-          `/community/posts/${id}/comments`
-        ).catch(() => ({ comments: [] })),
-      ]);
-      setPost(p);
-      setComments(c.comments ?? []);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      setLoading(true);
+      try {
+        const [nextPost, nextComments] = await Promise.all([
+          fetchApi<CommunityPost>(`/community/posts/${id}`),
+          fetchApi<{ comments: CommunityComment[] }>(`/community/posts/${id}/comments`),
+        ]);
+        if (!alive) return;
+        setPost(nextPost);
+        setComments(nextComments.comments ?? nextPost.comments_preview ?? []);
+      } finally {
+        if (alive) setLoading(false);
+      }
     }
+    void load();
+    return () => {
+      alive = false;
+    };
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  useEffect(() => {
+    if (post && locale !== "ko" && !translated && !translating) {
+      void translatePost();
+    }
+  }, [post, locale]);
 
-  async function like() {
+  async function translatePost() {
     if (!post) return;
+    setTranslating(true);
     try {
-      const r = await fetchApi<{ like_count: number; active: boolean }>(
-        `/community/reactions`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            target_type: "post",
-            target_id: post.id,
-            reaction_type: "like",
-          }),
-        }
-      );
-      setPost({ ...post, like_count: r.like_count ?? post.like_count, my_liked: r.active });
-    } catch (e: any) {
-      Alert.alert("오류", String(e?.message ?? e));
+      const res = await fetchApi<{ translated_text: string }>("/community/translate", {
+        method: "POST",
+        body: JSON.stringify({ target_type: "post", target_id: post.id, target_language: locale }),
+      });
+      setTranslated({ title: res.translated_text, content: res.translated_text });
+    } catch {
+      // 번역 실패 시 원문 유지
+    } finally {
+      setTranslating(false);
     }
   }
 
-  async function addComment() {
-    if (text.trim().length < 1) return;
+  async function sendComment() {
+    const text = comment.trim();
+    if (!text || sending) return;
     setSending(true);
     try {
-      await fetchApi(`/community/posts/${id}/comments`, {
+      const created = await fetchApi<CommunityComment>(`/community/posts/${id}/comments`, {
         method: "POST",
-        body: JSON.stringify({ content: text.trim(), language: "auto" }),
+        body: JSON.stringify({ content: text, language: "ko" }),
       });
-      setText("");
-      await load();
-    } catch (e: any) {
-      Alert.alert("등록 실패", String(e?.message ?? e));
+      setComments((prev) => [...prev, created]);
+      setComment("");
     } finally {
       setSending(false);
     }
@@ -85,119 +93,203 @@ export default function PostDetail() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
+      <StitchScreen scroll={false} bottom={false}>
+        <TopBar title={t("community.title")} back right="more-horiz" />
+        <View style={styles.center}>
+          <ActivityIndicator color={stitch.blue} />
+        </View>
+      </StitchScreen>
     );
   }
+
   if (!post) {
     return (
-      <View style={styles.center}>
-        <Text style={{ color: colors.textMuted }}>글을 찾을 수 없습니다.</Text>
-      </View>
+      <StitchScreen bottom={false}>
+        <TopBar title={t("community.title")} back right="more-horiz" />
+        <View style={styles.center}>
+          <Text style={styles.emptyText}>{t("community.emptyTitle")}</Text>
+        </View>
+      </StitchScreen>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.cat}>
-        {COMMUNITY_CATEGORY_LABELS[post.category] ?? post.category}
-      </Text>
-      <Text style={styles.title}>{post.title}</Text>
-      <Text style={styles.meta}>
-        {post.anonymous_name} · {post.created_at?.slice(0, 10)} · 조회 {post.view_count}
-      </Text>
-      <Text style={styles.body}>{post.content}</Text>
+    <StitchScreen scroll={false} bottom={false}>
+      <KeyboardAvoidingView
+        style={styles.wrap}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={8}
+      >
+        <TopBar title={t("community.title")} back right="more-horiz" />
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.authorMeta}>
+            <View style={styles.authorRow}>
+              <View style={styles.avatar}>
+                <MaterialIcons name="person" size={20} color={stitch.blue} />
+              </View>
+              <View>
+                <Text style={styles.author}>{post.anonymous_name || t("community.title")}</Text>
+                <Text style={styles.time}>{post.created_at?.slice(0, 10) || ""}</Text>
+              </View>
+            </View>
+            <Pressable style={styles.followButton}>
+              <Text style={styles.followText}>{t("common.confirm")}</Text>
+            </Pressable>
+          </View>
 
-      <Pressable style={[styles.like, post.my_liked && styles.likeOn]} onPress={like}>
-        <Text style={[styles.likeText, post.my_liked && { color: "#fff" }]}>
-          ♡ 공감 {post.like_count}
-        </Text>
-      </Pressable>
+          <RemoteImage uri={stitchImages.communityHero} style={styles.heroImage} />
 
-      <Text style={styles.commentsTitle}>댓글 {comments.length}</Text>
-      {comments.map((c) => (
-        <View key={c.id} style={styles.comment}>
-          <Text style={styles.commentMeta}>
-            {c.anonymous_name} · {c.created_at?.slice(0, 10)}
-          </Text>
-          <Text style={styles.commentBody}>{c.content}</Text>
+          <View style={styles.postBodyBlock}>
+            <View style={styles.postTitleRow}>
+              <Text style={styles.title}>{translated?.title || post.title}</Text>
+              {translating ? (
+                <ActivityIndicator size="small" color={stitch.blue} />
+              ) : (
+                <Pressable style={styles.translateButton} onPress={translatePost}>
+                  <MaterialIcons name="translate" size={18} color={stitch.blue} />
+                  <Text style={styles.translateText}>{t("community.translate")}</Text>
+                </Pressable>
+              )}
+            </View>
+
+            <Text style={styles.body}>{translated?.content || post.content}</Text>
+
+            <View style={styles.tags}>
+              <Text style={styles.tag}>#{COMMUNITY_CATEGORY_LABELS[post.category] ?? post.category}</Text>
+              <Text style={styles.tag}>#상담준비</Text>
+              <Text style={styles.tag}>#자료정리</Text>
+            </View>
+          </View>
+
+          <View style={styles.socialActions}>
+            <View style={styles.socialLeft}>
+              <Social icon={post.my_liked ? "favorite" : "favorite-border"} label={String(post.like_count || 0)} active={post.my_liked} />
+              <Social icon="chat-bubble-outline" label={String(comments.length || post.comment_count || 0)} />
+              <Social icon="share" label={t("common.send")} />
+            </View>
+            <MaterialIcons name="bookmark-border" size={24} color={stitch.outline} />
+          </View>
+
+          <View style={styles.commentsHeader}>
+            <Text style={styles.commentsTitle}>{t("community.comments")} <Text style={styles.commentsCount}>({comments.length})</Text></Text>
+          </View>
+
+          <View style={styles.comments}>
+            {comments.map((item, index) => (
+              <Comment key={item.id} item={item} nested={index === 1} />
+            ))}
+            {!comments.length ? (
+              <Card style={styles.emptyComment}>
+                <Text style={styles.emptyText}>{t("community.emptyBody")}</Text>
+              </Card>
+            ) : null}
+          </View>
+        </ScrollView>
+
+        <View style={styles.inputPanel}>
+          <Card style={styles.inputCard}>
+            <TextInput
+              value={comment}
+              onChangeText={setComment}
+              placeholder={t("community.commentPlaceholder")}
+              placeholderTextColor={stitch.outline}
+              style={styles.input}
+            />
+            <Pressable style={[styles.send, sending && { opacity: 0.5 }]} onPress={sendComment} disabled={sending}>
+              <MaterialIcons name="send" size={19} color="#fff" />
+            </Pressable>
+          </Card>
         </View>
-      ))}
-      {comments.length === 0 && (
-        <Text style={styles.muted}>첫 댓글을 남겨보세요.</Text>
-      )}
+      </KeyboardAvoidingView>
+    </StitchScreen>
+  );
+}
 
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          value={text}
-          onChangeText={setText}
-          placeholder="댓글 입력 (익명)"
-          multiline
-        />
-        <Pressable style={styles.send} onPress={addComment} disabled={sending}>
-          {sending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.sendText}>등록</Text>
-          )}
-        </Pressable>
+function Social({
+  icon,
+  label,
+  active,
+}: {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <View style={styles.social}>
+      <MaterialIcons name={icon} size={22} color={active ? stitch.red : stitch.outline} />
+      <Text style={styles.socialText}>{label}</Text>
+    </View>
+  );
+}
+
+function Comment({ item, nested }: { item: CommunityComment; nested?: boolean }) {
+  return (
+    <View style={[styles.commentRow, nested && styles.nestedComment]}>
+      <View style={styles.commentAvatar}>
+        <MaterialIcons name="person" size={16} color={stitch.outline} />
       </View>
-    </ScrollView>
+      <View style={{ flex: 1 }}>
+        <View style={styles.commentBubble}>
+          <View style={styles.commentTop}>
+            <Text style={styles.commentAuthor}>{item.anonymous_name || "익명"}</Text>
+            <Text style={styles.commentTime}>{item.created_at?.slice(0, 10) || "방금 전"}</Text>
+          </View>
+          <Text style={styles.commentText}>{item.content}</Text>
+        </View>
+        <View style={styles.commentActions}>
+          <Text style={styles.commentAction}>좋아요</Text>
+          <Text style={styles.commentAction}>답글</Text>
+          {item.like_count ? <Text style={styles.commentLikes}>♥ {item.like_count}</Text> : null}
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.sm },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  cat: { fontSize: 12, color: colors.primary, fontWeight: "700" },
-  title: { fontSize: 20, fontWeight: "800", color: colors.text },
-  meta: { fontSize: 12, color: colors.textMuted },
-  body: { fontSize: 15, color: colors.text, lineHeight: 22, marginVertical: spacing.sm },
-  like: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  likeOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  likeText: { color: colors.text, fontWeight: "600", fontSize: 13 },
-  commentsTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.text,
-    marginTop: spacing.md,
-  },
-  comment: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    gap: 2,
-  },
-  commentMeta: { fontSize: 11, color: colors.textMuted },
-  commentBody: { fontSize: 14, color: colors.text },
-  muted: { color: colors.textMuted, fontSize: 13 },
-  inputRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md, alignItems: "flex-end" },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    backgroundColor: "#fff",
-    maxHeight: 100,
-  },
-  send: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    justifyContent: "center",
-  },
-  sendText: { color: "#fff", fontWeight: "700" },
+  wrap: { flex: 1, backgroundColor: stitch.bg },
+  content: { paddingBottom: 112 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
+  emptyText: { color: stitch.muted, fontSize: 14, fontWeight: "700" },
+  authorMeta: { paddingHorizontal: 20, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: stitch.surface },
+  authorRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: stitch.blueSoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(198,198,205,0.4)" },
+  author: { color: stitch.text, fontSize: 13, fontWeight: "900" },
+  time: { marginTop: 2, color: stitch.outline, fontSize: 11, fontWeight: "700" },
+  followButton: { height: 34, borderRadius: 17, borderWidth: 1, borderColor: "rgba(0,81,213,0.25)", paddingHorizontal: 16, alignItems: "center", justifyContent: "center" },
+  followText: { color: stitch.blue, fontSize: 12, fontWeight: "900" },
+  heroImage: { width: "100%", height: 430, borderRadius: 0 },
+  postBodyBlock: { paddingHorizontal: 20, paddingVertical: 20, gap: 12, backgroundColor: stitch.surface },
+  postTitleRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  title: { flex: 1, color: stitch.text, fontSize: 22, lineHeight: 30, fontWeight: "900" },
+  translateButton: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 4 },
+  translateText: { color: stitch.blue, fontSize: 12, fontWeight: "900" },
+  body: { color: stitch.muted, fontSize: 14, lineHeight: 22, fontWeight: "600" },
+  tags: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingTop: 4 },
+  tag: { color: stitch.muted, backgroundColor: stitch.surfaceLow, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, overflow: "hidden", fontSize: 11, fontWeight: "900" },
+  socialActions: { paddingHorizontal: 20, paddingVertical: 14, backgroundColor: stitch.surface, borderTopWidth: 1, borderBottomWidth: 1, borderColor: "rgba(198,198,205,0.35)", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  socialLeft: { flexDirection: "row", gap: 22 },
+  social: { flexDirection: "row", alignItems: "center", gap: 5 },
+  socialText: { color: stitch.outline, fontSize: 12, fontWeight: "900" },
+  commentsHeader: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  commentsTitle: { color: stitch.text, fontSize: 20, fontWeight: "900" },
+  commentsCount: { color: stitch.outline, fontSize: 15, fontWeight: "700" },
+  sortText: { color: stitch.outline, fontSize: 12, fontWeight: "800" },
+  comments: { paddingHorizontal: 20, gap: 18 },
+  commentRow: { flexDirection: "row", gap: 12 },
+  nestedComment: { marginLeft: 38 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: stitch.surfaceHigh, alignItems: "center", justifyContent: "center" },
+  commentBubble: { backgroundColor: stitch.surfaceLow, borderRadius: 14, borderTopLeftRadius: 3, padding: 12 },
+  commentTop: { flexDirection: "row", justifyContent: "space-between", gap: 10, marginBottom: 4 },
+  commentAuthor: { color: stitch.text, fontSize: 12, fontWeight: "900" },
+  commentTime: { color: stitch.outline, fontSize: 11, fontWeight: "700" },
+  commentText: { color: stitch.muted, fontSize: 13, lineHeight: 20, fontWeight: "600" },
+  commentActions: { marginTop: 7, marginLeft: 4, flexDirection: "row", gap: 18 },
+  commentAction: { color: stitch.outline, fontSize: 11, fontWeight: "900" },
+  commentLikes: { color: stitch.outline, fontSize: 11, fontWeight: "900" },
+  emptyComment: { padding: 18, alignItems: "center" },
+  inputPanel: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 14, backgroundColor: "rgba(247,249,251,0.94)", borderTopWidth: 1, borderTopColor: "rgba(198,198,205,0.35)" },
+  inputCard: { minHeight: 54, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 10 },
+  input: { flex: 1, color: stitch.text, fontSize: 14, fontWeight: "700" },
+  send: { width: 38, height: 38, borderRadius: 19, backgroundColor: stitch.navy, alignItems: "center", justifyContent: "center" },
 });

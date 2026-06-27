@@ -1,0 +1,83 @@
+name: Build Mobile (EAS Preview)
+
+# mobile-native/ 변경이 develop에 push되면 Android preview APK를 빌드한다.
+# 수동 실행도 가능 (workflow_dispatch).
+# EAS Build는 Expo 클라우드에서 실행되며, EXPO_TOKEN으로 인증한다.
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "mobile-native/**"
+      - ".github/workflows/build-mobile.yml"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile (preview or production)"
+        required: false
+        default: "preview"
+        type: choice
+        options:
+          - preview
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WORKING_DIR: mobile-native
+
+jobs:
+  build:
+    name: EAS Build (Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile-native/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm ci
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Determine build profile
+        id: profile
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.profile }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=preview" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run EAS Build
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          eas build \
+            --platform android \
+            --profile ${{ steps.profile.outputs.value }} \
+            --non-interactive \
+            --no-wait
+
+      - name: Build submitted
+        run: |
+          echo "✅ EAS Build submitted (profile: ${{ steps.profile.outputs.value }})"
+          echo "빌드 상태 확인: https://expo.dev/accounts/<owner>/projects/bada-mobile-native/builds"
+          echo "완료 시 APK 다운로드 가능 (preview) 또는 AAB 생성 (production)"

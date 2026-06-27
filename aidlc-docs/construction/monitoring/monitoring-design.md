@@ -168,3 +168,52 @@ aws secretsmanager get-secret-value \
 - `prometheus`, `bada-backend` target 모두 `UP`
 - BADA Overview 대시보드 자동 생성
 - 후속 Terraform plan `No changes`
+
+
+---
+
+## 구현 현황 (2026-06-25)
+
+### Alert Rule (Grafana Provisioning)
+
+**파일**: `monitoring/grafana/provisioning/alerting/rules.yml`
+
+| ID | Rule | 조건 | 심각도 |
+|----|------|------|--------|
+| G1 | 에러율 급증 | 5xx > 5% (5분) | critical |
+| G2 | 응답 지연 P95 | > 3초 (5분) | warning |
+| G3 | 트래픽 제로 | 0건 (10분) | critical |
+| G4 | Worker 실패율 | > 10% (5분) | warning |
+| G5 | Worker 처리 지연 | P95 > 60초 | warning |
+| G6 | RDS 커넥션 포화 | ≥ 80 | critical |
+| G7 | 분석 실패 연속 | 15분간 성공 0 | critical |
+| G8 | OCR 실패율 | > 30% | warning |
+
+### Contact Point
+
+**파일**: `monitoring/grafana/provisioning/alerting/contactpoints.yml`
+
+- Type: AWS SNS
+- Topic: `bada-dev-alarm-notifications`
+- 수신자: `badajoa0710@gmail.com`
+- Notification Policy: folder+alertname 그룹핑, 4h 반복
+
+### Dashboard
+
+| 대시보드 | 패널 수 | 데이터소스 | 파일 |
+|----------|---------|-----------|------|
+| Overview | 8 | Prometheus | `bada-overview.json` |
+| Infrastructure | 11 | CloudWatch | `bada-infrastructure.json` |
+| Backend | 8 | Prometheus | `bada-backend.json` |
+| Worker | 6 | Prometheus + CloudWatch | `bada-worker.json` |
+
+### 배포 상태
+
+- [x] Prometheus ECS running
+- [x] Grafana ECS running
+- [x] CloudWatch Alarm 14개 (Terraform)
+- [x] Alert Rule YAML 작성 (G1~G8)
+- [x] Contact Point YAML 작성 (SNS)
+- [x] Dashboard JSON 4개 작성
+- [ ] terraform apply (인프라 담당 실행 예정)
+- [ ] Grafana UI 검증 (`docs/monitoring-alert-test-scenario.md`)

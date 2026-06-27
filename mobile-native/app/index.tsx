@@ -1,114 +1,304 @@
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { isLoggedIn } from "@/lib/api";
+import { MaterialIcons } from "@expo/vector-icons";
+import { ApiError, fetchApi, isLoggedIn } from "@/lib/api";
 import { logout } from "@/lib/auth";
+import { stitchImages } from "@/lib/stitchAssets";
+import { Card, RemoteImage, SectionLabel, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { t } from "@/i18n";
-import { colors, spacing, radius } from "@/theme";
+import { useLocale } from "@/i18n/LocaleContext";
+
+interface CurrentUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  preferred_lang?: string | null;
+  provider?: string | null;
+}
 
 export default function Home() {
   const router = useRouter();
-  const [authed, setAuthed] = useState(false);
+  const { locale } = useLocale(); // locale 변경 시 리렌더 트리거
+  const [checking, setChecking] = useState(true);
+  const [user, setUser] = useState<CurrentUser | null>(null);
 
-  async function refresh() {
-    setAuthed(await isLoggedIn());
-  }
   useEffect(() => {
-    refresh();
-  }, []);
+    let mounted = true;
+
+    async function bootstrap() {
+      try {
+        const hasToken = await isLoggedIn();
+        if (!hasToken) {
+          router.replace("/login");
+          return;
+        }
+
+        const me = await fetchApi<CurrentUser>("/auth/me");
+        if (!mounted) return;
+        setUser(me);
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        router.replace("/login");
+      } finally {
+        if (mounted) setChecking(false);
+      }
+    }
+
+    void bootstrap();
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  if (checking) {
+    return (
+      <StitchScreen scroll={false} bottom={false}>
+        <View style={styles.center}>
+          <ActivityIndicator color={stitch.blue} />
+          <Text style={styles.loadingText}>{t("common.loading")}</Text>
+        </View>
+      </StitchScreen>
+    );
+  }
+
+  if (!user) return null;
+
+  const displayName = user.name || user.email?.split("@")[0] || "사용자";
+
+  async function signOut() {
+    await logout();
+    router.replace("/login");
+  }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.brand}>BADA</Text>
-      <Text style={styles.tagline}>{t("common.tagline")}</Text>
+    <StitchScreen active="home">
+      <TopBar title="BADA" />
+      <View style={styles.content}>
+        <View style={styles.greetingRow}>
+          <View style={styles.greeting}>
+            <Text style={styles.greetingTitle}>{displayName} 님</Text>
+            <Text style={styles.greetingBody}>{t("home.dashboardSubtitle")}</Text>
+          </View>
+          <Pressable style={styles.logoutButton} onPress={signOut}>
+            <Text style={styles.logoutText}>{t("common.logout")}</Text>
+          </Pressable>
+        </View>
 
-      <View style={styles.menu}>
-        <MenuButton
-          label={t("nav.cases")}
-          onPress={() => router.push("/cases")}
-        />
-        <MenuButton
-          label={t("nav.community")}
-          onPress={() => router.push("/community")}
-        />
-        <MenuButton label={t("nav.chat")} onPress={() => router.push("/chat")} />
-        <MenuButton label="GPS 근무 증거" onPress={() => router.push("/gps")} />
+        <Card style={styles.currentCard}>
+          <View style={styles.currentTop}>
+            <View>
+              <Text style={styles.badge}>CASE WORKFLOW</Text>
+              <Text style={styles.currentTitle}>{t("home.title")}</Text>
+            </View>
+            <MaterialIcons name="description" size={30} color={stitch.blueStrong} />
+          </View>
+
+          <View style={styles.stepWrap}>
+            <View style={styles.stepLine} />
+            <View style={styles.stepLineOn} />
+            <Step done label={t("home.steps.case")} />
+            <Step current label={t("home.steps.upload")} value="2" />
+            <Step label={t("home.steps.organize")} value="3" />
+            <Step label={t("home.steps.consult")} value="4" />
+          </View>
+
+          <StitchButton onPress={() => router.push("/cases/new")}>{t("cases.create")}</StitchButton>
+        </Card>
+
+        <SectionLabel>{t("home.quickTitle")}</SectionLabel>
+        <View style={styles.quickGrid}>
+          <QuickCard
+            icon="folder-open"
+            color={stitch.blue}
+            bg="rgba(0,81,213,0.1)"
+            title={t("home.quick.case")}
+            body={t("home.quick.caseBody")}
+            onPress={() => router.push("/cases")}
+          />
+          <QuickCard
+            icon="add-circle"
+            color={stitch.green}
+            bg="rgba(0,150,104,0.1)"
+            title={t("home.quick.upload")}
+            body={t("home.quick.uploadBody")}
+            onPress={() => router.push("/cases/upload")}
+          />
+          <QuickCard
+            icon="smart-toy"
+            color={stitch.blue}
+            bg={stitch.blueSoft}
+            title={t("home.quick.chat")}
+            body={t("home.quick.chatBody")}
+            onPress={() => router.push("/chat")}
+          />
+          <QuickCard
+            icon="location-on"
+            color={stitch.green}
+            bg="rgba(0,150,104,0.1)"
+            title={t("home.quick.gps")}
+            body={t("home.quick.gpsBody")}
+            onPress={() => router.push("/gps")}
+          />
+          <QuickCard
+            icon="forum"
+            color={stitch.amber}
+            bg={stitch.amberSoft}
+            title={t("home.quick.community")}
+            body={t("home.quick.communityBody")}
+            onPress={() => router.push("/community")}
+          />
+        </View>
+
+        <Pressable style={styles.recommend} onPress={() => router.push("/cases/upload")}>
+          <View style={styles.recommendIcon}>
+            <MaterialIcons name="upload-file" size={22} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.recommendLabel}>{t("home.nextTitle")}</Text>
+            <Text style={styles.recommendText}>{t("home.next.uploadBody")}</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color="#fff" />
+        </Pressable>
+
+        <SectionLabel action={<Text style={styles.viewAll}>{t("home.recentTitle")}</Text>}>{t("community.title")}</SectionLabel>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.communityScroll}>
+          <CommunityPreview
+            image={stitchImages.office}
+            category="상담 후기"
+            title="상담 전에 자료를 정리해가니 훨씬 편했어요"
+            body="급여명세서와 입금내역을 같은 달끼리 묶어 갔습니다."
+          />
+          <CommunityPreview
+            image={stitchImages.dashboard}
+            category="체크리스트"
+            title="임금 차액 상담 전 준비법"
+            body="계약서, 입금내역, 근무시간 기록을 먼저 확인하세요."
+          />
+        </ScrollView>
       </View>
-
-      {authed ? (
-        <Pressable
-          style={styles.secondary}
-          onPress={async () => {
-            await logout();
-            refresh();
-          }}
-        >
-          <Text style={styles.secondaryText}>{t("common.logout")}</Text>
-        </Pressable>
-      ) : (
-        <Pressable style={styles.primary} onPress={() => router.push("/login")}>
-          <Text style={styles.primaryText}>{t("common.login")}</Text>
-        </Pressable>
-      )}
-
-      <Text style={styles.disclaimer}>{t("disclaimer")}</Text>
-    </ScrollView>
+    </StitchScreen>
   );
 }
 
-function MenuButton({
+function Step({
+  done,
+  current,
   label,
-  onPress,
-  muted,
+  value,
 }: {
+  done?: boolean;
+  current?: boolean;
   label: string;
-  onPress: () => void;
-  muted?: boolean;
+  value?: string;
 }) {
   return (
-    <Pressable
-      style={[styles.card, muted && { opacity: 0.5 }]}
-      onPress={onPress}
-    >
-      <Text style={styles.cardText}>{label}</Text>
+    <View style={[styles.step, !done && !current && styles.stepDim]}>
+      <View style={[styles.stepDot, done && styles.stepDotOn, current && styles.stepDotCurrent]}>
+        {done ? (
+          <MaterialIcons name="check" size={17} color="#fff" />
+        ) : (
+          <Text style={[styles.stepValue, current && styles.stepValueCurrent]}>{value}</Text>
+        )}
+      </View>
+      <Text style={[styles.stepLabel, current && styles.stepLabelCurrent]}>{label}</Text>
+    </View>
+  );
+}
+
+function QuickCard({
+  icon,
+  color,
+  bg,
+  title,
+  body,
+  onPress,
+}: {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  color: string;
+  bg: string;
+  title: string;
+  body: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable style={styles.quickCard} onPress={onPress}>
+      <View style={[styles.quickIcon, { backgroundColor: bg }]}>
+        <MaterialIcons name={icon} size={25} color={color} />
+      </View>
+      <Text style={styles.quickTitle}>{title}</Text>
+      <Text style={styles.quickBody}>{body}</Text>
     </Pressable>
   );
 }
 
+function CommunityPreview({
+  image,
+  category,
+  title,
+  body,
+}: {
+  image: string;
+  category: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <Card style={styles.previewCard}>
+      <RemoteImage uri={image} style={styles.previewImage} />
+      <View style={styles.previewBody}>
+        <Text style={styles.previewCategory}>{category}</Text>
+        <Text style={styles.previewTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.previewText} numberOfLines={1}>{body}</Text>
+      </View>
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md },
-  brand: { fontSize: 40, fontWeight: "800", color: colors.primary },
-  tagline: { fontSize: 15, color: colors.textMuted, marginBottom: spacing.lg },
-  menu: { gap: spacing.sm },
-  card: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-  },
-  cardText: { fontSize: 16, fontWeight: "600", color: colors.text },
-  primary: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: "center",
-    marginTop: spacing.md,
-  },
-  primaryText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  secondary: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: "center",
-    marginTop: spacing.md,
-  },
-  secondaryText: { color: colors.textMuted, fontWeight: "600" },
-  disclaimer: {
-    fontSize: 12,
-    color: colors.textMuted,
-    lineHeight: 18,
-    marginTop: spacing.xl,
-  },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
+  loadingText: { color: stitch.outline, fontSize: 13, fontWeight: "700" },
+  content: { padding: 20, gap: 24 },
+  greetingRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
+  greeting: { flex: 1, marginTop: 2 },
+  greetingTitle: { color: stitch.text, fontSize: 22, lineHeight: 30, fontWeight: "900" },
+  greetingBody: { marginTop: 4, color: stitch.muted, fontSize: 14, lineHeight: 20, fontWeight: "700" },
+  logoutButton: { minHeight: 36, borderRadius: 18, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", backgroundColor: stitch.surfaceLow },
+  logoutText: { color: stitch.muted, fontSize: 12, fontWeight: "900" },
+  currentCard: { padding: 24, overflow: "hidden" },
+  currentTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 26, gap: 16 },
+  badge: { alignSelf: "flex-start", backgroundColor: "rgba(0,81,213,0.1)", color: stitch.blue, fontSize: 12, fontWeight: "900", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 4, overflow: "hidden" },
+  currentTitle: { marginTop: 10, color: stitch.text, fontSize: 22, lineHeight: 28, fontWeight: "900", maxWidth: 270 },
+  stepWrap: { height: 88, flexDirection: "row", justifyContent: "space-between", marginBottom: 18, position: "relative" },
+  stepLine: { position: "absolute", left: 0, right: 0, top: 15, height: 2, backgroundColor: "rgba(198,198,205,0.35)" },
+  stepLineOn: { position: "absolute", left: 0, width: "34%", top: 15, height: 2, backgroundColor: stitch.blue },
+  step: { flex: 1, alignItems: "center", gap: 8 },
+  stepDim: { opacity: 0.46 },
+  stepDot: { width: 32, height: 32, borderRadius: 16, backgroundColor: stitch.line, alignItems: "center", justifyContent: "center" },
+  stepDotOn: { backgroundColor: stitch.blue },
+  stepDotCurrent: { backgroundColor: "#fff", borderWidth: 2, borderColor: stitch.blue },
+  stepValue: { color: stitch.muted, fontWeight: "900", fontSize: 12 },
+  stepValueCurrent: { color: stitch.blue },
+  stepLabel: { color: stitch.text, fontSize: 11, lineHeight: 14, fontWeight: "700", textAlign: "center" },
+  stepLabelCurrent: { color: stitch.blue, fontWeight: "900" },
+  quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  quickCard: { width: "48.3%", minHeight: 142, backgroundColor: stitch.surface, borderRadius: 12, borderWidth: 1, borderColor: "rgba(198,198,205,0.42)", padding: 16, justifyContent: "center" },
+  quickIcon: { width: 40, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  quickTitle: { color: stitch.text, fontSize: 15, lineHeight: 20, fontWeight: "900" },
+  quickBody: { marginTop: 3, color: stitch.outline, fontSize: 12, lineHeight: 16, fontWeight: "700" },
+  recommend: { minHeight: 84, backgroundColor: stitch.blueStrong, borderRadius: 12, flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
+  recommendIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.2)" },
+  recommendLabel: { color: "#fff", opacity: 0.9, fontSize: 12, fontWeight: "800" },
+  recommendText: { color: "#fff", fontSize: 15, lineHeight: 21, fontWeight: "900" },
+  viewAll: { color: stitch.blue, fontSize: 12, fontWeight: "900" },
+  communityScroll: { paddingHorizontal: 20, gap: 16, paddingBottom: 10 },
+  previewCard: { width: 280, overflow: "hidden" },
+  previewImage: { height: 128, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
+  previewBody: { padding: 16 },
+  previewCategory: { color: stitch.blue, fontSize: 12, fontWeight: "800", marginBottom: 6 },
+  previewTitle: { color: stitch.text, fontSize: 16, fontWeight: "900" },
+  previewText: { marginTop: 6, color: stitch.outline, fontSize: 12, fontWeight: "700" },
 });
