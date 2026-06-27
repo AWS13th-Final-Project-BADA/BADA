@@ -40,6 +40,8 @@ export async function uploadEvidence(
       body: blob,
     });
     if (!put.ok) throw new Error(`S3 PUT 실패: ${put.status}`);
+    // 3) 업로드 완료 → OCR 추출 트리거 (비동기, 실패해도 업로드는 성공)
+    await triggerExtract(caseId);
     return { evidenceId: presign.evidence_id, via: "s3" };
   }
 
@@ -59,5 +61,19 @@ export async function uploadEvidence(
     body: fd,
   });
   if (!res.ok) throw new Error(`업로드 실패: ${res.status}`);
+  // 3) 업로드 완료 → OCR 추출 트리거 (비동기, 실패해도 업로드는 성공)
+  await triggerExtract(caseId);
   return { evidenceId: presign.evidence_id, via: "multipart" };
+}
+
+/**
+ * OCR 추출 트리거 — 업로드된 증거에 대해 비동기 OCR 실행 요청.
+ * 실패해도 업로드 결과에는 영향 없음 (사용자가 수동으로 재시도 가능).
+ */
+async function triggerExtract(caseId: string): Promise<void> {
+  try {
+    await fetchApi(`/cases/${caseId}/evidences/extract`, { method: "POST" });
+  } catch {
+    // OCR 트리거 실패는 무시 — 분석 시 재시도 가능
+  }
 }
