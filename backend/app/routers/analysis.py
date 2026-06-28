@@ -7,7 +7,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -15,7 +15,8 @@ from ..db import get_db
 from ..models import AnalysisResult, Case, TimelineEvent, TranslationPair
 from ..schemas_analyze import AnalyzeRequest
 from ..schemas_report import AnalysisReport
-from ..services import analysis_service, report_builder
+from ..services import analysis_service, report_builder, s3
+from ..services.queue import send_analysis_job
 
 router = APIRouter(prefix="/cases/{case_id}", tags=["analysis"])
 
@@ -31,11 +32,23 @@ def _date(s):
 
 @router.post("/analyze", response_model=AnalysisReport)
 def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("ko"), db: Session = Depends(get_db)):
+    import time as _time
+    from ..middleware.prometheus import ANALYSIS_RUNS, ANALYSIS_DURATION
+
     case = db.get(Case, case_id)
     if not case:
         raise HTTPException(404, "case not found")
     req = req or AnalyzeRequest()
-    result = analysis_service.run_analysis(db, case, req, target_lang=lang)
+
+    _start = _time.perf_counter()
+    try:
+        result = analysis_service.run_analysis(db, case, req, target_lang=lang)
+    except Exception:
+        ANALYSIS_RUNS.labels(status="error").inc()
+        raise
+    ANALYSIS_RUNS.labels(status="success").inc()
+    ANALYSIS_DURATION.observe(_time.perf_counter() - _start)
+
     report = report_builder.build_report(case, result, lang=lang, provider_mode=settings.provider_mode)
     report_dict = report.model_dump()
 
@@ -63,6 +76,10 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
                                evidence_type=p.get("evidence_type"), related_issue=p.get("related_issue")))
     case.status = "completed"
     db.commit()
+
+    # Worker 비동기 후처리 (PDF 생성 등) — SQS 미설정 시 no-op
+    send_analysis_job(case_id)
+
     return report
 
 
@@ -295,3 +312,27 @@ def report(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_db))
 <div class="foot">BADA · schema {meta.get('schema_version','')} · 언어 {meta.get('lang','')} · 본 문서는 상담 준비용이며 법적 효력을 갖지 않습니다.</div>
 </body></html>"""
     return HTMLResponse(html)
+
+
+@router.get("/report.pdf")
+def report_pdf(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_db)):
+    """제출용 PDF 다운로드 — 워커가 S3에 저장한 Evidence Pack PDF로 302 redirect(모바일 연동).
+
+    - lang=ko → pdf_ko_s3_key, 그 외(native) → pdf_native_s3_key(없으면 ko 폴백).
+    - presigned GET URL은 짧은 만료(security.md §5). PUT 아닌 GET이라 ContentType 불일치 없음.
+    - PDF 미생성 시 404 → 모바일은 기존 GET /report.html 로 폴백 가능.
+    - 사건 존재만 확인(report.html과 동일 패턴). 행수준 인가는 엔드포인트 공통 과제(security.md §5).
+    """
+    case = db.get(Case, case_id)
+    if not case:
+        raise HTTPException(404, "case not found")
+    ar = db.query(AnalysisResult).filter(AnalysisResult.case_id == case_id).first()
+    if not ar:
+        raise HTTPException(404, "no analysis yet")
+    key = ar.pdf_native_s3_key if (lang != "ko" and ar.pdf_native_s3_key) else ar.pdf_ko_s3_key
+    if not key:
+        # 워커가 아직 PDF를 생성하지 않음 → 모바일은 report.html 로 폴백
+        raise HTTPException(404, "report pdf not generated yet")
+    if not settings.s3_bucket:
+        raise HTTPException(409, "s3 not configured")
+    return RedirectResponse(s3.presign_get(key, expires=300), status_code=302)

@@ -1,0 +1,84 @@
+{
+  "uid": "bada-backend",
+  "title": "BADA Backend",
+  "tags": ["bada", "backend"],
+  "timezone": "Asia/Seoul",
+  "panels": [
+    {
+      "id": 1,
+      "title": "요청수 (method별)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(http_requests_total[5m])) by (method)", "legendFormat": "{{method}}"}]
+    },
+    {
+      "id": 2,
+      "title": "상태코드별 요청수",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(http_requests_total[5m])) by (status)", "legendFormat": "{{status}}"}]
+    },
+    {
+      "id": 3,
+      "title": "에러율 (5xx %)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100", "legendFormat": "5xx %"}],
+      "fieldConfig": {"defaults": {"unit": "percent"}}
+    },
+    {
+      "id": 4,
+      "title": "응답시간 (P50/P95/P99)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"uid": "prometheus"},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P99"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "id": 5,
+      "title": "상위 경로별 요청수",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "topk(10, sum(rate(http_requests_total[5m])) by (path))", "legendFormat": "{{path}}"}]
+    },
+    {
+      "id": 6,
+      "title": "상위 경로별 P95 지연",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "topk(10, histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, path)))", "legendFormat": "{{path}}"}],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "id": 7,
+      "title": "분석 실행 (성공/실패)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "datasource": {"uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(analysis_runs_total{status=\"success\"}[5m]))", "legendFormat": "성공"},
+        {"expr": "sum(rate(analysis_runs_total{status=\"failed\"}[5m]))", "legendFormat": "실패"}
+      ]
+    },
+    {
+      "id": 8,
+      "title": "OCR 요청 (provider별)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(ocr_requests_total[5m])) by (provider, status)", "legendFormat": "{{provider}}/{{status}}"}]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

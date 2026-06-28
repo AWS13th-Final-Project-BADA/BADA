@@ -36,6 +36,7 @@ MVP 원칙:
 - `ALB / ECS public subnet`, `RDS private subnet`
 - `NAT Gateway는 사용하지 않음`
 - `RDS Single-AZ`로 시작
+- 운영 DB는 유지하고, Multi-AZ 전환 검증은 별도 rehearsal DB(`bada-dev-postgres-multiaz`)에서 수행
 - `RDS 삭제 보호`, `자동 백업 7일 보존`, `삭제 시 최종 스냅샷 생성` 적용
 - RDS 생성 후 `bada` DB에 `postgis` extension 활성화
 - Backend / Worker 이미지는 ECR `latest` 태그로 push 가능
@@ -57,6 +58,7 @@ MVP 원칙:
 - Google 로그인을 사용할 때는 Cognito Federated Identity Provider와 App Client provider를 Terraform으로 함께 관리한다.
 - 프로젝트 운영 기간은 `2026-06-04 ~ 2026-07-10`, 팀 합의 예산은 `1,500달러`이며 현재 AWS Budget 가드레일은 `1,000달러`
 - 기존 RDS는 `StorageEncrypted=false`다. 암호화 적용은 암호화 스냅샷 복사와 신규 RDS 복원·전환 작업으로 별도 수행한다.
+- rehearsal RDS는 `storage_encrypted=true`, `multi_az=true`로 생성되며 현행 운영 DB와 앱 Secret에는 영향이 없다.
 - IAM은 dev 계정에서는 개발 속도를 우선해 넓게 운영하고, 운영/프로덕션 전환 시 Access Advisor/CloudTrail 기반으로 최소권한을 재설계한다.
 
 IAM 운영 기준:
@@ -156,8 +158,7 @@ develop push
   -> Backend Docker image build / ECR push
   -> ECS Task Definition 새 revision 등록
   -> ECS Service update
-  -> ALB DNS lookup
-  -> ALB /health check
+  -> https://api.badasoft.com/health 확인
 ```
 
 - Workflow: `.github/workflows/deploy-dev.yml`
@@ -165,7 +166,7 @@ develop push
 - Deploy Role: `arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role`
 - Trigger: `develop` push 또는 수동 실행
 - Scope: Backend ECS Service 우선 배포
-- Health Check: 고정 DNS가 아니라 `bada-dev-alb` 이름으로 ALB DNS를 조회한 뒤 `/health` 확인
+- Health Check: 고정 URL `https://api.badasoft.com/health`에 대해 HTTP 200을 검증
 - Terraform은 ECS Service 골격을 관리하고, 배포 후 task definition revision 변경은 GitHub Actions가 관리한다. 따라서 ECS Service의 `task_definition` drift는 Terraform에서 무시한다.
 
 GitHub Actions Worker 자동배포:

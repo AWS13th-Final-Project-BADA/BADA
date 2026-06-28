@@ -186,3 +186,121 @@
 **Context**: 팀 협의로 모니터링 기능 추가 결정. 오픈소스(Prometheus+Grafana) 기반. 인프라 apply 완료 상태.
 
 ---
+
+
+## POST-MVP 의사결정 세션
+**Timestamp**: 2026-06-25T14:37:36+09:00
+**User Input**: "지금 까지 개발한 BADA 프로젝트 진행상황을 AI-DLC 이론 & 기법을 활용해서 분석해줘. 그리고 아직까지 남아있는 구현 과제, 수정해야할 포인트 MVP 구현 완료 후 리팩토링 또는 프로덕션 환경에 맞춘 변경 사항 등이 있으면 알려줘. 의사결정할 수 있게."
+**AI Response**: AI-DLC 기반 종합 분석 제공 — INCEPTION 100%, CONSTRUCTION ~85%, 5개 의사결정 항목 제시
+**Context**: POST-MVP 프로덕션 고도화 의사결정 세션 시작
+
+---
+
+## 의사결정 1~5번
+**Timestamp**: 2026-06-25T14:40:37+09:00 ~ 2026-06-25T14:52:23+09:00
+**User Input (순서대로)**:
+- 1번: "OAuth로 대체. 사유 : Google 만 되고 카카오/네이버 문제 많음 ㅈ박아서 못하겠다"
+- 2번: "B로 결정" (Phase A에서 RDS 암호화)
+- 3번: "A로 결정" (Cases + Evidences만 행 수준 인가)
+- 4번: "ㅇㅋ B로 감" (Auto Scaling min=1/max=3 + 부하 테스트)
+- 5번: "A로 가는데, 다른 태스크 완료되는거 보고 가능하면 진행해도 되는 부분?" → A 조건부
+**AI Response**: 각 항목별 옵션 분석 → 사용자 선택 → 확정
+**Context**: 핵심 의사결정 5건 확정
+
+---
+
+## 의사결정 6번 (Bedrock 모델 비교)
+**Timestamp**: 2026-06-25T15:00:47+09:00
+**User Input**: "ㅇㅇ 옵션 A로 가되, Sonnet 4.6 기준 한단계 상위 모델 / 하위 모델을 가지고 테스트를 했으면 좋겠어"
+**AI Response**: Opus 4 / Sonnet 4 / Haiku 3.5 × 10케이스 벤치마크 확정
+**Context**: 모델 비교 범위 확정
+
+---
+
+## 의사결정 7~11번
+**Timestamp**: 2026-06-25T15:02:36+09:00 ~ 2026-06-25T15:04:39+09:00
+**User Input**:
+- 7(WAF), 8(RDS Multi-AZ), 9(k6): "7, 8, 9 까지는 구현 해보는게 좋을 것 같아. 비효율적이더라도 기술 써보고 싶은 거 써도 괜찮은 게..."
+- 10(X-Ray): 상세 설명 요청 후 채택
+- 11(GuardDuty): "일단 10, 11도 진행하자"
+**AI Response**: 전체 채택 확정, 면접 논리("기술 비교 후 써보고 싶어서 채택") 적합 판단
+**Context**: 포트폴리오 관점 인프라 고도화 7건 확정
+
+---
+
+## 의사결정 12~18번
+**Timestamp**: 2026-06-25T15:18:40+09:00 ~ 2026-06-25T15:19:34+09:00
+**User Input**: "남아 있는거 싹다 같이 논의하자" → "전부 Y"
+**AI Response**: ECS Private Subnet, Task Role 분리, 구조화 로깅, Fargate Spot, TF Plan in PR, CI 강화, VPC Endpoint 전부 채택
+**Context**: 총 18건 의사결정 전체 확정. 총 비용 ~$144/2주 (예산 10%)
+
+---
+
+## 문서화
+**Timestamp**: 2026-06-25T15:19:57+09:00
+**User Input**: "일단 문서로 기룩해"
+**AI Response**: `docs/decision-record-20260625.md` 생성, `aidlc-docs/aidlc-state.md` 갱신, `aidlc-docs/audit.md` 갱신
+**Context**: 의사결정 기록 완료
+
+---
+
+
+## 웹 프론트엔드 제거 결정
+**Timestamp**: 2026-06-25T15:30:02+09:00
+**User Input**: "B. 웹 프론트 제거하자. CI/CD 관점에서 지금 제대로 동작하지 않는 것도 수정해야할듯"
+**AI Response**: deploy-dev-frontend.yml 삭제, frontend_enabled=false 전환 안내 (ALB default → Backend static)
+**Context**: mobile-native로 전환 완료. Next.js frontend 폐기.
+
+---
+
+## 모바일 로그인 + APK 배포 추가
+**Timestamp**: 2026-06-25T15:36:06+09:00
+**User Input**: "모바일 로그인 & APK 배포 단계가 아직 미구현 상태야"
+**AI Response**: #19 모바일 로그인 E2E, #20 APK 배포 파이프라인을 Phase 1 최우선으로 추가
+**Context**: Phase 1에 19, 20번 추가. 우선순위 최상위.
+
+---
+
+
+## CI 강화 (#17) 구현
+**Timestamp**: 2026-06-25T15:58:13+09:00
+**User Input**: "나는 모니터링 담당이거든. 그거 시작하자"
+**AI Response**: ci.yml에 ruff(lint) + bandit(SAST) + pytest-cov(커버리지) 3개 병렬 job 추가
+**Context**: dev-requirements.txt, pyproject.toml 생성. 커밋 692034b.
+
+---
+
+## docs/ 폴더 정리
+**Timestamp**: 2026-06-25T16:06:38+09:00
+**User Input**: "docs 폴더가 너무 지저분하고 중복도 많고 알아보기 너무 힘들다는거야"
+**AI Response**: 중복 7개 삭제, 7폴더 분류, README.md 목차 생성. 커밋 98543e6.
+**Context**: 30개 파일 → 25개 (7폴더). 삭제: mobile-app, cs/transaction, CHANGELOG-STT, OCR-IMPROVEMENTS, ocr-roadmap, mobile-e2e-pr-checklist, monitoring-team-handoff.
+
+---
+
+## README.md 갱신 + 아키텍처 다이어그램
+**Timestamp**: 2026-06-25T16:21:11+09:00
+**User Input**: "제일 상위 디렉토리에 있는 README.md도 수정 좀 해야하지 않아?"
+**AI Response**: README 현행 반영 (mobile-native, 배포현황, CI/CD) + As-Is/To-Be Mermaid 다이어그램 추가.
+**Context**: 커밋 5a1562a, e03263e.
+
+---
+
+## 카오스 엔지니어링 시나리오 문서
+**Timestamp**: 2026-06-25T16:29:51+09:00
+**User Input**: "카오스 엔지니어링 시나리오 같은거 문서화 한거 있나? 만들어봐."
+**AI Response**: docs/operations/chaos-engineering-scenarios.md 생성 (5개 시나리오). 커밋 81d2720.
+**Context**: Phase 4 (Auto Scaling 적용 후) 실행 예정.
+
+---
+
+## 관측성 강화 (비즈니스 메트릭 + SLI/SLO + Alert 계층화)
+**Timestamp**: 2026-06-25T17:22:49+09:00
+**User Input**: "모니터링 부분에서 더 디벨롭할건 없을까? 옵저버빌리티 관점에서는 부족하진 않아?"
+**AI Response**: 3단계 관측성 강화:
+1. 비즈니스 메트릭 8개 추가 (prometheus.py + routers 연결)
+2. SLI/SLO 정의 문서 (5 SLI + 에러 버짓 정책)
+3. Alert 계층화 (severity 라우팅 + G9/G10 SLI 알림 추가)
+**Context**: 커밋 252d7e4. Grafana terraform apply + Backend 재배포 시 적용.
+
+---

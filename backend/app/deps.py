@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .db import get_db
 from .models import User
-from .services import auth_service, cognito_auth_service
+from .services import auth_service
 
 DEMO_EMAIL = "demo@bada.local"
 
@@ -41,27 +41,10 @@ def _user_from_bearer(db: Session, authorization: str | None) -> User | None:
     return user
 
 
-def _cognito_user_from_bearer(db: Session, authorization: str | None) -> User | None:
-    if not authorization or not authorization.lower().startswith("bearer "):
-        return None
-    token = authorization.split(" ", 1)[1].strip()
-    try:
-        payload = cognito_auth_service.verify_cognito_token(token)
-    except cognito_auth_service.CognitoConfigError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    return cognito_auth_service.get_or_create_user_from_claims(db, payload)
-
-
 def get_current_user(
     db: Session = Depends(get_db),
     authorization: str | None = Header(default=None),
 ) -> User:
-    if settings.auth_mode == "cognito":
-        user = _cognito_user_from_bearer(db, authorization)
-        if user:
-            return user
-        raise HTTPException(status_code=401, detail="login required")
-
     if settings.auth_jwt_enabled:
         user = _user_from_bearer(db, authorization)
         if user:

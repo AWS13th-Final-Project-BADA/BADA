@@ -146,6 +146,8 @@ async def upload_file(case_id: str, category: str = Form(...), file: UploadFile 
                     _db.close()
             threading.Thread(target=_bg_transcribe, daemon=True).start()
 
+    from ..middleware.prometheus import EVIDENCES_UPLOADED
+    EVIDENCES_UPLOADED.labels(category=category).inc()
     return {"id": ev.id, "file_name": ev.file_name, "category": ev.category, "file_key": key}
 
 
@@ -362,8 +364,11 @@ def restore_excluded(case_id: str, eid: str, payload: RestoreRequest = RestoreRe
 
 @router.post("")
 def request_upload(case_id: str, payload: PresignedUploadRequest, db: Session = Depends(get_db)):
+    # 모바일이 실제 MIME을 보낸 경우만 화이트리스트 검증(미전달 시 기존 동작 유지 → 웹 무영향)
+    if payload.content_type and payload.content_type not in s3.ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=422, detail=f"unsupported content_type: {payload.content_type}")
     file_key = f"cases/{case_id}/{payload.file_name}"
-    url = s3.presign_put(file_key, payload.file_type) if settings.s3_bucket else None
+    url = s3.presign_put(file_key, payload.file_type, content_type=payload.content_type) if settings.s3_bucket else None
     ev = Evidence(case_id=case_id, file_key=file_key, file_name=payload.file_name,
                   file_type=payload.file_type, category=payload.category)
     db.add(ev); db.commit(); db.refresh(ev)

@@ -26,8 +26,10 @@ def _dict(c: Case) -> dict:
 
 @router.post("")
 def create_case(payload: CaseCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from ..middleware.prometheus import CASES_CREATED
     case = Case(user_id=user.id, **payload.model_dump())
     db.add(case); db.commit(); db.refresh(case)
+    CASES_CREATED.inc()
     return _dict(case)
 
 

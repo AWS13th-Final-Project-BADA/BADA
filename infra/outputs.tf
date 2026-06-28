@@ -22,12 +22,20 @@ output "rds_endpoint" {
   value = aws_db_instance.postgres.address
 }
 
+output "rds_rehearsal_endpoint" {
+  value = try(aws_db_instance.postgres_rehearsal[0].address, null)
+}
+
 output "ssm_db_access_instance_id" {
   value = aws_instance.ssm_db_access.id
 }
 
 output "ssm_db_port_forward_command" {
   value = "aws ssm start-session --target ${aws_instance.ssm_db_access.id} --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters '{\"host\":[\"${aws_db_instance.postgres.address}\"],\"portNumber\":[\"5432\"],\"localPortNumber\":[\"15432\"]}'"
+}
+
+output "ssm_db_rehearsal_port_forward_command" {
+  value = try("aws ssm start-session --target ${aws_instance.ssm_db_access.id} --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters '{\"host\":[\"${aws_db_instance.postgres_rehearsal[0].address}\"],\"portNumber\":[\"5432\"],\"localPortNumber\":[\"15433\"]}'", null)
 }
 
 output "cognito_user_pool_id" {
@@ -108,6 +116,10 @@ output "secrets_manager_secret_arn" {
 
 output "github_actions_deploy_role_arn" {
   value = aws_iam_role.github_actions_deploy.arn
+}
+
+output "github_actions_plan_role_arn" {
+  value = aws_iam_role.github_actions_plan.arn
 }
 
 output "mcp_cloudwatch_readonly_role_arn" {

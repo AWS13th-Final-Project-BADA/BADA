@@ -1,6 +1,3 @@
-/** 사건(cases) 타입 — backend cases.py / schemas.CaseCreate. */
-
-/** GET /cases, GET /cases/{id} 응답 (cases.py _dict) */
 export interface Case {
   id: string;
   workplace_name: string | null;
@@ -13,7 +10,6 @@ export interface Case {
   status: string;
 }
 
-/** POST /cases 요청 (schemas.CaseCreate) */
 export interface CaseCreate {
   workplace_name?: string | null;
   employer_name?: string | null;
@@ -34,7 +30,7 @@ export const ISSUE_TYPES = [
 
 export const ISSUE_LABELS: Record<string, string> = {
   wage_unpaid: "임금 미지급",
-  deduction: "임의 공제",
+  deduction: "공제 확인",
   overtime: "연장·야간수당",
   severance: "퇴직금",
   other: "기타",

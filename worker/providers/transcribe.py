@@ -247,7 +247,7 @@ class AmazonTranscriber(Transcriber):
                 return TranscriptionResult(segments=[])
 
             # Transcribe 결과 JSON 다운로드
-            with urllib.request.urlopen(transcript_uri) as resp:
+            with urllib.request.urlopen(transcript_uri) as resp:  # nosec B310 — AWS Transcribe result URI
                 result_json = json.loads(resp.read().decode("utf-8"))
 
             return self._parse_speaker_segments(result_json)

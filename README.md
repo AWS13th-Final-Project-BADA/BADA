@@ -15,17 +15,22 @@
 ## 리포 구조
 
 ```
-backend/   FastAPI API 서버
-worker/    분석 워커 (rules = 규칙엔진, llm = OCR·문장화)
-prompts/   LLM 프롬프트 템플릿
-frontend/  Next.js + next-intl (다국어)
-infra/     Terraform (AWS IaC)
-eval/      평가셋 + 정확도 측정
-docs/      체크리스트·문서
-  runbooks/ 장애 진단·롤백 운영 절차
-.kiro/steering/  AI-DLC 규칙 (AI가 항상 참조)
+backend/        FastAPI API 서버
+worker/         분석 워커 (rules = 규칙엔진, llm = OCR·문장화)
+mobile-native/  React Native + Expo 모바일 앱 (주력 프론트엔드)
+prompts/        LLM 프롬프트 템플릿
+infra/          Terraform (AWS IaC)
+monitoring/     Prometheus + Grafana 설정
+eval/           평가셋 + 정확도 측정
+docs/           프로젝트 문서 (README.md에 목차)
+  architecture/   시스템 설계 (OCR, STT, 번역, GPS, Agent)
+  infra/          인프라 설계/현황/로드맵
+  operations/     운영/모니터링 가이드
+  mobile/         모바일 E2E 테스트
+  decisions/      의사결정 기록 (ADR)
+  runbooks/       장애 대응 절차
+  troubleshooting/ 트러블슈팅
 ```
-자세한 규칙은 `.kiro/steering/` 참조.
 
 ## 빠른 시작 (로컬)
 
@@ -39,32 +44,222 @@ uvicorn app.main:app --reload
 
 # 3) 규칙 엔진 테스트 (LLM/AWS 없이 동작)
 cd worker && pip install -r requirements.txt && pytest -q
+
+# 4) 모바일 앱 (Expo)
+cd mobile-native && npm install && npx expo start
 ```
 
-## 스택 (AWS 관리형 단일 노선)
+## 아키텍처
 
-ECR · ECS Fargate · ALB · RDS PostgreSQL+PostGIS · S3+KMS · SQS(+DLQ) · Cognito ·
-Secrets Manager · SSM Parameter Store · CloudWatch Logs/Alarms ·
-Bedrock(Claude) · Amazon Translate · WeasyPrint.
-금지: K8s, Kafka, OpenAI, Textract, ReportLab (이유는 `.kiro/steering/tech.md`).
+### 현재 (As-Is)
+
+```mermaid
+flowchart TB
+    %% ─── Client ───
+    Mobile["📱 Mobile App\n(React Native + Expo)"]
+
+    %% ─── Edge ───
+    subgraph Edge["Edge / Ingress"]
+        Cognito["Cognito\nGoogle IdP + PKCE"]
+        ALB["ALB\nHTTPS · ACM · TLS 1.3"]
+    end
+
+    %% ─── Compute ───
+    subgraph Compute["ECS Fargate Cluster"]
+        Backend["Backend\nFastAPI :8000"]
+        Worker["Worker\n분석 파이프라인"]
+        Prom["Prometheus"]
+        Graf["Grafana"]
+    end
+
+    %% ─── Data ───
+    subgraph Data["데이터 계층 (Region Services)"]
+        RDS[("RDS PostgreSQL 16\n+ PostGIS · Single-AZ")]
+        S3["S3 Evidence / Report\nSSE-KMS"]
+        SQS["SQS\n+ DLQ (redrive ×5)"]
+    end
+
+    %% ─── AI ───
+    subgraph AI["AI / ML Services"]
+        Bedrock["Bedrock\nClaude Sonnet 4"]
+        Transcribe["Amazon Transcribe"]
+        Translate["Amazon Translate"]
+    end
+
+    %% ─── Observability ───
+    subgraph Obs["Observability"]
+        CW["CloudWatch\nLogs · Alarms (14)"]
+        SNS["SNS → Email"]
+    end
+
+    %% ─── Flows ───
+    Mobile -->|HTTPS| ALB
+    Mobile -->|OAuth PKCE| Cognito
+    Cognito -->|Token| Backend
+    ALB --> Backend
+
+    Backend --> RDS
+    Backend --> S3
+    Backend -->|SendMessage| SQS
+
+    SQS -->|ReceiveMessage| Worker
+    Worker --> Bedrock
+    Worker --> Transcribe
+    Worker --> Translate
+    Worker --> RDS
+    Worker --> S3
+
+    Backend -.->|logs| CW
+    Worker -.->|logs| CW
+    Prom --> Graf
+    Graf -.->|alert| SNS
+    CW -.->|alarm| SNS
+```
+
+### 목표 (To-Be)
+
+```mermaid
+flowchart TB
+    %% ─── Client ───
+    Mobile["📱 Mobile App\n(React Native + Expo)"]
+
+    %% ─── Edge ───
+    subgraph Edge["Edge / Security"]
+        WAF["AWS WAF\nOWASP Managed Rules"]
+        ALB["ALB (Public Subnet)\nHTTPS · ACM"]
+    end
+
+    %% ─── Network ───
+    subgraph Network["Network"]
+        NAT["NAT Gateway"]
+        VPCE["VPC Endpoints\nS3 · SQS · ECR"]
+    end
+
+    %% ─── Compute (Private Subnet) ───
+    subgraph Private["Private Subnet"]
+        subgraph ECS["ECS Fargate + Auto Scaling"]
+            Backend["Backend ×1~3\nCPU 70% scaling"]
+            Worker["Worker ×1~3 (Spot)\nSQS backlog scaling"]
+            Prom["Prometheus"]
+            Graf["Grafana"]
+        end
+        RDS[("RDS PostgreSQL 16\nMulti-AZ · Encrypted")]
+    end
+
+    %% ─── Data (Region Services) ───
+    subgraph Data["데이터 계층"]
+        S3["S3 Evidence / Report\nSSE-KMS · Lifecycle"]
+        SQS["SQS + DLQ"]
+    end
+
+    %% ─── AI ───
+    subgraph AI["AI / ML Services"]
+        Bedrock["Bedrock\nClaude Sonnet 4"]
+        Transcribe["Amazon Transcribe"]
+        Translate["Amazon Translate"]
+    end
+
+    %% ─── Security & Observability ───
+    subgraph SecObs["Security & Observability"]
+        XRay["X-Ray\n분산 추적"]
+        Guard["GuardDuty"]
+        SecHub["Security Hub"]
+        CW["CloudWatch"]
+        SNS["SNS → Email"]
+    end
+
+    %% ─── Auth ───
+    Cognito["Cognito\nGoogle IdP"]
+
+    %% ─── Flows ───
+    Mobile -->|HTTPS| WAF
+    WAF --> ALB
+    ALB --> Backend
+    Mobile -->|OAuth PKCE| Cognito
+    Cognito -->|Token| Backend
+
+    Backend --> RDS
+    Backend -->|VPC Endpoint| S3
+    Backend -->|VPC Endpoint| SQS
+
+    SQS --> Worker
+    Worker --> Bedrock
+    Worker --> Transcribe
+    Worker --> Translate
+    Worker --> RDS
+    Worker -->|VPC Endpoint| S3
+
+    Private -->|outbound| NAT
+    Private -.-> VPCE
+
+    Backend -.-> XRay
+    Worker -.-> XRay
+    Backend -.->|logs| CW
+    Worker -.->|logs| CW
+    CW -.->|alarm| SNS
+    Graf -.->|alert| SNS
+    Guard --> SecHub
+```
+
+> 상세 설계: `docs/infra/production-roadmap.md` · 의사결정: `docs/decisions/decision-record-20260625.md`
+
+## 스택
+
+| 카테고리 | 서비스 |
+|----------|--------|
+| **컴퓨트** | ECS Fargate (ARM64) · ECR · ALB (HTTPS/ACM/TLS1.3) |
+| **데이터** | RDS PostgreSQL + PostGIS · S3 (SSE-KMS) · SQS + DLQ |
+| **인증** | Cognito (Hosted UI + PKCE + Google IdP) |
+| **AI** | Bedrock Claude Sonnet 4 · Amazon Translate · Amazon Transcribe |
+| **관측성** | CloudWatch Logs/Alarms · Prometheus · Grafana · SNS Alert |
+| **보안** | Secrets Manager · SSM Parameter Store · WAF (예정) |
+| **PDF** | WeasyPrint (다국어 폰트 임베딩) |
+| **모바일** | React Native · Expo · EAS Build |
+| **IaC** | Terraform · GitHub Actions OIDC |
+
+**금지 스택**: K8s, Kafka, OpenAI, Textract, ReportLab — 사유는 `.kiro/steering/` 참조.
+
+## 배포 현황
+
+| 서비스 | URL | 상태 |
+|--------|-----|------|
+| Backend API | `https://api.badasoft.com` | ✅ |
+| Grafana | `https://monitor.badasoft.com` | ✅ |
+| 모바일 앱 | EAS Preview APK | 🔄 구현 중 |
 
 ## 인프라 운영 기준
 
 - 프로젝트 운영 기간: `2026-06-04` ~ `2026-07-10`
 - 팀 전체 AWS 총 예산: `1,500달러`
-- 원칙: AI(Bedrock/OCR/번역) 비용도 함께 고려하되, 인프라는 지나치게 축소하지 않고 안정적인 데모가 가능한 수준으로 구성
-- 네트워크 기본 원칙: `ALB/ECS는 public subnet`, `RDS는 private subnet`, `NAT Gateway는 사용하지 않음`
-- 비용 통제 원칙: `RDS Single-AZ`, `Fargate 최소 안정 사양`, `CloudWatch 로그 보존기간 단축`, `Secrets 최소화 + 비민감 값은 SSM 분리`
+- 비용 통제: `RDS Single-AZ`, `Fargate 최소 사양`, `로그 보존기간 단축`
+- 상세: `docs/infra/implementation-status.md`
 
-운영 런북:
+## 문서
 
-- `docs/runbooks/demo-incident-response.md`: 로그인→업로드→분석→PDF 장애 진단
-- `docs/runbooks/rollback-and-recovery.md`: ECS Task Definition 롤백·복구
-- `docs/runbooks/rds-recovery.md`: RDS 복원·암호화 전환·rollback
-- `docs/runbooks/project-closure.md`: 프로젝트 종료·민감 데이터 삭제·비용 리소스 정리
-- `docs/infra-security-operations-plan.md`: ECR·IAM·비용 위험과 결정 계획
+`docs/README.md` 참조. 주요 문서:
 
-## 5주 로드맵 / bolt
+- [인프라 현황](docs/infra/implementation-status.md)
+- [프로덕션 로드맵](docs/infra/production-roadmap.md)
+- [의사결정 기록](docs/decisions/decision-record-20260625.md)
+- [장애 대응 런북](docs/runbooks/)
+- [팀 태스크 배분](aidlc-docs/team-task-distribution.md)
 
-`docs/roadmap.md` (작성 예정) 참조. 매 주말 게이트 통과 여부로 컷을 결정한다.
-사람이 반드시 검증할 게이트: 평가셋 라벨링, OCR 정확도, 다국어 폰트 렌더, 표현 톤, GPS 교차검증.
+## CI/CD
+
+- **CI**: pytest + coverage + bandit(SAST) + ruff(lint) — PR마다 자동 실행
+- **Backend CD**: `develop` push → ECR → ECS 배포 → health check
+- **Worker CD**: 동일 구조
+- **모바일**: EAS Build (구현 예정)
+
+## 테스트
+
+```bash
+# 전체 테스트 (215 tests)
+cd backend && pytest -q
+cd worker && pytest -q
+
+# 커버리지 포함
+pip install -r dev-requirements.txt
+cd worker && pytest --cov=. --cov-report=term-missing
+cd backend && pytest --cov=app --cov-report=term-missing
+```

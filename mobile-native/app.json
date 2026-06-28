@@ -10,28 +10,33 @@
       "backgroundColor": "#2563eb",
       "resizeMode": "contain"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.bada.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "근무지 출입 증거 수집을 위해 위치를 사용합니다.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "재직 중 근무 증거를 위해 백그라운드에서도 위치를 수집합니다.",
-        "UIBackgroundModes": ["location"],
-        "NSCameraUsageDescription": "증거 문서 촬영을 위해 카메라를 사용합니다.",
-        "NSPhotoLibraryUsageDescription": "증거 이미지 업로드를 위해 사진 접근이 필요합니다."
+        "NSLocationWhenInUseUsageDescription": "근무지 출입 증거를 기록하기 위해 위치 정보를 사용합니다.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "근무 중 출근 증거를 남기기 위해 백그라운드에서도 위치를 기록할 수 있습니다.",
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "NSCameraUsageDescription": "증거 문서를 촬영하기 위해 카메라를 사용합니다.",
+        "NSPhotoLibraryUsageDescription": "증거 이미지를 업로드하기 위해 사진 접근 권한이 필요합니다."
       }
     },
     "android": {
       "package": "com.bada.app",
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION",
-        "CAMERA",
-        "READ_MEDIA_IMAGES"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -40,7 +45,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "재직 중 근무 증거를 위해 백그라운드에서도 위치를 수집합니다.",
+          "locationAlwaysAndWhenInUsePermission": "근무 중 출근 증거를 남기기 위해 백그라운드에서도 위치를 기록할 수 있습니다.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
@@ -49,7 +54,13 @@
     ],
     "extra": {
       "apiBase": "https://api.badasoft.com",
-      "router": { "origin": false }
-    }
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "408a599f-0456-4df3-91fe-64ee5d898f89"
+      }
+    },
+    "owner": "dkdevelop"
   }
 }

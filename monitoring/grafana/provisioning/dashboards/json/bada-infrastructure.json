@@ -1,0 +1,217 @@
+{
+  "uid": "bada-infrastructure",
+  "title": "BADA Infrastructure",
+  "tags": ["bada", "infrastructure"],
+  "timezone": "Asia/Seoul",
+  "templating": {
+    "list": [
+      {
+        "name": "region",
+        "type": "constant",
+        "query": "${aws_region}",
+        "hide": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Backend CPU %",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [{
+        "namespace": "AWS/ECS",
+        "metricName": "CPUUtilization",
+        "statistics": ["Average"],
+        "period": "300",
+        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
+        "region": "$region"
+      }],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
+    },
+    {
+      "id": 2,
+      "title": "Backend Memory %",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [{
+        "namespace": "AWS/ECS",
+        "metricName": "MemoryUtilization",
+        "statistics": ["Average"],
+        "period": "300",
+        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
+        "region": "$region"
+      }],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
+    },
+    {
+      "id": 3,
+      "title": "Worker CPU %",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [{
+        "namespace": "AWS/ECS",
+        "metricName": "CPUUtilization",
+        "statistics": ["Average"],
+        "period": "300",
+        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+        "region": "$region"
+      }],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
+    },
+    {
+      "id": 4,
+      "title": "Worker Memory %",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [{
+        "namespace": "AWS/ECS",
+        "metricName": "MemoryUtilization",
+        "statistics": ["Average"],
+        "period": "300",
+        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+        "region": "$region"
+      }],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
+    },
+    {
+      "id": 5,
+      "title": "RDS CPU %",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [{
+        "namespace": "AWS/RDS",
+        "metricName": "CPUUtilization",
+        "statistics": ["Average"],
+        "period": "300",
+        "dimensions": {"DBInstanceIdentifier": ["${rds_instance_id}"]},
+        "region": "$region"
+      }],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
+    },
+    {
+      "id": 6,
+      "title": "RDS Connections",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [{
+        "namespace": "AWS/RDS",
+        "metricName": "DatabaseConnections",
+        "statistics": ["Average"],
+        "period": "60",
+        "dimensions": {"DBInstanceIdentifier": ["${rds_instance_id}"]},
+        "region": "$region"
+      }],
+      "fieldConfig": {"defaults": {"unit": "short"}}
+    },
+    {
+      "id": 7,
+      "title": "RDS Free Storage",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [{
+        "namespace": "AWS/RDS",
+        "metricName": "FreeStorageSpace",
+        "statistics": ["Average"],
+        "period": "300",
+        "dimensions": {"DBInstanceIdentifier": ["${rds_instance_id}"]},
+        "region": "$region"
+      }],
+      "fieldConfig": {"defaults": {"unit": "bytes"}}
+    },
+    {
+      "id": 8,
+      "title": "ALB 5xx Count",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [
+        {
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "HTTPCode_Target_5XX_Count",
+          "statistics": ["Sum"],
+          "period": "60",
+          "dimensions": {"LoadBalancer": ["${alb_arn_suffix}"]},
+          "region": "$region",
+          "alias": "5xx"
+        },
+        {
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "HTTPCode_Target_4XX_Count",
+          "statistics": ["Sum"],
+          "period": "60",
+          "dimensions": {"LoadBalancer": ["${alb_arn_suffix}"]},
+          "region": "$region",
+          "alias": "4xx"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "ALB Request Count",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [{
+        "namespace": "AWS/ApplicationELB",
+        "metricName": "RequestCount",
+        "statistics": ["Sum"],
+        "period": "60",
+        "dimensions": {"LoadBalancer": ["${alb_arn_suffix}"]},
+        "region": "$region"
+      }]
+    },
+    {
+      "id": 10,
+      "title": "SQS Messages Visible",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [
+        {
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "statistics": ["Average"],
+          "period": "60",
+          "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+          "region": "$region",
+          "alias": "Main Queue"
+        },
+        {
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "statistics": ["Average"],
+          "period": "60",
+          "dimensions": {"QueueName": ["${sqs_dlq_name}"]},
+          "region": "$region",
+          "alias": "DLQ"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "SQS Oldest Message Age",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+      "datasource": {"uid": "cloudwatch"},
+      "targets": [{
+        "namespace": "AWS/SQS",
+        "metricName": "ApproximateAgeOfOldestMessage",
+        "statistics": ["Maximum"],
+        "period": "60",
+        "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+        "region": "$region"
+      }],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}
