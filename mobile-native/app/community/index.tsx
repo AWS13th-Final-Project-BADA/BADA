@@ -162,12 +162,10 @@ function PostCard({
   async function autoTranslate() {
     setTranslating(true);
     try {
-      const [titleRes, contentRes] = await Promise.all([
-        fetchApi<{ translated_text: string }>("/community/translate", {
-          method: "POST",
-          body: JSON.stringify({ target_type: "post", target_id: post.id, target_language: locale }),
-        }),
-      ]);
+      const titleRes = await fetchApi<{ translated_text: string }>("/community/translate", {
+        method: "POST",
+        body: JSON.stringify({ target_type: "post", target_id: post.id, target_language: locale }),
+      });
       setTranslated({ title: titleRes.translated_text, content: undefined });
     } catch {
       // 번역 실패 시 원문 유지
