@@ -19,8 +19,12 @@ import {
   registerWorkplace,
   startForegroundWatch,
   sendPing,
+  getLogs,
+  getSummary,
   type Workplace,
   type PingResult,
+  type GpsLogEntry,
+  type GpsDaySummary,
 } from "@/lib/gps";
 import { colors, spacing, radius } from "@/theme";
 
@@ -39,6 +43,8 @@ export default function GpsScreen() {
   const [tracking, setTracking] = useState(false);
   const [lastStatus, setLastStatus] = useState<string>("—");
   const subRef = useRef<Location.LocationSubscription | null>(null);
+  const [logs, setLogs] = useState<GpsLogEntry[]>([]);
+  const [summary, setSummary] = useState<GpsDaySummary[]>([]);
 
   // 사건 미지정 시 목록 로드 / 지정 시 근무지 로드
   const load = useCallback(async () => {
@@ -49,6 +55,14 @@ export default function GpsScreen() {
         setCases(Array.isArray(list) ? list : []);
       } else {
         setWorkplace(await getWorkplace(caseId));
+        try {
+          const logsData = await getLogs(caseId);
+          setLogs(logsData.logs || []);
+        } catch {}
+        try {
+          const summaryData = await getSummary(caseId);
+          setSummary(summaryData.summary || []);
+        } catch {}
       }
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
@@ -254,6 +268,41 @@ export default function GpsScreen() {
         ⚠️ 위치 위조(mock)가 감지된 핑은 증거에서 자동 배제됩니다. 앱을 꺼도
         추적되는 백그라운드 모드는 개발 빌드에서 지원됩니다.
       </Text>
+
+      {/* 일별 출근 요약 */}
+      {summary.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>일별 출근 요약</Text>
+          {summary.slice(0, 7).map((day) => (
+            <View key={day.work_date} style={styles.summaryRow}>
+              <Text style={styles.summaryDate}>{day.work_date}</Text>
+              <Text style={styles.summaryDetail}>
+                IN {day.in_count}회 · OUT {day.out_count}회 · {day.estimated_hours}시간
+              </Text>
+              {day.first_in && (
+                <Text style={styles.muted}>
+                  출근 {day.first_in.split(" ")[1] || day.first_in} → 퇴근 {day.last_out?.split(" ")[1] || "—"}
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* 최근 로그 */}
+      {logs.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>최근 GPS 로그 ({logs.length}건)</Text>
+          {logs.slice(-10).reverse().map((log) => (
+            <View key={log.id} style={styles.logRow}>
+              <Text style={[styles.logStatus, log.status === "IN_WORKPLACE" && styles.logIn]}>
+                {log.status === "IN_WORKPLACE" ? "IN" : log.status === "OUTSIDE" ? "OUT" : "—"}
+              </Text>
+              <Text style={styles.logTs}>{new Date(log.ts).toLocaleTimeString("ko-KR")}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -321,4 +370,13 @@ const styles = StyleSheet.create({
   },
   secondaryText: { color: colors.text, fontWeight: "600" },
   note: { fontSize: 12, color: colors.textMuted, lineHeight: 18, marginTop: spacing.md },
+  section: { marginTop: spacing.lg, gap: spacing.sm },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: colors.text, marginBottom: 4 },
+  summaryRow: { backgroundColor: colors.card, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border, gap: 2 },
+  summaryDate: { fontWeight: "700", color: colors.text, fontSize: 14 },
+  summaryDetail: { color: colors.textMuted, fontSize: 13 },
+  logRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: 4 },
+  logStatus: { fontWeight: "700", fontSize: 12, width: 32, color: colors.textMuted },
+  logIn: { color: colors.primary },
+  logTs: { color: colors.textMuted, fontSize: 12 },
 });
