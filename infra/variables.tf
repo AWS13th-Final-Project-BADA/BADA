@@ -527,7 +527,7 @@ variable "grafana_admin_password" {
   sensitive   = true
 
   validation {
-    condition     = var.grafana_admin_password == null || length(var.grafana_admin_password) >= 12
+    condition     = var.grafana_admin_password == null ? true : length(var.grafana_admin_password) >= 12
     error_message = "grafana_admin_password must contain at least 12 characters when provided."
   }
 }
