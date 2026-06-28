@@ -57,22 +57,28 @@ def build_legal_judgment_fallback(language: str = "ko") -> str:
     lang = normalize_language_code(language)
     if lang == "vi":
         return (
-            "Câu hỏi này cần đánh giá pháp lý. BADA là dịch vụ sắp xếp tài liệu trước khi tư vấn, "
-            "không kết luận có vi phạm pháp luật hay xác định bản chất pháp lý của khoản chênh lệch lương. "
-            "Kết luận cuối cùng cần được xác nhận bởi Bộ Việc làm và Lao động, trung tâm tư vấn hoặc chuyên gia. "
-            "Tôi có thể giúp bạn chuẩn bị tài liệu, tóm tắt sự việc và danh sách câu hỏi để đi tư vấn."
+            "Tôi hiểu vì sao bạn lo lắng hoặc bức xúc. Dựa trên tài liệu hiện có, BADA có thể giúp bạn "
+            "sắp xếp phần chênh lệch lương, khoản khấu trừ và các tài liệu liên quan để chuẩn bị tư vấn. "
+            "Tuy nhiên, BADA không kết luận người sử dụng lao động có vi phạm pháp luật hay khoản tiền này "
+            "đã được xác nhận là tiền lương chưa trả. Kết luận cuối cùng cần được Bộ Việc làm và Lao động, "
+            "trung tâm tư vấn hoặc chuyên gia xác nhận. Trước khi báo cáo hoặc nộp đơn, bạn nên chuẩn bị "
+            "hợp đồng lao động, bảng lương, lịch sử chuyển khoản, ghi chú thời gian làm việc và câu hỏi muốn hỏi."
         )
     if lang == "en":
         return (
-            "This question requires legal judgment. BADA organizes materials before consultation and does not decide "
-            "whether the employer violated the law or whether a wage difference is legally confirmed. "
-            "The final judgment should be confirmed by the Ministry of Employment and Labor, a counseling center, "
-            "or a qualified expert. I can still help you prepare documents, a case summary, and consultation questions."
+            "I understand why this feels upsetting or urgent. Based on the materials you provided, BADA can help "
+            "organize the wage difference, deductions, and related evidence for consultation. However, BADA cannot "
+            "decide whether the employer violated the law or whether the wage difference is legally confirmed as "
+            "unpaid wages. The final judgment should be confirmed by the Ministry of Employment and Labor, a "
+            "counseling center, or a qualified expert. Before reporting or filing anything, it is safer to prepare "
+            "your employment contract, payslips, bank deposit records, work-hour notes, and questions for counseling."
         )
     return (
-        "이 질문은 법률 판단이 필요합니다. BADA는 상담 전 자료 정리 서비스이며, 법 위반 여부나 임금 차액의 법적 성격을 판단하지 않습니다. "
-        "최종 판단은 고용노동부, 상담기관 또는 전문가 상담을 통해 확인해야 합니다. "
-        "다만 현재 자료 기준으로 상담 전 준비자료, 사건 요약, 질문 목록은 도와드릴 수 있습니다."
+        "걱정되거나 억울하게 느껴질 수 있는 상황입니다. 현재 자료 기준으로 BADA는 임금 차이, 공제 항목, 관련 증거를 "
+        "상담 전에 보기 좋게 정리하는 데 도움을 드릴 수 있습니다. 다만 BADA는 사업주의 법 위반 여부나 임금 차액이 "
+        "미지급 임금으로 확정되는지를 판단하지 않습니다. 최종 판단은 고용노동부, 상담기관 또는 전문가 상담을 통해 "
+        "확인해야 합니다. 신고나 진정 전에는 근로계약서, 급여명세서, 입금내역, 근무시간 메모, 상담 때 물어볼 질문을 "
+        "먼저 정리해 두는 것이 좋습니다."
     )
 
 

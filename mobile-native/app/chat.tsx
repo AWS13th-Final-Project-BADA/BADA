@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -13,14 +14,14 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { fetchApi } from "@/lib/api";
-import type { ChatResponse } from "@/lib/types";
+import type { ChatResponse, ChatSource } from "@/lib/types";
 import { Card, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 
 interface Msg {
   role: "user" | "ai";
   text: string;
   actions?: string[];
-  sources?: { title?: string }[];
+  sources?: ChatSource[];
 }
 
 const suggested = [
@@ -35,12 +36,12 @@ export default function ChatScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectedSource, setSelectedSource] = useState<ChatSource | null>(null);
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "ai",
       text:
         "안녕하세요. 업로드한 자료를 기준으로 상담 전에 정리할 쟁점과 질문을 도와드릴게요. BADA는 법률 판단이 아니라 상담 준비 안내를 제공합니다.",
-      sources: activeCaseId ? [{ title: "현재 사건 자료" }] : undefined,
     },
   ]);
 
@@ -109,7 +110,7 @@ export default function ChatScreen() {
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
         >
           {messages.map((message, index) => (
-            <Bubble key={`${message.role}-${index}`} message={message} />
+            <Bubble key={`${message.role}-${index}`} message={message} onSourcePress={setSelectedSource} />
           ))}
 
           {busy ? (
@@ -156,11 +157,12 @@ export default function ChatScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+      <SourceDetailModal source={selectedSource} onClose={() => setSelectedSource(null)} />
     </StitchScreen>
   );
 }
 
-function Bubble({ message }: { message: Msg }) {
+function Bubble({ message, onSourcePress }: { message: Msg; onSourcePress: (source: ChatSource) => void }) {
   if (message.role === "user") {
     return (
       <View style={styles.userRow}>
@@ -192,11 +194,18 @@ function Bubble({ message }: { message: Msg }) {
         </View>
         {message.sources?.length ? (
           <View style={styles.sourceRow}>
-            {message.sources.slice(0, 2).map((source, index) => (
-              <View key={`${source.title}-${index}`} style={styles.sourceChip}>
-                <MaterialIcons name="link" size={14} color={stitch.outline} />
-                <Text style={styles.sourceText} numberOfLines={1}>{source.title || "참고 자료"}</Text>
-              </View>
+            {message.sources.map((source, index) => (
+              <Pressable
+                key={`${source.source_id}-${source.section ?? index}`}
+                style={({ pressed }) => [styles.sourceChip, pressed && styles.sourceChipPressed]}
+                onPress={() => onSourcePress(source)}
+                accessibilityRole="button"
+                accessibilityLabel={`${source.title} 참고 자료 보기`}
+              >
+                <MaterialIcons name="description" size={14} color={stitch.blue} />
+                <Text style={styles.sourceText} numberOfLines={1}>{source.title}</Text>
+                <MaterialIcons name="chevron-right" size={14} color={stitch.outline} />
+              </Pressable>
             ))}
           </View>
         ) : null}
@@ -205,6 +214,57 @@ function Bubble({ message }: { message: Msg }) {
   );
 }
 
+function SourceDetailModal({ source, onClose }: { source: ChatSource | null; onClose: () => void }) {
+  if (!source) return null;
+
+  return (
+    <Modal transparent visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="참고 자료 닫기" />
+        <View style={styles.sourceSheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <View style={styles.sheetIcon}>
+              <MaterialIcons name="verified" size={20} color={stitch.blue} />
+            </View>
+            <View style={styles.sheetHeading}>
+              <Text style={styles.sheetEyebrow}>참고한 자료</Text>
+              <Text style={styles.sheetTitle}>{source.title}</Text>
+            </View>
+            <Pressable style={styles.closeButton} onPress={onClose} accessibilityRole="button" accessibilityLabel="닫기">
+              <MaterialIcons name="close" size={22} color={stitch.muted} />
+            </Pressable>
+          </View>
+
+          <View style={styles.sourceMeta}>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>제공 기관</Text>
+              <Text style={styles.metaValue}>{source.source_org}</Text>
+            </View>
+            {source.section ? (
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>관련 항목</Text>
+                <Text style={styles.metaValue}>{source.section}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.excerptBlock}>
+            <Text style={styles.excerptLabel}>질문과 관련된 내용</Text>
+            <Text style={styles.excerptText}>
+              {source.excerpt || "이 답변을 준비할 때 관련 항목을 참고했습니다."}
+            </Text>
+          </View>
+
+          <View style={styles.sourceNotice}>
+            <MaterialIcons name="info-outline" size={16} color={stitch.outline} />
+            <Text style={styles.sourceNoticeText}>답변은 이 자료의 관련 내용을 참고해 생성했어요.</Text>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: stitch.bg },
   contextBar: {
@@ -233,8 +293,9 @@ const styles = StyleSheet.create({
   actionList: { borderTopWidth: 1, borderTopColor: "rgba(198,198,205,0.45)", paddingTop: 8, gap: 4 },
   actionItem: { color: stitch.muted, fontSize: 12, lineHeight: 18, fontWeight: "700" },
   sourceRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  sourceChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: stitch.surfaceLow, borderRadius: 6, borderWidth: 1, borderColor: "rgba(198,198,205,0.45)", paddingHorizontal: 8, paddingVertical: 5, maxWidth: 170 },
-  sourceText: { color: stitch.outline, fontSize: 11, fontWeight: "800" },
+  sourceChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: stitch.surfaceLow, borderRadius: 6, borderWidth: 1, borderColor: "rgba(49,107,243,0.2)", paddingHorizontal: 8, paddingVertical: 6, maxWidth: "100%" },
+  sourceChipPressed: { opacity: 0.7, backgroundColor: stitch.blueSoft },
+  sourceText: { flexShrink: 1, color: stitch.muted, fontSize: 11, fontWeight: "800" },
   suggestedBlock: { gap: 10, paddingTop: 6 },
   suggestedLabel: { color: stitch.outline, fontSize: 12, fontWeight: "900" },
   suggestedList: { gap: 8 },
@@ -246,4 +307,22 @@ const styles = StyleSheet.create({
   send: { width: 42, height: 42, borderRadius: 21, backgroundColor: stitch.navy, alignItems: "center", justifyContent: "center" },
   guardrail: { marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
   guardrailText: { color: stitch.outline, fontSize: 11, fontWeight: "700" },
+  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,23,42,0.42)" },
+  sourceSheet: { width: "100%", maxWidth: 560, maxHeight: "76%", alignSelf: "center", backgroundColor: stitch.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 28, gap: 18 },
+  sheetHandle: { width: 38, height: 4, borderRadius: 2, backgroundColor: stitch.line, alignSelf: "center" },
+  sheetHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  sheetIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: stitch.blueSoft, alignItems: "center", justifyContent: "center" },
+  sheetHeading: { flex: 1, gap: 4 },
+  sheetEyebrow: { color: stitch.blue, fontSize: 12, fontWeight: "900" },
+  sheetTitle: { color: stitch.text, fontSize: 18, lineHeight: 25, fontWeight: "900" },
+  closeButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: stitch.surfaceLow },
+  sourceMeta: { gap: 10, paddingVertical: 14, borderTopWidth: 1, borderBottomWidth: 1, borderColor: "rgba(198,198,205,0.42)" },
+  metaRow: { flexDirection: "row", alignItems: "flex-start", gap: 14 },
+  metaLabel: { width: 66, color: stitch.outline, fontSize: 12, lineHeight: 18, fontWeight: "800" },
+  metaValue: { flex: 1, color: stitch.text, fontSize: 13, lineHeight: 19, fontWeight: "700" },
+  excerptBlock: { gap: 8 },
+  excerptLabel: { color: stitch.text, fontSize: 14, fontWeight: "900" },
+  excerptText: { color: stitch.muted, fontSize: 14, lineHeight: 22, fontWeight: "600" },
+  sourceNotice: { flexDirection: "row", alignItems: "center", gap: 7, padding: 12, borderRadius: 8, backgroundColor: stitch.surfaceLow },
+  sourceNoticeText: { flex: 1, color: stitch.outline, fontSize: 11, lineHeight: 16, fontWeight: "700" },
 });

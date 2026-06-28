@@ -10,6 +10,8 @@ class RagSource(BaseModel):
     title: str
     source_org: str
     section: Optional[str] = None
+    excerpt: Optional[str] = None
+    retrieval_method: Optional[str] = None
 
 
 class ChatMessageRequest(BaseModel):

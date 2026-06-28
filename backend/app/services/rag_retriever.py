@@ -28,6 +28,8 @@ class RetrievedChunk:
             "title": self.title,
             "source_org": self.source_org,
             "section": self.section,
+            "excerpt": _build_excerpt(self.text),
+            "retrieval_method": self.retrieval_method,
         }
 
 
@@ -67,6 +69,13 @@ def retrieve_rag_context(
             pass
 
     return keyword_chunks[: settings.rag_top_k]
+
+
+def _build_excerpt(text_value: str, limit: int = 320) -> str:
+    normalized = " ".join(text_value.split())
+    if len(normalized) <= limit:
+        return normalized
+    return normalized[:limit].rstrip() + "..."
 
 
 def format_rag_context(chunks: list[RetrievedChunk]) -> str:
