@@ -17,12 +17,15 @@ import {
 } from "@/lib/gps";
 import { Card, RemoteImage, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { stitchImages } from "@/lib/stitchAssets";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 const RADIUS_PRESETS = [50, 80, 100, 200, 500];
 
 export default function GpsScreen() {
   const params = useLocalSearchParams<{ caseId?: string }>();
   const router = useRouter();
+  const { locale } = useLocale();
   const [caseId, setCaseId] = useState<string>(params.caseId || "demo-case-1");
   const [cases, setCases] = useState<Case[]>([]);
   const [workplace, setWorkplace] = useState<Workplace | null>(null);
@@ -30,7 +33,7 @@ export default function GpsScreen() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [tracking, setTracking] = useState(false);
-  const [lastStatus, setLastStatus] = useState("아직 기록 없음");
+  const [lastStatus, setLastStatus] = useState(t("gps.empty"));
   const subRef = useRef<Location.LocationSubscription | null>(null);
 
   const load = useCallback(async () => {
@@ -62,21 +65,21 @@ export default function GpsScreen() {
   async function onRegisterWorkplace() {
     const ok = await requestForeground();
     if (!ok) {
-      Alert.alert("위치 권한 필요", "근무지 등록을 위해 위치 권한을 허용해 주세요.");
+      Alert.alert(t("gps.permissionError"), t("gps.permissionError"));
       return;
     }
     setBusy(true);
     try {
       const loc = await getCurrent();
       if (!loc) {
-        Alert.alert("위치 확인 실패", "현재 위치를 가져오지 못했어요.");
+        Alert.alert(t("gps.saveError"), t("gps.saveError"));
         return;
       }
       const wp = await registerWorkplace(caseId, loc.coords.latitude, loc.coords.longitude, radiusM);
       setWorkplace(wp);
-      setLastStatus("근무지 기준점이 등록됐어요.");
+      setLastStatus(t("gps.saveWorkplace"));
     } catch (e: any) {
-      Alert.alert("등록 실패", String(e?.message ?? e));
+      Alert.alert(t("gps.saveError"), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -85,12 +88,12 @@ export default function GpsScreen() {
   async function pingOnce() {
     const ok = await requestForeground();
     if (!ok) {
-      Alert.alert("위치 권한 필요", "위치 권한을 허용해 주세요.");
+      Alert.alert(t("gps.permissionError"), t("gps.permissionError"));
       return null;
     }
     const loc = await getCurrent();
     if (!loc) {
-      Alert.alert("위치 확인 실패", "현재 위치를 가져오지 못했어요.");
+      Alert.alert(t("gps.saveError"), t("gps.saveError"));
       return null;
     }
     const result = await sendPing(caseId, loc);
@@ -103,7 +106,7 @@ export default function GpsScreen() {
       subRef.current?.remove();
       subRef.current = null;
       setTracking(false);
-      setLastStatus("기록이 일시 중지됐어요.");
+      setLastStatus(t("gps.inactive"));
       return;
     }
 
@@ -114,14 +117,14 @@ export default function GpsScreen() {
       });
       setTracking(true);
     } catch (e: any) {
-      Alert.alert("기록 시작 실패", String(e?.message ?? e));
+      Alert.alert(t("gps.saveError"), String(e?.message ?? e));
     }
   }
 
   if (loading) {
     return (
       <StitchScreen scroll={false} active="cases">
-        <TopBar title="GPS 기록" back />
+        <TopBar title={t("gps.title")} back />
         <View style={styles.center}>
           <ActivityIndicator color={stitch.blue} />
         </View>
@@ -131,16 +134,16 @@ export default function GpsScreen() {
 
   return (
     <StitchScreen scroll={false} active="cases">
-      <TopBar title="GPS 기록" back right="notifications-none" />
+      <TopBar title={t("gps.title")} back right="notifications-none" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Card style={styles.hero}>
           <View style={styles.heroTop}>
             <View>
-              <Text style={styles.heroTitle}>근무지 GPS 기록</Text>
+              <Text style={styles.heroTitle}>{t("gps.title")}</Text>
               <View style={styles.statusLine}>
                 <View style={[styles.statusDot, tracking && styles.statusDotOn]} />
                 <Text style={[styles.statusText, tracking && styles.statusTextOn]}>
-                  {tracking ? "기록 중" : "기록 대기"}
+                  {tracking ? t("gps.active") : t("gps.inactive")}
                 </Text>
               </View>
             </View>
@@ -154,18 +157,18 @@ export default function GpsScreen() {
 
           <View style={styles.statsGrid}>
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>최근 기록</Text>
-              <Text style={styles.statValue}>{tracking ? "방금 전" : "없음"}</Text>
+              <Text style={styles.statLabel}>{t("gps.logs")}</Text>
+              <Text style={styles.statValue}>{tracking ? t("gps.active") : t("gps.empty")}</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>기록 반경</Text>
+              <Text style={styles.statLabel}>{t("gps.summary")}</Text>
               <Text style={styles.statValue}>±{workplace?.radius_m ?? radiusM}m</Text>
             </View>
           </View>
         </Card>
 
         <View style={styles.sectionTop}>
-          <Text style={styles.sectionTitle}>근무지 반경</Text>
+          <Text style={styles.sectionTitle}>{t("gps.saveWorkplace")}</Text>
           <Text style={styles.sectionAction}>구역 확인</Text>
         </View>
         <View style={styles.mapCard}>
@@ -177,13 +180,13 @@ export default function GpsScreen() {
           </View>
           <View style={styles.legend}>
             <Text style={styles.legendText}>
-              {workplace ? `${workplace.center_lat.toFixed(4)}, ${workplace.center_lng.toFixed(4)}` : "근무지 기준점 미등록"}
+              {workplace ? `${workplace.center_lat.toFixed(4)}, ${workplace.center_lng.toFixed(4)}` : t("gps.workplaceHint")}
             </Text>
           </View>
         </View>
 
         <Card style={styles.radiusCard}>
-          <Text style={styles.radiusTitle}>반경 설정</Text>
+          <Text style={styles.radiusTitle}>{t("gps.saveWorkplace")}</Text>
           <View style={styles.radiusChips}>
             {RADIUS_PRESETS.map((r) => (
               <Pressable
@@ -196,30 +199,28 @@ export default function GpsScreen() {
             ))}
           </View>
           <StitchButton tone="secondary" onPress={onRegisterWorkplace} disabled={busy}>
-            <Text style={styles.registerText}>{busy ? "등록 중..." : workplace ? "현재 위치로 근무지 다시 등록" : "현재 위치를 근무지로 등록"}</Text>
+            <Text style={styles.registerText}>{busy ? t("common.loading") : workplace ? t("gps.saveWorkplace") : t("gps.saveWorkplace")}</Text>
           </StitchButton>
         </Card>
 
         <Card style={styles.privacy}>
           <MaterialIcons name="verified-user" size={34} color={stitch.blueSoft} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.privacyTitle}>개인정보 보호 기록</Text>
-            <Text style={styles.privacyBody}>
-              지정한 근무지 반경 안에서만 출근 증거로 쓸 수 있는 위치 기록을 남깁니다. 기록은 상담 준비 자료로만 사용됩니다.
-            </Text>
+            <Text style={styles.privacyTitle}>{t("gps.subtitle")}</Text>
+            <Text style={styles.privacyBody}>{t("gps.workplaceHint")}</Text>
           </View>
         </Card>
 
         <View style={styles.sectionTop}>
-          <Text style={styles.sectionTitle}>최근 증거 로그</Text>
+          <Text style={styles.sectionTitle}>{t("gps.logs")}</Text>
           <Pressable onPress={pingOnce}>
-            <Text style={styles.sectionAction}>새로고침</Text>
+            <Text style={styles.sectionAction}>{t("common.refresh")}</Text>
           </Pressable>
         </View>
         <View style={styles.logs}>
-          <Log icon="check-circle" title="출근 위치 확인" detail={lastStatus} badge={tracking ? "자동" : "대기"} color={stitch.green} />
-          <Log icon="sensors" title="주기 기록" detail="5분 또는 100m 이동 시 확인" badge="설정" color={stitch.blue} />
-          <Log icon="location-on" title="현재 케이스" detail={cases.find((item) => item.id === caseId)?.workplace_name || "바다식품"} badge="연결됨" color={stitch.muted} />
+          <Log icon="check-circle" title={t("gps.inside")} detail={lastStatus} badge={tracking ? t("gps.active") : t("gps.inactive")} color={stitch.green} />
+          <Log icon="sensors" title={t("gps.summary")} detail={t("gps.subtitle")} badge={t("common.confirm")} color={stitch.blue} />
+          <Log icon="location-on" title={t("cases.detail")} detail={cases.find((item) => item.id === caseId)?.workplace_name || ""} badge={t("common.confirm")} color={stitch.muted} />
         </View>
       </ScrollView>
     </StitchScreen>
@@ -254,11 +255,11 @@ function Log({
 }
 
 function formatStatus(result: PingResult | null): string {
-  if (!result) return "아직 기록 없음";
-  if (result.status === "IN_WORKPLACE" || result.inside) return `근무지 안 (${result.distance_m ?? "?"}m)`;
-  if (result.status === "OUTSIDE") return `근무지 밖 (${result.distance_m ?? "?"}m)`;
-  if (result.status === null) return "위치 위조 또는 상태 확인 필요";
-  return result.status || "기록됨";
+  if (!result) return t("gps.empty");
+  if (result.status === "IN_WORKPLACE" || result.inside) return `${t("gps.inside")} (${result.distance_m ?? "?"}m)`;
+  if (result.status === "OUTSIDE") return `${t("gps.outside")} (${result.distance_m ?? "?"}m)`;
+  if (result.status === null) return t("gps.permissionError");
+  return result.status || t("gps.active");
 }
 
 const styles = StyleSheet.create({

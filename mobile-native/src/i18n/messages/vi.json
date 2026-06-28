@@ -17,7 +17,9 @@
     "locales": {
       "ko": "한국어",
       "vi": "Tiếng Việt",
-      "en": "English"
+      "en": "English",
+      "km": "ភាសាខ្មែរ",
+      "ja": "日本語"
     }
   },
   "nav": {
@@ -84,7 +86,9 @@
     "kakao": "Tiếp tục với Kakao",
     "naver": "Tiếp tục với Naver",
     "notice": "Đăng nhập lần đầu sẽ tự động tạo tài khoản.",
-    "safe": "BADA không đưa ra phán đoán pháp lý."
+    "safe": "BADA không đưa ra phán đoán pháp lý.",
+    "trustData": "Bảo vệ dữ liệu",
+    "trustNoJudge": "Không phán đoán pháp lý"
   },
   "cases": {
     "title": "Hồ sơ của tôi",
@@ -181,6 +185,16 @@
       "chat": "Ảnh tin nhắn",
       "statement": "Bảng lương",
       "other": "Khác"
+    },
+    "method": {
+      "camera": "Chụp ảnh",
+      "cameraBody": "Chụp tài liệu giấy",
+      "gallery": "Thư viện",
+      "galleryBody": "Chọn hình ảnh",
+      "file": "Tệp",
+      "fileBody": "Chọn PDF/tài liệu",
+      "audio": "Âm thanh",
+      "audioBody": "Chọn file ghi âm"
     }
   },
   "analysis": {
@@ -225,6 +239,13 @@
     "quick2": "Khi tư vấn nên nói gì trước?",
     "quick3": "Đơn khiếu nại nên viết nội dung gì?",
     "sources": "Tài liệu tham khảo",
+    "sourceDetailTitle": "Chi tiết tài liệu",
+    "sourceOrg": "Cơ quan cung cấp",
+    "sourceSection": "Mục liên quan",
+    "sourceExcerpt": "Nội dung liên quan đến câu hỏi",
+    "sourceFallback": "Đã tham khảo mục liên quan khi chuẩn bị câu trả lời này.",
+    "sourceNotice": "Câu trả lời được tạo dựa trên nội dung liên quan trong tài liệu này.",
+    "sourceClose": "Đóng chi tiết tài liệu",
     "nextActions": "Việc cần chuẩn bị",
     "caseContext": "Hồ sơ muốn hỏi",
     "createCaseFirst": "Tạo hồ sơ trước",

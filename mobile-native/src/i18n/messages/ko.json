@@ -17,7 +17,9 @@
     "locales": {
       "ko": "한국어",
       "vi": "Tiếng Việt",
-      "en": "English"
+      "en": "English",
+      "km": "ភាសាខ្មែរ",
+      "ja": "日本語"
     }
   },
   "nav": {
@@ -84,7 +86,9 @@
     "kakao": "카카오로 시작하기",
     "naver": "네이버로 시작하기",
     "notice": "처음 로그인하면 자동으로 가입됩니다.",
-    "safe": "BADA는 법률 판단을 하지 않습니다."
+    "safe": "BADA는 법률 판단을 하지 않습니다.",
+    "trustData": "자료 보호",
+    "trustNoJudge": "법률 판단 없음"
   },
   "cases": {
     "title": "내 사건",
@@ -181,6 +185,16 @@
       "chat": "대화 캡처",
       "statement": "급여명세서",
       "other": "기타"
+    },
+    "method": {
+      "camera": "사진 촬영",
+      "cameraBody": "종이 문서 촬영",
+      "gallery": "갤러리",
+      "galleryBody": "이미지 선택",
+      "file": "파일",
+      "fileBody": "PDF/문서 선택",
+      "audio": "음성 파일",
+      "audioBody": "녹음 파일 선택"
     }
   },
   "analysis": {
@@ -225,6 +239,13 @@
     "quick2": "상담할 때 뭐부터 말해야 해요?",
     "quick3": "진정서에는 어떤 내용을 적어야 해요?",
     "sources": "참고한 자료",
+    "sourceDetailTitle": "참고한 자료",
+    "sourceOrg": "제공 기관",
+    "sourceSection": "관련 항목",
+    "sourceExcerpt": "질문과 관련된 내용",
+    "sourceFallback": "이 답변을 준비할 때 관련 항목을 참고했습니다.",
+    "sourceNotice": "답변은 이 자료의 관련 내용을 참고해 생성했어요.",
+    "sourceClose": "참고 자료 닫기",
     "nextActions": "다음 준비",
     "caseContext": "질문할 사건",
     "createCaseFirst": "사건을 먼저 만들기",

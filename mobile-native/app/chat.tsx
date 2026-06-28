@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,6 +16,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { fetchApi } from "@/lib/api";
 import type { ChatResponse, ChatSource } from "@/lib/types";
 import { Card, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 interface Msg {
   role: "user" | "ai";
@@ -25,13 +27,14 @@ interface Msg {
 }
 
 const suggested = [
-  "이 패키지에서 중요한 내용이 뭐예요?",
-  "상담하러 가면 뭐부터 말하면 좋을까요?",
-  "진정서에는 어떤 내용을 적어야 해요?",
+  "chat.quick1",
+  "chat.quick2",
+  "chat.quick3",
 ];
 
 export default function ChatScreen() {
   const { caseId } = useLocalSearchParams<{ caseId?: string }>();
+  const { locale } = useLocale();
   const activeCaseId = typeof caseId === "string" && caseId.trim() ? caseId : null;
   const scrollRef = useRef<ScrollView>(null);
   const [input, setInput] = useState("");
@@ -40,10 +43,20 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "ai",
-      text:
-        "안녕하세요. 업로드한 자료를 기준으로 상담 전에 정리할 쟁점과 질문을 도와드릴게요. BADA는 법률 판단이 아니라 상담 준비 안내를 제공합니다.",
+      text: t("chat.emptyBody"),
+
     },
   ]);
+
+  // 언어 변경 시 초기 AI 인사 메시지 갱신
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].role === "ai") {
+        return [{ role: "ai", text: t("chat.emptyBody") }];
+      }
+      return prev;
+    });
+  }, [locale]);
 
   async function send(textOverride?: string) {
     const text = (textOverride ?? input).trim();
@@ -76,7 +89,7 @@ export default function ChatScreen() {
         ...prev,
         {
           role: "ai",
-          text: `지금은 답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.\n(${String(e?.message ?? e)})`,
+          text: `${t("chat.error")}\n(${String(e?.message ?? e)})`,
         },
       ]);
     } finally {
@@ -92,12 +105,12 @@ export default function ChatScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={16}
       >
-        <TopBar title="BADA AI" back right="info-outline" />
+        <TopBar title={t("chat.title")} back right="info-outline" />
 
         <View style={styles.contextBar}>
           <View style={styles.liveDot} />
           <Text style={styles.contextText}>
-            {activeCaseId ? `현재 사건: ${activeCaseId.slice(0, 8)}` : "사건을 선택하면 자료 기반 답변이 더 정확해져요"}
+            {activeCaseId ? `${t("chat.caseContext")}: ${activeCaseId.slice(0, 8)}` : t("chat.emptyTitle")}
           </Text>
           <MaterialIcons name="description" size={18} color={stitch.outline} />
         </View>
@@ -125,11 +138,11 @@ export default function ChatScreen() {
           ) : null}
 
           <View style={styles.suggestedBlock}>
-            <Text style={styles.suggestedLabel}>추천 질문</Text>
+            <Text style={styles.suggestedLabel}>{t("chat.nextActions")}</Text>
             <View style={styles.suggestedList}>
-              {suggested.map((item) => (
-                <Pressable key={item} style={styles.suggestedChip} onPress={() => send(item)}>
-                  <Text style={styles.suggestedText}>{item}</Text>
+              {suggested.map((key) => (
+                <Pressable key={key} style={styles.suggestedChip} onPress={() => send(t(key))}>
+                  <Text style={styles.suggestedText}>{t(key)}</Text>
                   <MaterialIcons name="chevron-right" size={18} color={stitch.blue} />
                 </Pressable>
               ))}
@@ -142,7 +155,7 @@ export default function ChatScreen() {
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder="상담 준비에 대해 물어보세요"
+              placeholder={t("chat.placeholder")}
               placeholderTextColor={stitch.outline}
               style={styles.input}
               multiline
@@ -153,7 +166,7 @@ export default function ChatScreen() {
           </Card>
           <View style={styles.guardrail}>
             <MaterialIcons name="verified-user" size={16} color={stitch.outline} />
-            <Text style={styles.guardrailText}>법률 판단 대신 상담 준비와 자료 정리를 도와드려요</Text>
+            <Text style={styles.guardrailText}>{t("disclaimer")}</Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -200,7 +213,7 @@ function Bubble({ message, onSourcePress }: { message: Msg; onSourcePress: (sour
                 style={({ pressed }) => [styles.sourceChip, pressed && styles.sourceChipPressed]}
                 onPress={() => onSourcePress(source)}
                 accessibilityRole="button"
-                accessibilityLabel={`${source.title} 참고 자료 보기`}
+                accessibilityLabel={`${source.title} ${t("chat.sources")}`}
               >
                 <MaterialIcons name="description" size={14} color={stitch.blue} />
                 <Text style={styles.sourceText} numberOfLines={1}>{source.title}</Text>
@@ -220,7 +233,7 @@ function SourceDetailModal({ source, onClose }: { source: ChatSource | null; onC
   return (
     <Modal transparent visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="참고 자료 닫기" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t("chat.sourceClose")} />
         <View style={styles.sourceSheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
@@ -228,37 +241,37 @@ function SourceDetailModal({ source, onClose }: { source: ChatSource | null; onC
               <MaterialIcons name="verified" size={20} color={stitch.blue} />
             </View>
             <View style={styles.sheetHeading}>
-              <Text style={styles.sheetEyebrow}>참고한 자료</Text>
+              <Text style={styles.sheetEyebrow}>{t("chat.sourceDetailTitle")}</Text>
               <Text style={styles.sheetTitle}>{source.title}</Text>
             </View>
-            <Pressable style={styles.closeButton} onPress={onClose} accessibilityRole="button" accessibilityLabel="닫기">
+            <Pressable style={styles.closeButton} onPress={onClose} accessibilityRole="button" accessibilityLabel={t("chat.sourceClose")}>
               <MaterialIcons name="close" size={22} color={stitch.muted} />
             </Pressable>
           </View>
 
           <View style={styles.sourceMeta}>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>제공 기관</Text>
+              <Text style={styles.metaLabel}>{t("chat.sourceOrg")}</Text>
               <Text style={styles.metaValue}>{source.source_org}</Text>
             </View>
             {source.section ? (
               <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>관련 항목</Text>
+                <Text style={styles.metaLabel}>{t("chat.sourceSection")}</Text>
                 <Text style={styles.metaValue}>{source.section}</Text>
               </View>
             ) : null}
           </View>
 
           <View style={styles.excerptBlock}>
-            <Text style={styles.excerptLabel}>질문과 관련된 내용</Text>
+            <Text style={styles.excerptLabel}>{t("chat.sourceExcerpt")}</Text>
             <Text style={styles.excerptText}>
-              {source.excerpt || "이 답변을 준비할 때 관련 항목을 참고했습니다."}
+              {source.excerpt || t("chat.sourceFallback")}
             </Text>
           </View>
 
           <View style={styles.sourceNotice}>
             <MaterialIcons name="info-outline" size={16} color={stitch.outline} />
-            <Text style={styles.sourceNoticeText}>답변은 이 자료의 관련 내용을 참고해 생성했어요.</Text>
+            <Text style={styles.sourceNoticeText}>{t("chat.sourceNotice")}</Text>
           </View>
         </View>
       </View>

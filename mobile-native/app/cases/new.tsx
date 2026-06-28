@@ -5,9 +5,12 @@ import { fetchApi } from "@/lib/api";
 import type { Case, CaseCreate } from "@/lib/types";
 import { ISSUE_LABELS, ISSUE_TYPES } from "@/lib/types";
 import { Card, Chip, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
+import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleContext";
 
 export default function NewCase() {
   const router = useRouter();
+  const { locale } = useLocale();
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<CaseCreate>({
     workplace_name: "",
@@ -53,36 +56,36 @@ export default function NewCase() {
 
   return (
     <StitchScreen active="cases">
-      <TopBar title="새 사건" back />
+      <TopBar title={t("cases.newTitle")} back />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View>
-          <Text style={styles.title}>사건 기본 정보를 입력하세요</Text>
-          <Text style={styles.subtitle}>정확하지 않아도 괜찮아요. 지금 아는 내용부터 저장하고 나중에 보완할 수 있습니다.</Text>
+          <Text style={styles.title}>{t("cases.newTitle")}</Text>
+          <Text style={styles.subtitle}>{t("cases.newSubtitle")}</Text>
         </View>
 
         <Card style={styles.formCard}>
-          <Field label="사업장 이름">
+          <Field label={t("cases.workplace")}>
             <TextInput
               style={styles.input}
               value={form.workplace_name ?? ""}
               onChangeText={(value) => set("workplace_name", value)}
-              placeholder="예: 바다식품"
+              placeholder={t("cases.workplacePlaceholder")}
               placeholderTextColor={stitch.outline}
             />
           </Field>
 
-          <Field label="사업주 또는 담당자">
+          <Field label={t("cases.employer")}>
             <TextInput
               style={styles.input}
               value={form.employer_name ?? ""}
               onChangeText={(value) => set("employer_name", value)}
-              placeholder="예: 김대표"
+              placeholder={t("cases.employerPlaceholder")}
               placeholderTextColor={stitch.outline}
             />
           </Field>
 
           <View style={styles.rowFields}>
-            <Field label="근무 시작일" flex>
+            <Field label={t("cases.startDate")} flex>
               <TextInput
                 style={styles.input}
                 value={form.work_start_date ?? ""}
@@ -92,19 +95,19 @@ export default function NewCase() {
                 autoCapitalize="none"
               />
             </Field>
-            <Field label="근무 종료일" flex>
+            <Field label={t("cases.endDate")} flex>
               <TextInput
                 style={styles.input}
                 value={form.work_end_date ?? ""}
                 onChangeText={(value) => set("work_end_date", value)}
-                placeholder="근무 중이면 비워두기"
+                placeholder=""
                 placeholderTextColor={stitch.outline}
                 autoCapitalize="none"
               />
             </Field>
           </View>
 
-          <Field label="약속한 시급">
+          <Field label={t("cases.wage")}>
             <TextInput
               style={styles.input}
               value={form.agreed_hourly_wage ? String(form.agreed_hourly_wage) : ""}
@@ -117,7 +120,7 @@ export default function NewCase() {
             />
           </Field>
 
-          <Field label="상담 주제">
+          <Field label={t("cases.issueType")}>
             <View style={styles.chips}>
               {ISSUE_TYPES.map((issue) => {
                 const active = (form.issue_types ?? []).includes(issue);
@@ -132,11 +135,11 @@ export default function NewCase() {
         </Card>
 
         <StitchButton icon="folder-open" onPress={submit} disabled={busy}>
-          {busy ? <ActivityIndicator color="#fff" /> : "사건 저장하기"}
+          {busy ? <ActivityIndicator color="#fff" /> : t("cases.create")}
         </StitchButton>
 
         <Card style={styles.note}>
-          <Text style={styles.noteText}>BADA는 법률 판단을 하지 않습니다. 입력한 정보는 상담 준비용 사건 파일을 만드는 데 사용됩니다.</Text>
+          <Text style={styles.noteText}>{t("disclaimer")}</Text>
         </Card>
       </ScrollView>
     </StitchScreen>

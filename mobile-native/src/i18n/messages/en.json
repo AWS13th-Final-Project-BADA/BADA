@@ -17,7 +17,9 @@
     "locales": {
       "ko": "한국어",
       "vi": "Tiếng Việt",
-      "en": "English"
+      "en": "English",
+      "km": "ភាសាខ្មែរ",
+      "ja": "日本語"
     }
   },
   "nav": {
@@ -84,7 +86,9 @@
     "kakao": "Continue with Kakao",
     "naver": "Continue with Naver",
     "notice": "Your account is created automatically on first login.",
-    "safe": "BADA does not make legal judgments."
+    "safe": "BADA does not make legal judgments.",
+    "trustData": "Data protection",
+    "trustNoJudge": "No legal judgment"
   },
   "cases": {
     "title": "My cases",
@@ -181,6 +185,16 @@
       "chat": "Chat capture",
       "statement": "Payslip",
       "other": "Other"
+    },
+    "method": {
+      "camera": "Camera",
+      "cameraBody": "Photograph a document",
+      "gallery": "Gallery",
+      "galleryBody": "Pick an image",
+      "file": "File",
+      "fileBody": "Select PDF/document",
+      "audio": "Audio",
+      "audioBody": "Select recording"
     }
   },
   "analysis": {
@@ -225,6 +239,13 @@
     "quick2": "What should I say first in consultation?",
     "quick3": "What should I write in a petition?",
     "sources": "Sources",
+    "sourceDetailTitle": "Source details",
+    "sourceOrg": "Provided by",
+    "sourceSection": "Relevant section",
+    "sourceExcerpt": "Relevant content",
+    "sourceFallback": "A related section was referenced when preparing this answer.",
+    "sourceNotice": "This answer was generated using the relevant content from this source.",
+    "sourceClose": "Close source details",
     "nextActions": "Next steps",
     "caseContext": "Case to ask about",
     "createCaseFirst": "Create a case first",

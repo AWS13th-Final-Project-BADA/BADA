@@ -46,6 +46,27 @@ resource "aws_iam_role_policy_attachment" "github_actions_plan_readonly" {
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
 
+resource "aws_iam_role_policy" "github_actions_plan_secret_read" {
+  name = "${local.name_prefix}-github-actions-plan-secret-read"
+  role = aws_iam_role.github_actions_plan.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = concat(
+          [aws_secretsmanager_secret.app.arn],
+          var.monitoring_enabled ? [aws_secretsmanager_secret.grafana_admin_password[0].arn] : []
+        )
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "github_actions_deploy" {
   name = "${local.name_prefix}-github-actions-deploy-role"
 

@@ -22,9 +22,49 @@ env:
   AWS_REGION: ap-northeast-2
   AWS_PLAN_ROLE_ARN: arn:aws:iam::165749212250:role/bada-dev-github-actions-plan-role
   WORKDIR: infra
-  # db_password 는 default 가 없는 필수 변수이므로 plan 시 주입이 필요하다.
-  # GitHub repo secret 'TF_DB_PASSWORD' 를 등록해야 한다(실제 값이어야 secret_version diff 노이즈가 없다).
+  # 필수 민감 변수는 PR plan에서도 모두 주입해야 한다.
+  # 실제 값이 없으면 terraform plan 자체가 실패한다.
+  # 실제 값과 다르면 secret_version diff 노이즈가 발생할 수 있다.
   TF_VAR_db_password: ${{ secrets.TF_DB_PASSWORD }}
+  TF_VAR_google_client_id: ${{ secrets.TF_GOOGLE_CLIENT_ID }}
+  TF_VAR_google_client_secret: ${{ secrets.TF_GOOGLE_CLIENT_SECRET }}
+  TF_VAR_kakao_rest_api_key: ${{ secrets.TF_KAKAO_REST_API_KEY }}
+  TF_VAR_kakao_client_secret: ${{ secrets.TF_KAKAO_CLIENT_SECRET }}
+  TF_VAR_naver_client_id: ${{ secrets.TF_NAVER_CLIENT_ID }}
+  TF_VAR_naver_client_secret: ${{ secrets.TF_NAVER_CLIENT_SECRET }}
+  TF_VAR_jwt_secret: ${{ secrets.TF_JWT_SECRET }}
+  # 운영 dev state와 동일한 비민감 변수. PR plan이 기본값으로 되돌아가며
+  # HTTPS/모니터링/서비스 수량 drift를 오탐하지 않도록 맞춘다.
+  TF_VAR_domain_name: badasoft.com
+  TF_VAR_frontend_enabled: "false"
+  TF_VAR_frontend_desired_count: "0"
+  TF_VAR_monitoring_enabled: "true"
+  TF_VAR_api_container_image: 165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-backend:latest
+  TF_VAR_worker_container_image: 165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-worker:latest
+  TF_VAR_backend_desired_count: "1"
+  TF_VAR_worker_desired_count: "1"
+  TF_VAR_worker_task_cpu: "512"
+  TF_VAR_worker_task_memory: "1024"
+  TF_VAR_cognito_callback_urls: '["https://api.badasoft.com/auth/cognito/callback"]'
+  TF_VAR_cognito_logout_urls: '["https://badasoft.com/"]'
+  TF_VAR_alarm_email_endpoints: '["badajoa0710@gmail.com"]'
+  TF_VAR_enable_google_identity_provider: "true"
+  TF_VAR_google_oauth_client_id: ${{ secrets.TF_GOOGLE_OAUTH_CLIENT_ID }}
+  TF_VAR_google_oauth_client_secret: ${{ secrets.TF_GOOGLE_OAUTH_CLIENT_SECRET }}
+  TF_VAR_backend_auth_mode: oauth
+  TF_VAR_backend_app_base_url: https://badasoft.com/
+  TF_VAR_backend_cors_allowed_origins: '["https://badasoft.com","https://www.badasoft.com"]'
+  TF_VAR_backend_transcription_dispatch_mode: sqs
+  TF_VAR_backend_provider_mode: aws
+  TF_VAR_backend_ai_chat_mode: bedrock
+  TF_VAR_backend_embedding_mode: mock
+  TF_VAR_backend_transcribe_mode: aws
+  TF_VAR_worker_provider_mode: aws
+  TF_VAR_worker_transcribe_mode: aws
+  TF_VAR_worker_translate_mode: aws
+  TF_VAR_worker_structured_engine: vision
+  TF_VAR_enable_rehearsal_multiaz_db: "true"
+  TF_VAR_use_rehearsal_multiaz_db_as_app_db: "true"
 
 jobs:
   plan:

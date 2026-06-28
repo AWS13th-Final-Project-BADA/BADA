@@ -99,6 +99,43 @@ variable "db_apply_immediately" {
   default     = true
 }
 
+variable "enable_rehearsal_multiaz_db" {
+  description = "Create a separate encrypted Multi-AZ rehearsal RDS instance without touching the current primary DB."
+  type        = bool
+  default     = true
+}
+
+variable "rehearsal_db_identifier" {
+  description = "Identifier for the separate rehearsal RDS instance used for Multi-AZ cutover practice."
+  type        = string
+  default     = "bada-dev-postgres-multiaz"
+}
+
+variable "rehearsal_db_kms_key_arn" {
+  description = "Optional KMS key ARN for the rehearsal encrypted RDS instance. Null uses the default AWS managed key."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "rehearsal_db_skip_final_snapshot" {
+  description = "Whether to skip the final snapshot when deleting the rehearsal RDS instance."
+  type        = bool
+  default     = false
+}
+
+variable "rehearsal_db_final_snapshot_identifier" {
+  description = "Final snapshot identifier for the rehearsal RDS instance when skip_final_snapshot is false."
+  type        = string
+  default     = "bada-dev-postgres-multiaz-final-snapshot"
+}
+
+variable "use_rehearsal_multiaz_db_as_app_db" {
+  description = "Point app DATABASE_URL at the rehearsal Multi-AZ DB after restore/canary validation. Set false to roll back to the original DB."
+  type        = bool
+  default     = true
+}
+
 variable "app_port" {
   description = "Backend container application port"
   type        = number
@@ -490,7 +527,7 @@ variable "grafana_admin_password" {
   sensitive   = true
 
   validation {
-    condition     = var.grafana_admin_password == null || length(var.grafana_admin_password) >= 12
+    condition     = var.grafana_admin_password == null ? true : length(var.grafana_admin_password) >= 12
     error_message = "grafana_admin_password must contain at least 12 characters when provided."
   }
 }
