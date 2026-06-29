@@ -13,6 +13,14 @@ resource "aws_cloudwatch_log_group" "worker" {
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-logs" })
 }
 
+resource "aws_cloudwatch_log_group" "xray" {
+  count             = var.backend_xray_enabled || var.worker_xray_enabled ? 1 : 0
+  name              = "/aws/ecs/${local.name_prefix}/xray"
+  retention_in_days = var.log_retention_days
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-xray-logs" })
+}
+
 resource "aws_cloudwatch_log_group" "frontend" {
   count             = var.frontend_enabled ? 1 : 0
   name              = "/aws/ecs/${local.name_prefix}/frontend"

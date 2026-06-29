@@ -58,6 +58,12 @@ frontend_task_cpu   = 256
 frontend_task_memory = 512
 ecs_cpu_architecture = "ARM64"
 
+# AWS X-Ray distributed tracing.
+# Backend stays disabled until the app middleware uses a supported SDK integration.
+backend_xray_enabled = false
+worker_xray_enabled  = true
+xray_daemon_image    = "public.ecr.aws/xray/aws-xray-daemon:latest"
+
 # Frontend ECS/ECR/ALB resources. Enable infrastructure first with
 # frontend_desired_count=0, push the first image, then raise it to 1.
 domain_name      = ""
