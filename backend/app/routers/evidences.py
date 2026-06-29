@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import get_db
-from ..models import Evidence
+from ..deps import verify_case_owner
+from ..models import Evidence, User
 from ..schemas import PresignedUploadRequest
 from ..services import jobs, ocr_service, s3
 from ..services.storage import get_storage
@@ -52,7 +53,7 @@ def _guess_type(name: str) -> str:
 
 
 @router.post("/manual")
-def add_manual(case_id: str, payload: ManualEvidence, db: Session = Depends(get_db)):
+def add_manual(case_id: str, payload: ManualEvidence, db: Session = Depends(get_db), user: User = Depends(verify_case_owner)):
     ev = Evidence(case_id=case_id, file_key="", file_name=payload.file_name,
                   file_type="text", category=payload.category, ocr_status="pending")
     db.add(ev); db.commit(); db.refresh(ev)
@@ -317,7 +318,7 @@ def _extract_entities_from_text(ev: Evidence) -> None:
 
 
 @router.post("/extract")
-def extract(case_id: str, wait: bool = False, db: Session = Depends(get_db)):
+def extract(case_id: str, wait: bool = False, db: Session = Depends(get_db), user: User = Depends(verify_case_owner)):
     """업로드된 증거 파일에 OCR 실행 → 엔티티 추출·저장.
 
     기본(비동기): 대상 증거를 'processing'으로 표시하고 백그라운드로 OCR을 돌린 뒤
@@ -334,13 +335,13 @@ def extract(case_id: str, wait: bool = False, db: Session = Depends(get_db)):
 
 
 @router.get("/extract")
-def extract_status(case_id: str, db: Session = Depends(get_db)):
+def extract_status(case_id: str, db: Session = Depends(get_db), user: User = Depends(verify_case_owner)):
     """현재 OCR 진행 상태 스냅샷(폴링용). status: processing | done."""
     return ocr_service.collect(db, case_id)
 
 
 @router.patch("/{eid}/entities")
-def update_entities(case_id: str, eid: str, payload: EntitiesUpdate, db: Session = Depends(get_db)):
+def update_entities(case_id: str, eid: str, payload: EntitiesUpdate, db: Session = Depends(get_db), user: User = Depends(verify_case_owner)):
     """사용자가 수정한 OCR 엔티티 저장(HITL). 수정본은 done으로 간주, 갱신된 행 반환."""
     row = ocr_service.update_entities(db, case_id, eid, payload.entities)
     if row is None:
@@ -363,7 +364,7 @@ def restore_excluded(case_id: str, eid: str, payload: RestoreRequest = RestoreRe
 
 
 @router.post("")
-def request_upload(case_id: str, payload: PresignedUploadRequest, db: Session = Depends(get_db)):
+def request_upload(case_id: str, payload: PresignedUploadRequest, db: Session = Depends(get_db), user: User = Depends(verify_case_owner)):
     # 모바일이 실제 MIME을 보낸 경우만 화이트리스트 검증(미전달 시 기존 동작 유지 → 웹 무영향)
     if payload.content_type and payload.content_type not in s3.ALLOWED_CONTENT_TYPES:
         raise HTTPException(status_code=422, detail=f"unsupported content_type: {payload.content_type}")
