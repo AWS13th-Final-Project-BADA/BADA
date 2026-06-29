@@ -8,6 +8,7 @@ import { stitchImages } from "@/lib/stitchAssets";
 import { Card, RemoteImage, SectionLabel, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { t } from "@/i18n";
 import { useLocale } from "@/i18n/LocaleContext";
+import type { CommunityPost } from "@/lib/types";
 
 interface CurrentUser {
   id: string;
@@ -22,6 +23,7 @@ export default function Home() {
   const { locale } = useLocale(); // locale 변경 시 리렌더 트리거
   const [checking, setChecking] = useState(true);
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [recentPosts, setRecentPosts] = useState<CommunityPost[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -37,6 +39,14 @@ export default function Home() {
         const me = await fetchApi<CurrentUser>("/auth/me");
         if (!mounted) return;
         setUser(me);
+
+        // 최근 커뮤니티 글 로드
+        try {
+          const res = await fetchApi<{ posts: CommunityPost[] }>("/community/posts?limit=3&sort=recent");
+          if (mounted) setRecentPosts(res.posts ?? []);
+        } catch {
+          // 커뮤니티 로드 실패해도 홈 화면은 정상 표시
+        }
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
           router.replace("/login");
@@ -164,20 +174,24 @@ export default function Home() {
           <MaterialIcons name="chevron-right" size={24} color="#fff" />
         </Pressable>
 
-        <SectionLabel action={<Text style={styles.viewAll}>{t("home.recentTitle")}</Text>}>{t("community.title")}</SectionLabel>
+        <SectionLabel action={<Pressable onPress={() => router.push("/community")}><Text style={styles.viewAll}>{t("home.recentTitle")}</Text></Pressable>}>{t("community.title")}</SectionLabel>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.communityScroll}>
-          <CommunityPreview
-            image={stitchImages.office}
-            category="상담 후기"
-            title="상담 전에 자료를 정리해가니 훨씬 편했어요"
-            body="급여명세서와 입금내역을 같은 달끼리 묶어 갔습니다."
-          />
-          <CommunityPreview
-            image={stitchImages.dashboard}
-            category="체크리스트"
-            title="임금 차액 상담 전 준비법"
-            body="계약서, 입금내역, 근무시간 기록을 먼저 확인하세요."
-          />
+          {recentPosts.length > 0 ? (
+            recentPosts.map((post, index) => (
+              <Pressable key={post.id} onPress={() => router.push({ pathname: "/community/[id]", params: { id: post.id } })}>
+                <CommunityPreview
+                  image={index % 2 === 0 ? stitchImages.office : stitchImages.dashboard}
+                  category={t("community.categories." + (post.category || "free"))}
+                  title={post.title}
+                  body={post.content?.slice(0, 60) || ""}
+                />
+              </Pressable>
+            ))
+          ) : (
+            <Card style={styles.emptyPreview}>
+              <Text style={styles.emptyPreviewText}>{t("community.emptyTitle")}</Text>
+            </Card>
+          )}
         </ScrollView>
       </View>
     </StitchScreen>
@@ -301,4 +315,6 @@ const styles = StyleSheet.create({
   previewCategory: { color: stitch.blue, fontSize: 12, fontWeight: "800", marginBottom: 6 },
   previewTitle: { color: stitch.text, fontSize: 16, fontWeight: "900" },
   previewText: { marginTop: 6, color: stitch.outline, fontSize: 12, fontWeight: "700" },
+  emptyPreview: { width: 280, minHeight: 100, alignItems: "center", justifyContent: "center", padding: 20 },
+  emptyPreviewText: { color: stitch.muted, fontSize: 13, fontWeight: "700", textAlign: "center" },
 });
