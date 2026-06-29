@@ -52,6 +52,10 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
         run: npm ci
 
+      - name: Validate translations
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm run check:i18n
+
       - name: Setup EAS CLI
         uses: expo/expo-github-action@v8
         with:
