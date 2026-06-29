@@ -209,7 +209,7 @@ export default function AnalysisScreen() {
 
         {report && (
           <StitchButton icon="picture-as-pdf" onPress={() => {
-            const url = `https://api.badasoft.com/cases/${caseId}/report/pdf`;
+            const url = `https://api.badasoft.com/cases/${caseId}/report.pdf`;
             import("expo-linking").then((Linking) => Linking.openURL(url));
           }}>
             {t("analysis.download")}
