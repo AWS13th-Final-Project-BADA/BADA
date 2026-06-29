@@ -45,13 +45,40 @@ export default function AnalysisScreen() {
   async function runAnalyze() {
     setRunning(true);
     try {
-      const next = await fetchApi<AnalysisReport>(`/cases/${caseId}/analyze?lang=ko`, {
+      const res = await fetchApi<{ status: string }>(`/cases/${caseId}/analyze?lang=ko`, {
         method: "POST",
         body: JSON.stringify({}),
       });
-      setReport(next);
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
-    } finally {
+
+      if (res.status === "analyzing") {
+        // 폴링 시작 — 5초 간격으로 결과 확인
+        const poll = setInterval(async () => {
+          try {
+            const result = await fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`);
+            if (result) {
+              clearInterval(poll);
+              setReport(result);
+              setRunning(false);
+              scrollRef.current?.scrollTo({ y: 0, animated: true });
+            }
+          } catch {
+            // 아직 완료 안 됨 — 계속 폴링
+          }
+        }, 5000);
+
+        // 최대 2분 후 타임아웃
+        setTimeout(() => {
+          clearInterval(poll);
+          setRunning(false);
+        }, 120000);
+      } else {
+        // 동기 모드 (로컬) — 바로 결과 조회
+        const result = await fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`).catch(() => null);
+        if (result) setReport(result);
+        setRunning(false);
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+      }
+    } catch {
       setRunning(false);
     }
   }

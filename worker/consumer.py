@@ -47,8 +47,45 @@ def dispatch(message: dict) -> None:
         transcription.handle(message)
     elif kind == "analyze_case":
         analysis.handle(message)
+    elif kind == "extract_ocr":
+        _handle_ocr(message)
     else:
         raise ValueError(f"unknown message kind: {kind!r}")
+
+
+def _handle_ocr(message: dict) -> None:
+    """OCR 추출 — Worker의 OCR provider로 증거 파일 엔티티 추출."""
+    from db import SessionLocal
+    from providers.ocr import extract_entities
+    from sqlalchemy.orm import Session
+    import importlib
+    models = importlib.import_module("models")
+
+    case_id = message["case_id"]
+    logger.info("extract_ocr 시작: case_id=%s", case_id)
+    session = SessionLocal()
+    try:
+        evidences = session.query(models.Evidence).filter(
+            models.Evidence.case_id == case_id,
+            models.Evidence.ocr_status.in_(["pending", "processing"])
+        ).all()
+
+        for ev in evidences:
+            try:
+                ev.ocr_status = "processing"
+                session.commit()
+                result = extract_entities(ev.file_key, ev.category)
+                ev.extracted_entities = result
+                ev.ocr_status = "done"
+                session.commit()
+            except Exception as e:
+                ev.ocr_status = "failed"
+                session.commit()
+                logger.warning("OCR 실패: evidence_id=%s, error=%s", ev.id, e)
+
+        logger.info("extract_ocr 완료: case_id=%s, 처리=%d건", case_id, len(evidences))
+    finally:
+        session.close()
 
 
 def _sqs_client():
