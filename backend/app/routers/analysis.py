@@ -89,7 +89,7 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
     db.commit()
     from .notifications import create_notification
     create_notification(db, case.user_id, "analysis_complete", "분석이 완료되었습니다", case_id=case_id)
-    return {"status": "completed", "message": "분석 완료 (동기 모드)"}
+    return report_dict
 
 
 def _load_report(case_id: str, db: Session) -> dict:
