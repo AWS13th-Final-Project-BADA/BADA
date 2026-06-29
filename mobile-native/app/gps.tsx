@@ -12,8 +12,12 @@ import {
   requestForeground,
   sendPing,
   startForegroundWatch,
+  getLogs,
+  getSummary,
   type PingResult,
   type Workplace,
+  type GpsLogEntry,
+  type GpsDaySummary,
 } from "@/lib/gps";
 import { Card, RemoteImage, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { stitchImages } from "@/lib/stitchAssets";
@@ -35,6 +39,8 @@ export default function GpsScreen() {
   const [tracking, setTracking] = useState(false);
   const [lastStatus, setLastStatus] = useState(t("gps.empty"));
   const subRef = useRef<Location.LocationSubscription | null>(null);
+  const [logs, setLogs] = useState<GpsLogEntry[]>([]);
+  const [summary, setSummary] = useState<GpsDaySummary[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,6 +52,9 @@ export default function GpsScreen() {
       const wp = await getWorkplace(selected);
       setWorkplace(wp);
       if (wp?.radius_m) setRadiusM(wp.radius_m);
+      // GPS 로그 + 일별 요약 로드
+      try { const ld = await getLogs(selected); setLogs(ld.logs || []); } catch {}
+      try { const sd = await getSummary(selected); setSummary(sd.summary || []); } catch {}
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         router.replace("/login");
@@ -222,6 +231,41 @@ export default function GpsScreen() {
           <Log icon="sensors" title={t("gps.summary")} detail={t("gps.subtitle")} badge={t("common.confirm")} color={stitch.blue} />
           <Log icon="location-on" title={t("cases.detail")} detail={cases.find((item) => item.id === caseId)?.workplace_name || ""} badge={t("common.confirm")} color={stitch.muted} />
         </View>
+
+        {/* 일별 출근 요약 */}
+        {summary.length > 0 && (
+          <View style={{ marginTop: 18, gap: 8 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: stitch.text }}>일별 출근 요약</Text>
+            {summary.slice(0, 7).map((day) => (
+              <Card key={day.work_date} style={{ padding: 12, gap: 2 }}>
+                <Text style={{ fontWeight: "700", color: stitch.text }}>{day.work_date}</Text>
+                <Text style={{ color: stitch.muted, fontSize: 13 }}>
+                  IN {day.in_count}회 · OUT {day.out_count}회 · {day.estimated_hours}시간
+                </Text>
+                {day.first_in && (
+                  <Text style={{ color: stitch.outline, fontSize: 12 }}>
+                    출근 {day.first_in.split(" ")[1] || day.first_in} → 퇴근 {day.last_out?.split(" ")[1] || "—"}
+                  </Text>
+                )}
+              </Card>
+            ))}
+          </View>
+        )}
+
+        {/* 최근 GPS 로그 */}
+        {logs.length > 0 && (
+          <View style={{ marginTop: 18, gap: 6 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: stitch.text }}>최근 로그 ({logs.length}건)</Text>
+            {logs.slice(-10).reverse().map((log) => (
+              <View key={log.id} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 3 }}>
+                <Text style={{ fontWeight: "700", fontSize: 12, width: 30, color: log.status === "IN_WORKPLACE" ? stitch.green : stitch.muted }}>
+                  {log.status === "IN_WORKPLACE" ? "IN" : log.status === "OUTSIDE" ? "OUT" : "—"}
+                </Text>
+                <Text style={{ color: stitch.outline, fontSize: 12 }}>{new Date(log.ts).toLocaleTimeString("ko-KR")}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </StitchScreen>
   );
