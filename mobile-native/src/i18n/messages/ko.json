@@ -28,7 +28,9 @@
     "cases": "사건",
     "chat": "챗봇",
     "community": "커뮤니티",
-    "settings": "설정"
+    "settings": "설정",
+    "notifications": "알림",
+    "noNotifications": "알림이 없습니다"
   },
   "home": {
     "badge": "상담 준비",

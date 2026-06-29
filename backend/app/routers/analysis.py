@@ -77,6 +77,10 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
     case.status = "completed"
     db.commit()
 
+    # 알림 생성: 분석 완료
+    from .notifications import create_notification
+    create_notification(db, case.user_id, "analysis_complete", "분석이 완료되었습니다", case_id=case_id)
+
     # Worker 비동기 후처리 (PDF 생성 등) — SQS 미설정 시 no-op
     send_analysis_job(case_id)
 

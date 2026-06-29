@@ -28,7 +28,9 @@
     "cases": "សំណុំរឿង",
     "chat": "ជជែក",
     "community": "សហគមន៍",
-    "settings": "ការកំណត់"
+    "settings": "ការកំណត់",
+    "notifications": "ការជូនដំណឹង",
+    "noNotifications": "មិនមានការជូនដំណឹង"
   },
   "home": {
     "badge": "ត្រៀមពិគ្រោះ",

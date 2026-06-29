@@ -28,7 +28,9 @@
     "cases": "Cases",
     "chat": "Chat",
     "community": "Community",
-    "settings": "Settings"
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications"
   },
   "home": {
     "badge": "Consultation prep",

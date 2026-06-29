@@ -84,7 +84,7 @@ export function TopBar({
         <Pressable style={s.topIcon} onPress={() => setLangOpen(true)}>
           <MaterialIcons name="translate" size={22} color={stitch.navy} />
         </Pressable>
-        <Pressable style={s.topIcon}>
+        <Pressable style={s.topIcon} onPress={() => router.push("/notifications")}>
           <MaterialIcons name={right} size={24} color={right === "more-horiz" ? stitch.outline : stitch.navy} />
         </Pressable>
       </View>

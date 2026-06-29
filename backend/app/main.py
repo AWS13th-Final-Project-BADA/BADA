@@ -13,7 +13,7 @@ from .errors import register_error_handlers
 from .middleware import SecurityHeadersMiddleware
 from .middleware.rate_limit import RateLimitMiddleware
 from .middleware.prometheus import PrometheusMiddleware
-from .routers import ai_chat, analysis, auth, cases, community, evidences, gps, kakao
+from .routers import ai_chat, analysis, auth, cases, community, evidences, gps, kakao, notifications
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -54,6 +54,7 @@ app.include_router(ai_chat.router)
 app.include_router(auth.router)
 app.include_router(kakao.router)
 app.include_router(community.router)
+app.include_router(notifications.router)
 
 _STATIC = Path(__file__).parent / "static"
 _UPLOADS = Path(settings.upload_dir)
