@@ -72,13 +72,15 @@ export default function Login() {
 
 
         <Pressable style={styles.googleButton} onPress={() => doLogin("google")} disabled={busy}>
-          <Image source={{ uri: stitchImages.google }} style={styles.googleIcon} />
+          <Image source={require("../assets/google-logo.png")} style={styles.socialIcon} />
           <Text style={styles.googleText}>{t("login.google")}</Text>
         </Pressable>
-        <StitchButton tone="kakao" icon="chat-bubble-outline" onPress={() => doLogin("kakao")} disabled={busy}>
+        <StitchButton tone="kakao" onPress={() => doLogin("kakao")} disabled={busy}>
+          <Image source={require("../assets/kakao-logo.png")} style={styles.socialIcon} />
           <Text style={styles.kakaoText}>{t("login.kakao")}</Text>
         </StitchButton>
         <StitchButton tone="naver" onPress={() => doLogin("naver")} disabled={busy}>
+          <Image source={require("../assets/naver-logo.png")} style={styles.socialIcon} />
           <Text style={styles.naverText}>{t("login.naver")}</Text>
         </StitchButton>
 
@@ -131,7 +133,7 @@ const styles = StyleSheet.create({
   trustIcon: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: stitch.blueSoft },
   trustTitle: { color: stitch.navy, fontSize: 15, lineHeight: 22, fontWeight: "900", textAlign: "center" },
   googleButton: { height: 52, borderRadius: 8, borderWidth: 1, borderColor: stitch.line, backgroundColor: stitch.surface, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 14 },
-  googleIcon: { width: 24, height: 24 },
+  socialIcon: { width: 24, height: 24, borderRadius: 4 },
   googleText: { color: stitch.navy, fontSize: 17, fontWeight: "900" },
   kakaoText: { color: stitch.navy, fontSize: 17, fontWeight: "900" },
   naverText: { color: "#fff", fontSize: 17, fontWeight: "900" },
