@@ -24,3 +24,5 @@ pgvector==0.3.6
 # RAG source extraction utilities for official PDF/HWP files.
 pypdf==6.13.2
 olefile==0.47
+
+python-json-logger>=2.0.0

@@ -10,12 +10,14 @@ from fastapi.staticfiles import StaticFiles
 from .config import settings
 from .db import check_db_connection, init_db
 from .errors import register_error_handlers
+from .logging_config import setup_logging
 from .middleware import SecurityHeadersMiddleware
 from .middleware.rate_limit import RateLimitMiddleware
+from .middleware.request_id import RequestIdMiddleware
 from .middleware.prometheus import PrometheusMiddleware
 from .routers import ai_chat, analysis, auth, cases, community, evidences, gps, kakao, notifications
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+setup_logging(level=os.environ.get("LOG_LEVEL", "INFO"))
 
 if settings.database_auto_create:
     init_db()  # MVP 자동 테이블 생성. 운영/마이그레이션 도입 후 false 권장.
@@ -41,7 +43,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+app.add_middleware(RequestIdMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestIdMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(PrometheusMiddleware)
 register_error_handlers(app)
