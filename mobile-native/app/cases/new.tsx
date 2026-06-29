@@ -137,7 +137,7 @@ export default function NewCase() {
                 const active = (form.issue_types ?? []).includes(issue);
                 return (
                   <Pressable key={issue} onPress={() => toggleIssue(issue)}>
-                    <Chip label={ISSUE_LABELS[issue]} active={active} />
+                    <Chip label={t("cases.issueTypes." + issue)} active={active} />
                   </Pressable>
                 );
               })}

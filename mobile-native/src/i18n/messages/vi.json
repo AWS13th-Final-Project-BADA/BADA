@@ -163,6 +163,8 @@
       "mismatch": "Bảng lương không khớp",
       "deduction": "Khấu trừ",
       "overtime": "Làm thêm giờ",
+      "severance": "Trợ cấp thôi việc",
+      "other": "Khác",
       "no_contract": "Không có hợp đồng"
     }
   },

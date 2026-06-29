@@ -163,6 +163,8 @@
       "mismatch": "明細の不一致",
       "deduction": "控除",
       "overtime": "残業",
+      "severance": "退職金",
+      "other": "その他",
       "no_contract": "契約書なし"
     }
   },
