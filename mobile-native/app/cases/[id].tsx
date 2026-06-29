@@ -59,7 +59,7 @@ export default function CaseDetailScreen() {
 
         <View style={styles.actionRow}>
           <Action icon="upload-file" label={t("cases.upload")} onPress={() => router.push({ pathname: "/cases/upload", params: { caseId: id } })} />
-          <Action icon="analytics" label={t("cases.analysis")} onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: id } })} />
+          <Action icon="analytics" label={t("cases.uploadHistory")} onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: id } })} />
         </View>
 
         <Card style={styles.readiness}>
