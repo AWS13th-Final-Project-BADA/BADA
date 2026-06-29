@@ -1,5 +1,5 @@
 ﻿import { useState } from "react";
-import { Alert, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { login } from "@/lib/auth";
@@ -72,14 +72,14 @@ export default function Login() {
 
 
         <Pressable style={styles.googleButton} onPress={() => doLogin("google")} disabled={busy}>
-          <Image source={{ uri: stitchImages.google }} style={styles.googleIcon} />
+          <Text style={styles.googleLogo}>G</Text>
           <Text style={styles.googleText}>{t("login.google")}</Text>
         </Pressable>
-        <StitchButton tone="kakao" icon="chat-bubble-outline" onPress={() => doLogin("kakao")} disabled={busy}>
-          <Text style={styles.kakaoText}>{t("login.kakao")}</Text>
+        <StitchButton tone="kakao" onPress={() => doLogin("kakao")} disabled={busy}>
+          <Text style={styles.kakaoText}>💬  {t("login.kakao")}</Text>
         </StitchButton>
         <StitchButton tone="naver" onPress={() => doLogin("naver")} disabled={busy}>
-          <Text style={styles.naverText}>{t("login.naver")}</Text>
+          <Text style={styles.naverText}>N  {t("login.naver")}</Text>
         </StitchButton>
 
         <Card style={styles.notice}>
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   trustIcon: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: stitch.blueSoft },
   trustTitle: { color: stitch.navy, fontSize: 15, lineHeight: 22, fontWeight: "900", textAlign: "center" },
   googleButton: { height: 52, borderRadius: 8, borderWidth: 1, borderColor: stitch.line, backgroundColor: stitch.surface, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 14 },
-  googleIcon: { width: 24, height: 24 },
+  googleLogo: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#fff", borderWidth: 1, borderColor: "#ddd", textAlign: "center", lineHeight: 26, fontSize: 16, fontWeight: "900", color: "#4285F4" },
   googleText: { color: stitch.navy, fontSize: 17, fontWeight: "900" },
   kakaoText: { color: stitch.navy, fontSize: 17, fontWeight: "900" },
   naverText: { color: "#fff", fontSize: 17, fontWeight: "900" },
