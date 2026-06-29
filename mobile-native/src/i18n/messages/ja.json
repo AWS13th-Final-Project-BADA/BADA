@@ -27,7 +27,8 @@
     "home": "ホーム",
     "cases": "事件",
     "chat": "チャット",
-    "community": "コミュニティ"
+    "community": "コミュニティ",
+    "settings": "設定"
   },
   "home": {
     "badge": "相談準備",

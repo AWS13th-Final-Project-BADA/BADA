@@ -107,7 +107,7 @@ export function TopBar({
   );
 }
 
-export function BottomNav({ active }: { active?: "home" | "cases" | "upload" | "assistant" | "community" }) {
+export function BottomNav({ active }: { active?: "home" | "cases" | "upload" | "assistant" | "community" | "settings" }) {
   const router = useRouter();
   const [fabOpen, setFabOpen] = useState(false);
 
@@ -129,12 +129,12 @@ export function BottomNav({ active }: { active?: "home" | "cases" | "upload" | "
       )}
       <View style={s.bottomNav}>
         <Tab icon="home" label={t("nav.home")} active={active === "home"} onPress={() => router.push("/")} />
-        <Tab icon="folder-open" label={t("nav.cases")} active={active === "cases"} onPress={() => router.push("/cases")} />
+        <Tab icon="forum" label={t("nav.community")} active={active === "community"} onPress={() => router.push("/community")} />
         <Pressable style={[s.centerTab, fabOpen && s.centerTabActive]} onPress={() => setFabOpen(!fabOpen)}>
           <MaterialIcons name={fabOpen ? "close" : "add"} size={32} color="#fff" />
         </Pressable>
         <Tab icon="smart-toy" label={t("nav.chat")} active={active === "assistant"} onPress={() => router.push("/chat")} />
-        <Tab icon="forum" label={t("nav.community")} active={active === "community"} onPress={() => router.push("/community")} />
+        <Tab icon="settings" label={t("nav.settings")} active={active === "settings"} onPress={() => router.push("/settings")} />
       </View>
     </>
   );

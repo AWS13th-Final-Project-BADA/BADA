@@ -27,7 +27,8 @@
     "home": "Home",
     "cases": "Cases",
     "chat": "Chat",
-    "community": "Community"
+    "community": "Community",
+    "settings": "Settings"
   },
   "home": {
     "badge": "Consultation prep",
