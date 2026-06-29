@@ -163,6 +163,8 @@
       "mismatch": "명세서 불일치",
       "deduction": "공제",
       "overtime": "연장근로",
+      "severance": "퇴직금",
+      "other": "기타",
       "no_contract": "계약서 없음"
     }
   },

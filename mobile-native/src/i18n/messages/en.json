@@ -163,6 +163,8 @@
       "mismatch": "Payslip mismatch",
       "deduction": "Deduction",
       "overtime": "Overtime",
+      "severance": "Severance",
+      "other": "Other",
       "no_contract": "No contract"
     }
   },
