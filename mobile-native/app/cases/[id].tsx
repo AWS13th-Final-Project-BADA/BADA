@@ -34,8 +34,8 @@ export default function CaseDetailScreen() {
 
   async function handleDelete() {
     Alert.alert(
-      t("common.delete"),
-      t("cases.detail"),
+      "사건을 삭제합니다.",
+      "이 사건을 삭제할까요?",
       [
         { text: t("common.cancel"), style: "cancel" },
         {
@@ -87,7 +87,7 @@ export default function CaseDetailScreen() {
         <View style={styles.manageRow}>
           <Pressable style={styles.editButton} onPress={() => router.push({ pathname: "/cases/new", params: { editId: id } })}>
             <MaterialIcons name="edit" size={18} color={stitch.blue} />
-            <Text style={styles.editButtonText}>{t("common.save")}</Text>
+            <Text style={styles.editButtonText}>{t("cases.actions.edit")}</Text>
           </Pressable>
           <Pressable style={styles.deleteButton} onPress={handleDelete}>
             <MaterialIcons name="delete-outline" size={18} color={stitch.red} />

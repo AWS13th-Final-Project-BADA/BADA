@@ -138,6 +138,7 @@
       "analyze": "Run analysis",
       "analyzeBody": "Organize consultation prep from uploaded files.",
       "rerun": "Run again",
+      "edit": "Edit",
       "rerunBody": "Refresh results with newly uploaded files.",
       "gps": "GPS record",
       "gpsBody": "Keep workplace attendance context.",

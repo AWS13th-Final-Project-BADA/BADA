@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchApi } from "@/lib/api";
 import type { Case, CaseCreate } from "@/lib/types";
 import { ISSUE_LABELS, ISSUE_TYPES } from "@/lib/types";
@@ -11,6 +11,9 @@ import { useLocale } from "@/i18n/LocaleContext";
 export default function NewCase() {
   const router = useRouter();
   const { locale } = useLocale();
+  const params = useLocalSearchParams<{ editId?: string }>();
+  const editId = params.editId || null;
+  const isEdit = !!editId;
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<CaseCreate>({
     workplace_name: "",
@@ -42,11 +45,19 @@ export default function NewCase() {
         agreed_hourly_wage: form.agreed_hourly_wage || null,
         issue_types: form.issue_types ?? [],
       };
-      const created = await fetchApi<Case>("/cases", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      router.replace({ pathname: "/cases/[id]", params: { id: created.id } });
+      if (isEdit) {
+        await fetchApi<Case>(`/cases/${editId}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+        router.back();
+      } else {
+        const created = await fetchApi<Case>("/cases", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        router.replace({ pathname: "/cases/[id]", params: { id: created.id } });
+      }
     } catch (e: any) {
       Alert.alert("저장 실패", String(e?.message ?? e));
     } finally {
@@ -56,7 +67,7 @@ export default function NewCase() {
 
   return (
     <StitchScreen active="cases">
-      <TopBar title={t("cases.newTitle")} back />
+      <TopBar title={isEdit ? t("cases.actions.edit") : t("cases.newTitle")} back />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View>
           <Text style={styles.title}>{t("cases.newTitle")}</Text>
@@ -135,7 +146,7 @@ export default function NewCase() {
         </Card>
 
         <StitchButton icon="folder-open" onPress={submit} disabled={busy}>
-          {busy ? <ActivityIndicator color="#fff" /> : t("cases.create")}
+          {busy ? <ActivityIndicator color="#fff" /> : isEdit ? t("cases.actions.edit") : t("cases.create")}
         </StitchButton>
 
         <Card style={styles.note}>
