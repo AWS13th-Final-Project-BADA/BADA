@@ -1,4 +1,4 @@
-﻿import { API_BASE, getToken } from "@/lib/api";
+﻿import { API_BASE, fetchApi, getToken } from "@/lib/api";
 import type { Category, FileType } from "@/shared/types";
 
 export interface PickedFile {
@@ -35,5 +35,22 @@ export async function uploadEvidence(
   }
 
   const body = await res.json().catch(() => ({}));
-  return { evidenceId: body.id || body.evidence_id || `uploaded-${Date.now()}`, via: "multipart" };
+  const evidenceId = body.id || body.evidence_id || `uploaded-${Date.now()}`;
+
+  // 업로드 완료 → OCR 추출 트리거 (비동기, 실패해도 업로드는 성공)
+  await triggerExtract(caseId);
+
+  return { evidenceId, via: "multipart" };
+}
+
+/**
+ * OCR 추출 트리거 — 업로드된 증거에 대해 비동기 OCR 실행 요청.
+ * 실패해도 업로드 결과에는 영향 없음 (사용자가 수동으로 재시도 가능).
+ */
+async function triggerExtract(caseId: string): Promise<void> {
+  try {
+    await fetchApi(`/cases/${caseId}/evidences/extract`, { method: "POST" });
+  } catch {
+    // OCR 트리거 실패는 무시 — 분석 시 재시도 가능
+  }
 }
