@@ -202,6 +202,7 @@
   },
   "analysis": {
     "title": "분석 결과",
+    "preAnalysis": "사전 분석 결과",
     "expected": "예상 금액",
     "received": "확인 금액",
     "suspected": "확인 필요",

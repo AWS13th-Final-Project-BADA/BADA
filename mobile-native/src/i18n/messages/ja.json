@@ -202,6 +202,7 @@
   },
   "analysis": {
     "title": "分析結果",
+    "preAnalysis": "事前分析結果",
     "expected": "予想金額",
     "received": "確認金額",
     "suspected": "確認が必要",

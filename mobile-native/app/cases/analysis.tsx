@@ -52,7 +52,7 @@ export default function AnalysisScreen() {
 
   return (
     <StitchScreen active="assistant" scroll={false}>
-      <TopBar title={t("analysis.title")} back />
+      <TopBar title={t("cases.uploadHistory")} back />
 
       {(loading || running) && (
         <View style={styles.loadingOverlay}>
@@ -66,7 +66,7 @@ export default function AnalysisScreen() {
 
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View>
-          <Text style={styles.screenTitle}>{t("analysis.title")}</Text>
+          <Text style={styles.screenTitle}>{t("cases.uploadHistory")}</Text>
           <Text style={styles.caseId}>Case #{String(caseId).slice(0, 8)}</Text>
         </View>
 
@@ -74,7 +74,7 @@ export default function AnalysisScreen() {
 
         <Card style={styles.summary}>
           <View style={styles.summaryTop}>
-            <Text style={styles.summaryTitle}>{t("analysis.title")}</Text>
+            <Text style={styles.summaryTitle}>{t("analysis.preAnalysis")}</Text>
             <Text style={styles.badge}>자료 기준</Text>
           </View>
           <View style={styles.summaryBodyWrap}>

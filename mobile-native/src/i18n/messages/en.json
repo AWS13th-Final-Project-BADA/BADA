@@ -202,6 +202,7 @@
   },
   "analysis": {
     "title": "Analysis",
+    "preAnalysis": "Preliminary analysis",
     "expected": "Expected",
     "received": "Received",
     "suspected": "Needs check",

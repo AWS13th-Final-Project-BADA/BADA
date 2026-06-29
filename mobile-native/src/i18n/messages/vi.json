@@ -202,6 +202,7 @@
   },
   "analysis": {
     "title": "Phân tích",
+    "preAnalysis": "Phân tích sơ bộ",
     "expected": "Dự kiến",
     "received": "Đã nhận",
     "suspected": "Cần kiểm tra",
