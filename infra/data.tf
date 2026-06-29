@@ -106,6 +106,45 @@ resource "aws_db_instance" "postgres" {
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-postgres" })
 }
 
+resource "aws_db_instance" "postgres_rehearsal" {
+  count = var.enable_rehearsal_multiaz_db ? 1 : 0
+
+  identifier              = var.rehearsal_db_identifier
+  engine                  = "postgres"
+  engine_version          = "16"
+  instance_class          = var.db_instance_class
+  allocated_storage       = var.db_allocated_storage
+  storage_encrypted       = true
+  kms_key_id              = var.rehearsal_db_kms_key_arn
+  db_name                 = "bada"
+  username                = var.db_username
+  password                = var.db_password
+  db_subnet_group_name    = aws_db_subnet_group.main.name
+  vpc_security_group_ids  = [aws_security_group.rds.id]
+  backup_retention_period = var.db_backup_retention_period
+  deletion_protection     = false
+  skip_final_snapshot     = var.rehearsal_db_skip_final_snapshot
+  final_snapshot_identifier = (
+    var.rehearsal_db_skip_final_snapshot ? null : var.rehearsal_db_final_snapshot_identifier
+  )
+  apply_immediately   = var.db_apply_immediately
+  publicly_accessible = false
+  multi_az            = true
+
+  tags = merge(local.common_tags, {
+    Name    = var.rehearsal_db_identifier
+    Purpose = "multi-az-rehearsal"
+  })
+}
+
+locals {
+  app_db_address = (
+    var.use_rehearsal_multiaz_db_as_app_db
+    ? aws_db_instance.postgres_rehearsal[0].address
+    : aws_db_instance.postgres.address
+  )
+}
+
 resource "aws_cognito_user_pool" "main" {
   name = "${local.name_prefix}-user-pool"
 
@@ -228,7 +267,7 @@ resource "aws_secretsmanager_secret_version" "app" {
   secret_string = jsonencode({
     db_username  = var.db_username
     db_password  = var.db_password
-    database_url = "postgresql+psycopg://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${aws_db_instance.postgres.address}:5432/bada"
+    database_url = "postgresql+psycopg://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${local.app_db_address}:5432/bada"
 
     # 소셜 OAuth (구글/카카오/네이버) + 자체 JWT 서명 — 값은 prod tfvars로 주입
     google_client_id     = var.google_client_id

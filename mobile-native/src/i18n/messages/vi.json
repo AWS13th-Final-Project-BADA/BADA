@@ -76,7 +76,9 @@
       "chat": "AI chat",
       "chatBody": "Chuẩn bị câu hỏi",
       "community": "Cộng đồng",
-      "communityBody": "Tìm tình huống tương tự"
+      "communityBody": "Tìm tình huống tương tự",
+      "kakao": "Kết nối Kakao",
+      "kakaoBody": "Xem hồ sơ trong chatbot"
     }
   },
   "login": {
@@ -239,6 +241,13 @@
     "quick2": "Khi tư vấn nên nói gì trước?",
     "quick3": "Đơn khiếu nại nên viết nội dung gì?",
     "sources": "Tài liệu tham khảo",
+    "sourceDetailTitle": "Chi tiết tài liệu",
+    "sourceOrg": "Cơ quan cung cấp",
+    "sourceSection": "Mục liên quan",
+    "sourceExcerpt": "Nội dung liên quan đến câu hỏi",
+    "sourceFallback": "Đã tham khảo mục liên quan khi chuẩn bị câu trả lời này.",
+    "sourceNotice": "Câu trả lời được tạo dựa trên nội dung liên quan trong tài liệu này.",
+    "sourceClose": "Đóng chi tiết tài liệu",
     "nextActions": "Việc cần chuẩn bị",
     "caseContext": "Hồ sơ muốn hỏi",
     "createCaseFirst": "Tạo hồ sơ trước",
@@ -268,6 +277,20 @@
       "translation": "Dịch",
       "notice": "Thông báo"
     }
+  },
+  "kakao": {
+    "title": "Kết nối chatbot Kakao",
+    "subtitle": "Gửi mã bên dưới đến kênh Kakao của BADA để xem hồ sơ của bạn trong chatbot.",
+    "codeLabel": "Mã kết nối của bạn",
+    "reissue": "Lấy mã mới",
+    "openChannel": "Mở kênh Kakao",
+    "step1": "Kiểm tra mã ở trên",
+    "step2": "Nhấn 'Mở kênh' và gửi mã trong kênh BADA",
+    "step3": "Đã kết nối — xem hồ sơ của bạn trong chatbot",
+    "guide": "Bạn chỉ cần kết nối một lần.",
+    "error": "Không thể tạo mã kết nối. Vui lòng thử lại sau.",
+    "authError": "Cần đăng nhập. Vui lòng đăng nhập lại.",
+    "channelError": "Không thể mở kênh Kakao."
   },
   "disclaimer": "BADA không đưa ra phán đoán pháp lý. Dịch vụ chỉ sắp xếp tài liệu để chuẩn bị tư vấn."
 }

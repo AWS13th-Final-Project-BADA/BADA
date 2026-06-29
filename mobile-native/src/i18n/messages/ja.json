@@ -76,7 +76,9 @@
       "chat": "AIチャット",
       "chatBody": "相談前の質問整理",
       "community": "コミュニティ",
-      "communityBody": "似た状況を探す"
+      "communityBody": "似た状況を探す",
+      "kakao": "カカオ連携",
+      "kakaoBody": "チャットボットで事件確認"
     }
   },
   "login": {
@@ -239,6 +241,13 @@
     "quick2": "相談時に何から話せばいいですか？",
     "quick3": "陳情書には何を書けばいいですか？",
     "sources": "参考資料",
+    "sourceDetailTitle": "参照資料",
+    "sourceOrg": "提供機関",
+    "sourceSection": "関連項目",
+    "sourceExcerpt": "質問に関連する内容",
+    "sourceFallback": "この回答を作成する際に関連項目を参照しました。",
+    "sourceNotice": "この資料の関連内容を参照して回答を作成しました。",
+    "sourceClose": "参照資料を閉じる",
     "nextActions": "次の準備",
     "caseContext": "質問する事件",
     "createCaseFirst": "まず事件を作成",
@@ -268,6 +277,20 @@
       "translation": "翻訳",
       "notice": "お知らせ"
     }
+  },
+  "kakao": {
+    "title": "カカオトークチャットボット連携",
+    "subtitle": "下のコードをBADAのカカオトークチャンネルに送ると、チャットボットで事件を確認できます。",
+    "codeLabel": "連携コード",
+    "reissue": "新しいコードを取得",
+    "openChannel": "カカオトークチャンネルを開く",
+    "step1": "上のコードを確認してください",
+    "step2": "「チャンネルを開く」を押してBADAチャンネルでコードを送信",
+    "step3": "連携完了 — チャットボットで事件を確認できます",
+    "guide": "一度だけ連携すれば完了です。",
+    "error": "連携コードを発行できませんでした。後でもう一度お試しください。",
+    "authError": "ログインが必要です。再度ログインしてください。",
+    "channelError": "カカオトークチャンネルを開けませんでした。"
   },
   "disclaimer": "BADAは法的判断を行いません。アップロードした資料を相談準備用に整理します。"
 }

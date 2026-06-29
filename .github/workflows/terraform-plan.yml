@@ -33,6 +33,38 @@ env:
   TF_VAR_naver_client_id: ${{ secrets.TF_NAVER_CLIENT_ID }}
   TF_VAR_naver_client_secret: ${{ secrets.TF_NAVER_CLIENT_SECRET }}
   TF_VAR_jwt_secret: ${{ secrets.TF_JWT_SECRET }}
+  # 운영 dev state와 동일한 비민감 변수. PR plan이 기본값으로 되돌아가며
+  # HTTPS/모니터링/서비스 수량 drift를 오탐하지 않도록 맞춘다.
+  TF_VAR_domain_name: badasoft.com
+  TF_VAR_frontend_enabled: "false"
+  TF_VAR_frontend_desired_count: "0"
+  TF_VAR_monitoring_enabled: "true"
+  TF_VAR_api_container_image: 165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-backend:latest
+  TF_VAR_worker_container_image: 165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-worker:latest
+  TF_VAR_backend_desired_count: "1"
+  TF_VAR_worker_desired_count: "1"
+  TF_VAR_worker_task_cpu: "512"
+  TF_VAR_worker_task_memory: "1024"
+  TF_VAR_cognito_callback_urls: '["https://api.badasoft.com/auth/cognito/callback"]'
+  TF_VAR_cognito_logout_urls: '["https://badasoft.com/"]'
+  TF_VAR_alarm_email_endpoints: '["badajoa0710@gmail.com"]'
+  TF_VAR_enable_google_identity_provider: "true"
+  TF_VAR_google_oauth_client_id: ${{ secrets.TF_GOOGLE_OAUTH_CLIENT_ID }}
+  TF_VAR_google_oauth_client_secret: ${{ secrets.TF_GOOGLE_OAUTH_CLIENT_SECRET }}
+  TF_VAR_backend_auth_mode: oauth
+  TF_VAR_backend_app_base_url: https://badasoft.com/
+  TF_VAR_backend_cors_allowed_origins: '["https://badasoft.com","https://www.badasoft.com"]'
+  TF_VAR_backend_transcription_dispatch_mode: sqs
+  TF_VAR_backend_provider_mode: aws
+  TF_VAR_backend_ai_chat_mode: bedrock
+  TF_VAR_backend_embedding_mode: mock
+  TF_VAR_backend_transcribe_mode: aws
+  TF_VAR_worker_provider_mode: aws
+  TF_VAR_worker_transcribe_mode: aws
+  TF_VAR_worker_translate_mode: aws
+  TF_VAR_worker_structured_engine: vision
+  TF_VAR_enable_rehearsal_multiaz_db: "true"
+  TF_VAR_use_rehearsal_multiaz_db_as_app_db: "true"
 
 jobs:
   plan:
