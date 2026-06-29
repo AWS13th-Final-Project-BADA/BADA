@@ -17,6 +17,7 @@ export default function AnalysisScreen() {
   const { locale } = useLocale();
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [evidenceCount, setEvidenceCount] = useState<number | null>(null);
+  const [evidences, setEvidences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [needsRerun, setNeedsRerun] = useState(false);
@@ -37,6 +38,7 @@ export default function AnalysisScreen() {
         setNeedsRerun(true);
       }
       setEvidenceCount(Array.isArray(evidences) ? evidences.length : 0);
+      setEvidences(Array.isArray(evidences) ? evidences : []);
     }).finally(() => setLoading(false));
   }, [caseId]);
 
@@ -81,40 +83,58 @@ export default function AnalysisScreen() {
         </View>
 
         {!loading && !report ? (
-          needsRerun ? (
-            <Card style={styles.emptyAnalysis}>
-              <MaterialIcons name="refresh" size={48} color={stitch.blue} />
-              <Text style={styles.emptyAnalysisTitle}>{t("cases.actions.rerun")}</Text>
-              <Text style={styles.emptyAnalysisBody}>{t("cases.actions.rerunBody")}</Text>
-              <View style={styles.emptyButtonWrap}>
-                <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
-                  {t("cases.runAnalysis")}
-                </StitchButton>
-              </View>
-            </Card>
-          ) : evidenceCount === 0 ? (
-            <Card style={styles.emptyAnalysis}>
-              <MaterialIcons name="cloud-upload" size={48} color={stitch.outline} />
-              <Text style={styles.emptyAnalysisTitle}>{t("analysis.needUpload")}</Text>
-              <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
-              <View style={styles.emptyButtonWrap}>
-                <StitchButton icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
-                  {t("cases.upload")}
-                </StitchButton>
-              </View>
-            </Card>
-          ) : (
-            <Card style={styles.emptyAnalysis}>
-              <MaterialIcons name="analytics" size={48} color={stitch.blue} />
-              <Text style={styles.emptyAnalysisTitle}>{t("analysis.none")}</Text>
-              <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
-              <View style={styles.emptyButtonWrap}>
-                <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
-                  {t("cases.runAnalysis")}
-                </StitchButton>
-              </View>
-            </Card>
-          )
+          <>
+            {needsRerun ? (
+              <Card style={styles.emptyAnalysis}>
+                <MaterialIcons name="refresh" size={48} color={stitch.blue} />
+                <Text style={styles.emptyAnalysisTitle}>{t("cases.actions.rerun")}</Text>
+                <Text style={styles.emptyAnalysisBody}>{t("cases.actions.rerunBody")}</Text>
+                <View style={styles.emptyButtonWrap}>
+                  <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
+                    {t("cases.runAnalysis")}
+                  </StitchButton>
+                </View>
+              </Card>
+            ) : evidenceCount === 0 ? (
+              <Card style={styles.emptyAnalysis}>
+                <MaterialIcons name="cloud-upload" size={48} color={stitch.outline} />
+                <Text style={styles.emptyAnalysisTitle}>{t("analysis.needUpload")}</Text>
+                <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
+                <View style={styles.emptyButtonWrap}>
+                  <StitchButton icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
+                    {t("cases.upload")}
+                  </StitchButton>
+                </View>
+              </Card>
+            ) : (
+              <Card style={styles.emptyAnalysis}>
+                <MaterialIcons name="analytics" size={48} color={stitch.blue} />
+                <Text style={styles.emptyAnalysisTitle}>{t("analysis.none")}</Text>
+                <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
+                <View style={styles.emptyButtonWrap}>
+                  <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
+                    {t("cases.runAnalysis")}
+                  </StitchButton>
+                </View>
+              </Card>
+            )}
+
+            {evidences.length > 0 && (
+              <Card style={styles.evidenceListCard}>
+                <Text style={styles.evidenceListTitle}>{t("upload.currentFiles")} ({evidences.length})</Text>
+                {evidences.map((item, index) => (
+                  <View key={item.id || index} style={[styles.evidenceRow, index < evidences.length - 1 && styles.evidenceDivider]}>
+                    <MaterialIcons name="description" size={20} color={stitch.blue} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.evidenceName} numberOfLines={1}>{item.file_name || item.original_filename || `파일 ${index + 1}`}</Text>
+                      <Text style={styles.evidenceCategory}>{item.category ? t("upload.categories." + item.category) : ""}</Text>
+                    </View>
+                    <MaterialIcons name="check-circle" size={18} color={stitch.green} />
+                  </View>
+                ))}
+              </Card>
+            )}
+          </>
         ) : null}
 
         {report ? (
@@ -181,9 +201,6 @@ export default function AnalysisScreen() {
           <Text style={styles.disclaimerText}>{t("disclaimer")}</Text>
         </Card>
 
-        <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
-          {running ? t("common.loading") : report ? t("cases.actions.rerun") : t("cases.runAnalysis")}
-        </StitchButton>
         <StitchButton tone="secondary" onPress={() => router.push({ pathname: "/chat", params: { caseId } })}>
           <Text style={styles.secondaryButton}>{t("cases.actions.chatBody")}</Text>
         </StitchButton>
@@ -344,4 +361,10 @@ const styles = StyleSheet.create({
   emptyAnalysisTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", textAlign: "center" },
   emptyAnalysisBody: { color: stitch.muted, fontSize: 14, fontWeight: "700", textAlign: "center", lineHeight: 20, marginBottom: 8 },
   emptyButtonWrap: { width: "100%", paddingHorizontal: 16 },
+  evidenceListCard: { padding: 16, gap: 0 },
+  evidenceListTitle: { color: stitch.text, fontSize: 16, fontWeight: "900", marginBottom: 12 },
+  evidenceRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
+  evidenceDivider: { borderBottomWidth: 1, borderBottomColor: "rgba(198,198,205,0.28)" },
+  evidenceName: { color: stitch.text, fontSize: 14, fontWeight: "700" },
+  evidenceCategory: { color: stitch.outline, fontSize: 12, fontWeight: "700", marginTop: 2 },
 });
