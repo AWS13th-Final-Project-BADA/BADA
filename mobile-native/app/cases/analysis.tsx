@@ -19,16 +19,22 @@ export default function AnalysisScreen() {
   const [evidenceCount, setEvidenceCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [needsRerun, setNeedsRerun] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     Promise.all([
-      fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`).catch(() => null),
+      fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`).catch((e) => {
+        if (e?.status === 409) return "NEEDS_RERUN";
+        return null;
+      }),
       fetchApi<any[]>(`/cases/${caseId}/evidences`).catch(() => []),
     ]).then(([analysisData, evidences]) => {
-      if (analysisData) {
-        setReport(analysisData);
+      if (analysisData && analysisData !== "NEEDS_RERUN") {
+        setReport(analysisData as AnalysisReport);
         scrollRef.current?.scrollTo({ y: 0, animated: true });
+      } else if (analysisData === "NEEDS_RERUN") {
+        setNeedsRerun(true);
       }
       setEvidenceCount(Array.isArray(evidences) ? evidences.length : 0);
     }).finally(() => setLoading(false));
@@ -75,7 +81,18 @@ export default function AnalysisScreen() {
         </View>
 
         {!loading && !report ? (
-          evidenceCount === 0 ? (
+          needsRerun ? (
+            <Card style={styles.emptyAnalysis}>
+              <MaterialIcons name="refresh" size={48} color={stitch.blue} />
+              <Text style={styles.emptyAnalysisTitle}>{t("cases.actions.rerun")}</Text>
+              <Text style={styles.emptyAnalysisBody}>{t("cases.actions.rerunBody")}</Text>
+              <View style={styles.emptyButtonWrap}>
+                <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
+                  {t("cases.runAnalysis")}
+                </StitchButton>
+              </View>
+            </Card>
+          ) : evidenceCount === 0 ? (
             <Card style={styles.emptyAnalysis}>
               <MaterialIcons name="cloud-upload" size={48} color={stitch.outline} />
               <Text style={styles.emptyAnalysisTitle}>{t("analysis.needUpload")}</Text>
