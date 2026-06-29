@@ -163,17 +163,6 @@ export default function Home() {
           />
         </View>
 
-        <Pressable style={styles.recommend} onPress={() => router.push("/cases/upload")}>
-          <View style={styles.recommendIcon}>
-            <MaterialIcons name="upload-file" size={22} color="#fff" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.recommendLabel}>{t("home.nextTitle")}</Text>
-            <Text style={styles.recommendText}>{t("home.next.uploadBody")}</Text>
-          </View>
-          <MaterialIcons name="chevron-right" size={24} color="#fff" />
-        </Pressable>
-
         <SectionLabel action={<Pressable onPress={() => router.push("/community")}><Text style={styles.viewAll}>{t("home.recentTitle")}</Text></Pressable>}>{t("community.title")}</SectionLabel>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.communityScroll}>
           {recentPosts.length > 0 ? (
