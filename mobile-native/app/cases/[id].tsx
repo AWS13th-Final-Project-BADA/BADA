@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { fetchApi } from "@/lib/api";
@@ -32,6 +32,28 @@ export default function CaseDetailScreen() {
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
+  async function handleDelete() {
+    Alert.alert(
+      t("common.delete"),
+      t("cases.detail"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await fetchApi(`/cases/${id}`, { method: "DELETE" });
+              router.replace("/cases");
+            } catch {
+              Alert.alert(t("cases.loadError"));
+            }
+          },
+        },
+      ]
+    );
+  }
+
   if (loading) {
     return (
       <StitchScreen active="cases">
@@ -60,6 +82,17 @@ export default function CaseDetailScreen() {
         <View style={styles.actionRow}>
           <Action icon="upload-file" label={t("cases.upload")} onPress={() => router.push({ pathname: "/cases/upload", params: { caseId: id } })} />
           <Action icon="analytics" label={t("cases.uploadHistory")} onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: id } })} />
+        </View>
+
+        <View style={styles.manageRow}>
+          <Pressable style={styles.editButton} onPress={() => router.push({ pathname: "/cases/new", params: { editId: id } })}>
+            <MaterialIcons name="edit" size={18} color={stitch.blue} />
+            <Text style={styles.editButtonText}>{t("common.save")}</Text>
+          </Pressable>
+          <Pressable style={styles.deleteButton} onPress={handleDelete}>
+            <MaterialIcons name="delete-outline" size={18} color={stitch.red} />
+            <Text style={styles.deleteButtonText}>{t("common.delete")}</Text>
+          </Pressable>
         </View>
 
         <Card style={styles.readiness}>
@@ -163,6 +196,11 @@ const styles = StyleSheet.create({
   status: { color: stitch.muted, fontSize: 13, lineHeight: 20 },
   statusStrong: { color: stitch.text, fontWeight: "900" },
   actionRow: { flexDirection: "row", gap: 12 },
+  manageRow: { flexDirection: "row", gap: 10 },
+  editButton: { flex: 1, height: 40, borderRadius: 8, borderWidth: 1, borderColor: stitch.blue, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  editButtonText: { color: stitch.blue, fontSize: 13, fontWeight: "900" },
+  deleteButton: { flex: 1, height: 40, borderRadius: 8, borderWidth: 1, borderColor: stitch.red, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  deleteButtonText: { color: stitch.red, fontSize: 13, fontWeight: "900" },
   action: { flex: 1, height: 52, borderRadius: 8, backgroundColor: stitch.navy, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
   actionText: { color: "#fff", fontSize: 14, fontWeight: "900" },
   readiness: { padding: 16 },
