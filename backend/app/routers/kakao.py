@@ -115,15 +115,19 @@ def _connect_btn_if(linked, lang):
 
 
 def _welcome(lang):
-    """첫 진입 대표 화면 — 카드 캐러셀(여러 장, 넘겨보기) + 하단 메뉴 칩."""
-    items = []
-    for title, desc, btns in WELCOME_CARDS[lang]:
-        items.append({
-            "title": (title or "")[:50],
-            "description": (desc or "")[:230],
-            "buttons": [{"action": "message", "label": l, "messageText": m} for l, m in btns][:3],
-        })
-    return _card_response({"carousel": {"type": "basicCard", "items": items}}, lang, menu=True, with_disc=False)
+    """첫 진입 대표 화면 — textCard(제목+설명+버튼) + 하단 메뉴 칩.
+
+    basicCard 캐러셀은 카카오 규격상 thumbnail이 필수라 미발송 처리될 수 있어,
+    이미지가 필요 없는 textCard로 첫 카드 내용을 보여준다. 버튼/문구는 동일.
+    """
+    title, desc, btns = WELCOME_CARDS[lang][0]
+    buttons = [{"action": "message", "label": l, "messageText": m} for l, m in btns]
+    card = {"textCard": {
+        "title": (title or "")[:50],
+        "description": (desc or "")[:400],
+        "buttons": buttons[:3],
+    }}
+    return _card_response(card, lang, menu=True, with_disc=False)
 
 
 def _link_help(lang):
