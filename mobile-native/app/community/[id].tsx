@@ -59,7 +59,7 @@ export default function CommunityPostDetail() {
   const [comment, setComment] = useState("");
   const [replyTo, setReplyTo] = useState<CommunityComment | null>(null);
   const [sending, setSending] = useState(false);
-  const [postTranslation, setPostTranslation] = useState("");
+  const [postTranslation, setPostTranslation] = useState<{ title: string; content: string } | null>(null);
   const [postTranslationVisible, setPostTranslationVisible] = useState(false);
   const [translatingPost, setTranslatingPost] = useState(false);
   const [commentTranslations, setCommentTranslations] = useState<Record<string, string>>({});
@@ -123,7 +123,10 @@ export default function CommunityPostDetail() {
     setTranslatingPost(true);
     try {
       const result = await translateCommunityTarget("post", post.id, locale);
-      setPostTranslation(result.translated_text);
+      setPostTranslation({
+        title: result.translated_title || post.title,
+        content: result.translated_content || result.translated_text,
+      });
       setPostTranslationVisible(true);
     } catch (nextError) {
       Alert.alert(t("community.translationFailed"), communityErrorMessage(nextError, t("community.tryAgain")));
@@ -318,8 +321,8 @@ export default function CommunityPostDetail() {
               </View>
               <View style={styles.categoryPill}><Text style={styles.categoryText}>{t(`community.categories.${post.category}`)}</Text></View>
             </View>
-            <Text style={styles.title}>{post.title}</Text>
-            <Text style={styles.body}>{postTranslationVisible ? postTranslation : post.content}</Text>
+            <Text style={styles.title}>{postTranslationVisible && postTranslation ? postTranslation.title : post.title}</Text>
+            <Text style={styles.body}>{postTranslationVisible && postTranslation ? postTranslation.content : post.content}</Text>
             {postTranslationVisible ? <Text style={styles.translationNotice}>{t("community.translationNotice")}</Text> : null}
             <View style={styles.postUtilityRow}>
               {canTranslatePost ? <CommunityAction icon="translate" label={translatingPost ? t("community.translating") : postTranslationVisible ? t("community.original") : t("community.translate")} active={postTranslationVisible} disabled={translatingPost} onPress={() => void togglePostTranslation()} /> : <View />}

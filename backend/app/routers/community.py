@@ -181,7 +181,15 @@ def community_translate(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    source_language, target_language, translated_text, provider, cached = translate_target(
+    (
+        source_language,
+        target_language,
+        translated_text,
+        provider,
+        cached,
+        translated_title,
+        translated_content,
+    ) = translate_target(
         db,
         target_type=payload.target_type,
         target_id=payload.target_id,
@@ -193,6 +201,8 @@ def community_translate(
         "source_language": source_language,
         "target_language": target_language,
         "translated_text": translated_text,
+        "translated_title": translated_title,
+        "translated_content": translated_content,
         "provider": provider,
         "cached": cached,
     }

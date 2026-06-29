@@ -188,3 +188,100 @@ def test_community_report_create_list_and_status_update():
 
     updated = update_report_status(db, report.id, "resolved")
     assert updated.status == "resolved"
+
+def test_post_translation_includes_title_and_reuses_cache(monkeypatch):
+    from app.schemas_community import CommunityPostCreate
+    from app.services import community_service
+
+    db, user = make_db()
+    post = create_post(
+        db,
+        user,
+        CommunityPostCreate(
+            category="free",
+            title="Original title",
+            content="Original content",
+            language="en",
+        ),
+    )
+    calls = []
+
+    def fake_translate(text, source_language, target_language):
+        calls.append(text)
+        return f"ko:{text}", "test"
+
+    monkeypatch.setattr(community_service, "translate_text", fake_translate)
+
+    first = community_service.translate_target(
+        db,
+        target_type="post",
+        target_id=post.id,
+        target_language="ko",
+    )
+    second = community_service.translate_target(
+        db,
+        target_type="post",
+        target_id=post.id,
+        target_language="ko",
+    )
+
+    assert first[2] == "ko:Original content"
+    assert first[4] is False
+    assert first[5] == "ko:Original title"
+    assert first[6] == "ko:Original content"
+    assert second[2] == "ko:Original content"
+    assert second[4] is True
+    assert second[5] == "ko:Original title"
+    assert second[6] == "ko:Original content"
+    assert calls == ["Original content", "Original title"]
+
+def test_post_translation_upgrades_legacy_content_only_cache(monkeypatch):
+    from app.models import CommunityTranslation
+    from app.schemas_community import CommunityPostCreate
+    from app.services import community_service
+
+    db, user = make_db()
+    post = create_post(
+        db,
+        user,
+        CommunityPostCreate(
+            category="free",
+            title="Legacy title",
+            content="Legacy content",
+            language="en",
+        ),
+    )
+    db.add(
+        CommunityTranslation(
+            target_type="post",
+            target_id=post.id,
+            source_language="en",
+            target_language="ko",
+            translated_text="cached content",
+            provider="test",
+            cached=True,
+        )
+    )
+    db.commit()
+
+    monkeypatch.setattr(
+        community_service,
+        "translate_text",
+        lambda text, source_language, target_language: (f"ko:{text}", "test"),
+    )
+
+    result = community_service.translate_target(
+        db,
+        target_type="post",
+        target_id=post.id,
+        target_language="ko",
+    )
+    cached = db.query(CommunityTranslation).filter_by(target_id=post.id).one()
+    cached_title, cached_content = community_service._decode_post_translation(cached.translated_text)
+
+    assert result[2] == "cached content"
+    assert result[4] is True
+    assert result[5] == "ko:Legacy title"
+    assert result[6] == "cached content"
+    assert cached_title == "ko:Legacy title"
+    assert cached_content == "cached content"

@@ -130,6 +130,8 @@ class CommunityTranslationResponse(BaseModel):
     translated_text: str
     provider: str
     cached: bool
+    translated_title: str | None = None
+    translated_content: str | None = None
 
 
 class CommunityReportRequest(BaseModel):

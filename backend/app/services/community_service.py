@@ -329,12 +329,37 @@ def toggle_reaction(db: Session, user: User, *, target_type: str, target_id: str
     return active, getattr(target, "like_count", None), getattr(target, "saved_count", None)
 
 
-def translate_target(db: Session, *, target_type: str, target_id: str, target_language: str) -> tuple[str, str, str, str, bool]:
+def _encode_post_translation(title: str, content: str) -> str:
+    return json.dumps({"title": title, "content": content}, ensure_ascii=False)
+
+
+def _decode_post_translation(value: str) -> tuple[str | None, str]:
+    try:
+        payload = json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return None, value
+    if not isinstance(payload, dict):
+        return None, value
+    title = payload.get("title")
+    content = payload.get("content")
+    if isinstance(title, str) and isinstance(content, str):
+        return title, content
+    return None, value
+
+
+def translate_target(
+    db: Session,
+    *,
+    target_type: str,
+    target_id: str,
+    target_language: str,
+) -> tuple[str, str, str, str, bool, str | None, str]:
     target = _get_target(db, target_type, target_id)
     target_language = normalize_language_code(target_language)
     source_language = getattr(target, "language_code", None) or detect_message_language(target.content)
     if source_language == target_language:
-        return source_language, target_language, target.content, "identity", True
+        title = target.title if target_type == "post" else None
+        return source_language, target_language, target.content, "identity", True, title, target.content
 
     cached = (
         db.query(CommunityTranslation)
@@ -346,21 +371,57 @@ def translate_target(db: Session, *, target_type: str, target_id: str, target_la
         .first()
     )
     if cached:
-        return cached.source_language, cached.target_language, cached.translated_text, cached.provider, True
+        if target_type == "post":
+            translated_title, translated_content = _decode_post_translation(cached.translated_text)
+            if translated_title is None:
+                translated_title, _ = translate_text(target.title, source_language, target_language)
+                cached.translated_text = _encode_post_translation(translated_title, translated_content)
+                db.commit()
+            return (
+                cached.source_language,
+                cached.target_language,
+                translated_content,
+                cached.provider,
+                True,
+                translated_title,
+                translated_content,
+            )
+        return (
+            cached.source_language,
+            cached.target_language,
+            cached.translated_text,
+            cached.provider,
+            True,
+            None,
+            cached.translated_text,
+        )
 
-    translated_text, provider = translate_text(target.content, source_language, target_language)
+    translated_content, provider = translate_text(target.content, source_language, target_language)
+    translated_title = None
+    cached_text = translated_content
+    if target_type == "post":
+        translated_title, _ = translate_text(target.title, source_language, target_language)
+        cached_text = _encode_post_translation(translated_title, translated_content)
     row = CommunityTranslation(
         target_type=target_type,
         target_id=target_id,
         source_language=source_language,
         target_language=target_language,
-        translated_text=translated_text,
+        translated_text=cached_text,
         provider=provider,
         cached=True,
     )
     db.add(row)
     db.commit()
-    return source_language, target_language, translated_text, provider, False
+    return (
+        source_language,
+        target_language,
+        translated_content,
+        provider,
+        False,
+        translated_title,
+        translated_content,
+    )
 
 
 def translate_text(text: str, source_language: str, target_language: str) -> tuple[str, str]:
