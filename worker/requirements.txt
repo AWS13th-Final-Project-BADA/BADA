@@ -12,3 +12,4 @@ shapely==2.0.6          # local geofence (polygon). Prod uses PostGIS ST_Contain
 weasyprint==63.0        # PDF render. Windows: needs GTK runtime (W3 only).
 sqlalchemy==2.0.35      # DB direct access (Stage 2)
 psycopg[binary]==3.2.3  # PostgreSQL driver
+aws-xray-sdk>=2.12.0

@@ -15,6 +15,7 @@ from .middleware import SecurityHeadersMiddleware
 from .middleware.rate_limit import RateLimitMiddleware
 from .middleware.request_id import RequestIdMiddleware
 from .middleware.prometheus import PrometheusMiddleware
+from .middleware.xray import setup_xray
 from .routers import ai_chat, analysis, auth, cases, community, evidences, gps, kakao, notifications
 
 setup_logging(level=os.environ.get("LOG_LEVEL", "INFO"))
@@ -23,6 +24,7 @@ if settings.database_auto_create:
     init_db()  # MVP 자동 테이블 생성. 운영/마이그레이션 도입 후 false 권장.
 
 app = FastAPI(title="BADA API", description="상담 준비용 증거 정리 도구 - 법률자문 아님", version="0.1.0")
+setup_xray(app)
 
 # ─── CORS: 허용 오리진 제한 (SECURITY-08) ────────────────────────────────────
 _allowed_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
