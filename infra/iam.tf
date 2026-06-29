@@ -173,6 +173,17 @@ resource "aws_iam_role_policy" "ecs_task_app_access" {
       {
         Effect = "Allow"
         Action = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords",
+          "xray:GetSamplingRules",
+          "xray:GetSamplingTargets",
+          "xray:GetSamplingStatisticSummaries"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "secretsmanager:GetSecretValue"
         ]
         Resource = aws_secretsmanager_secret.app.arn

@@ -321,6 +321,24 @@ variable "ecs_cpu_architecture" {
   }
 }
 
+variable "backend_xray_enabled" {
+  description = "Enable AWS X-Ray tracing for the Backend ECS task. Keep false until the Backend X-Ray middleware imports a supported SDK integration."
+  type        = bool
+  default     = false
+}
+
+variable "worker_xray_enabled" {
+  description = "Enable AWS X-Ray tracing for the Worker ECS task."
+  type        = bool
+  default     = true
+}
+
+variable "xray_daemon_image" {
+  description = "AWS X-Ray daemon sidecar image used by Backend and Worker ECS tasks."
+  type        = string
+  default     = "public.ecr.aws/xray/aws-xray-daemon:latest"
+}
+
 variable "database_auto_create" {
   description = "Whether the backend should auto-create database tables at startup"
   type        = bool

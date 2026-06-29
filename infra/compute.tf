@@ -79,7 +79,7 @@ resource "aws_ecs_task_definition" "backend" {
     cpu_architecture        = var.ecs_cpu_architecture
   }
 
-  container_definitions = jsonencode([
+  container_definitions = jsonencode(concat([
     {
       name      = "backend"
       image     = local.backend_image
@@ -120,7 +120,10 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "COGNITO_REDIRECT_URI", value = var.cognito_callback_urls[0] },
         { name = "COGNITO_LOGOUT_URI", value = var.cognito_logout_urls[0] },
         { name = "COGNITO_SCOPES", value = join(" ", var.cognito_oauth_scopes) },
-        { name = "RETENTION_DAYS", value = tostring(var.retention_days) }
+        { name = "RETENTION_DAYS", value = tostring(var.retention_days) },
+        { name = "XRAY_ENABLED", value = tostring(var.backend_xray_enabled) },
+        { name = "AWS_XRAY_DAEMON_ADDRESS", value = "127.0.0.1:2000" },
+        { name = "AWS_XRAY_CONTEXT_MISSING", value = "LOG_ERROR" }
       ]
 
       secrets = [
@@ -146,7 +149,37 @@ resource "aws_ecs_task_definition" "backend" {
         }
       }
     }
-  ])
+    ], var.backend_xray_enabled ? [
+    {
+      name              = "xray-daemon"
+      image             = var.xray_daemon_image
+      essential         = false
+      cpu               = 32
+      memoryReservation = 64
+      command           = ["-o"]
+
+      portMappings = [
+        {
+          containerPort = 2000
+          hostPort      = 2000
+          protocol      = "udp"
+        }
+      ]
+
+      environment = [
+        { name = "AWS_REGION", value = var.aws_region }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.xray[0].name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "backend-xray"
+        }
+      }
+    }
+  ] : []))
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-backend-task" })
 }
@@ -165,7 +198,7 @@ resource "aws_ecs_task_definition" "worker" {
     cpu_architecture        = var.ecs_cpu_architecture
   }
 
-  container_definitions = jsonencode([
+  container_definitions = jsonencode(concat([
     {
       name      = "worker"
       image     = local.worker_image
@@ -180,7 +213,10 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "S3_BUCKET", value = aws_s3_bucket.evidence.bucket },
         { name = "S3_REPORT_BUCKET", value = aws_s3_bucket.report.bucket },
         { name = "DATABASE_SSL_MODE", value = "require" },
-        { name = "SQS_QUEUE_URL", value = aws_sqs_queue.analysis.url }
+        { name = "SQS_QUEUE_URL", value = aws_sqs_queue.analysis.url },
+        { name = "XRAY_ENABLED", value = tostring(var.worker_xray_enabled) },
+        { name = "AWS_XRAY_DAEMON_ADDRESS", value = "127.0.0.1:2000" },
+        { name = "AWS_XRAY_CONTEXT_MISSING", value = "LOG_ERROR" }
       ]
 
       secrets = [
@@ -199,7 +235,37 @@ resource "aws_ecs_task_definition" "worker" {
         }
       }
     }
-  ])
+    ], var.worker_xray_enabled ? [
+    {
+      name              = "xray-daemon"
+      image             = var.xray_daemon_image
+      essential         = false
+      cpu               = 32
+      memoryReservation = 64
+      command           = ["-o"]
+
+      portMappings = [
+        {
+          containerPort = 2000
+          hostPort      = 2000
+          protocol      = "udp"
+        }
+      ]
+
+      environment = [
+        { name = "AWS_REGION", value = var.aws_region }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.xray[0].name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "worker-xray"
+        }
+      }
+    }
+  ] : []))
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-task" })
 }
