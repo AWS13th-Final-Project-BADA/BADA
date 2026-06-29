@@ -71,17 +71,17 @@ export default function UploadScreen() {
 
   async function upload(file: PickedFile) {
     if (!activeCaseId) {
-      Alert.alert("사건이 필요해요", "자료를 올리려면 먼저 사건을 만들거나 선택해야 합니다.");
+      Alert.alert(t("upload.uploadError"), t("upload.emptyBody"));
       return;
     }
 
     setBusy(true);
     try {
       await uploadEvidence(activeCaseId, file, selected.key, selected.type);
-      setFiles((prev) => [{ name: file.name, status: "업로드 완료" }, ...prev]);
-      Alert.alert("업로드 완료", "증거 자료가 사건 폴더에 추가되었어요.");
+      setFiles((prev) => [{ name: file.name, status: t("upload.done") }, ...prev]);
+      Alert.alert(t("upload.done"), t("upload.done"));
     } catch (e: any) {
-      Alert.alert("업로드 실패", String(e?.message ?? e));
+      Alert.alert(t("upload.uploadError"), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -177,6 +177,17 @@ export default function UploadScreen() {
   return (
     <StitchScreen active="upload">
       <TopBar title={t("upload.title")} back right="help-outline" />
+
+      {busy && (
+        <View style={styles.uploadOverlay}>
+          <View style={styles.uploadModal}>
+            <ActivityIndicator size="large" color={stitch.blue} />
+            <Text style={styles.uploadModalTitle}>{t("upload.uploading")}</Text>
+            <Text style={styles.uploadModalBody}>{t("upload.tip")}</Text>
+          </View>
+        </View>
+      )}
+
       <View style={styles.content}>
         <View style={styles.stepHeader}>
           <View style={{ flex: 1 }}>
@@ -311,4 +322,8 @@ const styles = StyleSheet.create({
   noFilesText: { color: stitch.outline, fontSize: 13, fontWeight: "800" },
   addMore: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 48, borderRadius: 8, borderWidth: 1, borderColor: "rgba(0,81,213,0.16)", backgroundColor: "rgba(0,81,213,0.04)" },
   addMoreText: { color: stitch.blue, fontSize: 14, fontWeight: "900" },
+  uploadOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 100, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
+  uploadModal: { backgroundColor: stitch.surface, borderRadius: 16, padding: 32, alignItems: "center", gap: 12, minWidth: 220, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
+  uploadModalTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", marginTop: 8 },
+  uploadModalBody: { color: stitch.muted, fontSize: 13, fontWeight: "700", textAlign: "center", lineHeight: 19 },
 });
