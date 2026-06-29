@@ -115,17 +115,9 @@ export default function Home() {
             icon="folder-open"
             color={stitch.blue}
             bg="rgba(0,81,213,0.1)"
-            title={t("home.quick.case")}
+            title={t("cases.myList")}
             body={t("home.quick.caseBody")}
             onPress={() => router.push("/cases")}
-          />
-          <QuickCard
-            icon="add-circle"
-            color={stitch.green}
-            bg="rgba(0,150,104,0.1)"
-            title={t("home.quick.upload")}
-            body={t("home.quick.uploadBody")}
-            onPress={() => router.push("/cases/upload")}
           />
           <QuickCard
             icon="smart-toy"
