@@ -16,18 +16,30 @@ export default function AnalysisScreen() {
   const router = useRouter();
   const { locale } = useLocale();
   const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [evidenceCount, setEvidenceCount] = useState<number | null>(null);
+  const [evidences, setEvidences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [needsRerun, setNeedsRerun] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`)
-      .then((data) => {
-        setReport(data);
+    Promise.all([
+      fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`).catch((e) => {
+        if (e?.status === 409) return "NEEDS_RERUN";
+        return null;
+      }),
+      fetchApi<any[]>(`/cases/${caseId}/evidences`).catch(() => []),
+    ]).then(([analysisData, evidences]) => {
+      if (analysisData && analysisData !== "NEEDS_RERUN") {
+        setReport(analysisData as AnalysisReport);
         scrollRef.current?.scrollTo({ y: 0, animated: true });
-      })
-      .catch(() => undefined)
-      .finally(() => setLoading(false));
+      } else if (analysisData === "NEEDS_RERUN") {
+        setNeedsRerun(true);
+      }
+      setEvidenceCount(Array.isArray(evidences) ? evidences.length : 0);
+      setEvidences(Array.isArray(evidences) ? evidences : []);
+    }).finally(() => setLoading(false));
   }, [caseId]);
 
   async function runAnalyze() {
@@ -44,15 +56,15 @@ export default function AnalysisScreen() {
     }
   }
 
-  const expected = report?.wage?.expected ?? 2300000;
-  const received = report?.wage?.received ?? 1900000;
-  const diff = report?.wage?.suspected_unpaid ?? 400000;
-  const timeline = report?.timeline?.length ? report.timeline : defaultTimeline;
-  const missing = report?.missing?.length ? report.missing : defaultMissing;
+  const expected = report?.wage?.expected;
+  const received = report?.wage?.received;
+  const diff = report?.wage?.suspected_unpaid;
+  const timeline = report?.timeline?.length ? report.timeline : [];
+  const missing = report?.missing?.length ? report.missing : [];
 
   return (
     <StitchScreen active="assistant" scroll={false}>
-      <TopBar title={t("analysis.title")} back />
+      <TopBar title={t("cases.uploadHistory")} back />
 
       {(loading || running) && (
         <View style={styles.loadingOverlay}>
@@ -66,88 +78,129 @@ export default function AnalysisScreen() {
 
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View>
-          <Text style={styles.screenTitle}>{t("analysis.title")}</Text>
+          <Text style={styles.screenTitle}>{t("cases.uploadHistory")}</Text>
           <Text style={styles.caseId}>Case #{String(caseId).slice(0, 8)}</Text>
         </View>
 
-        {loading ? null : null}
-
-        <Card style={styles.summary}>
-          <View style={styles.summaryTop}>
-            <Text style={styles.summaryTitle}>{t("analysis.title")}</Text>
-            <Text style={styles.badge}>자료 기준</Text>
-          </View>
-          <View style={styles.summaryBodyWrap}>
-            {(report?.narrative?.summary || t("analysis.noneBody"))
-              .split(/\n|(?<=\.)\s+/)
-              .filter((p: string) => p.trim())
-              .map((paragraph: string, i: number) => (
-                <Text key={i} style={styles.summaryBody}>{paragraph.trim()}</Text>
-              ))}
-          </View>
-          <View style={styles.infoStrip}>
-            <MaterialIcons name="info-outline" size={20} color={stitch.blue} />
-            <Text style={styles.infoText}>{t("analysis.suspected")}: {won(diff)}</Text>
-          </View>
-        </Card>
-
-        <View style={styles.grid}>
-          <AmountCard label={t("analysis.expected")} value={won(expected)} progress={1} color={stitch.navy} />
-          <AmountCard label={t("analysis.received")} value={won(received)} progress={0.82} color={stitch.blue} />
-        </View>
-
-        <View style={styles.twoCol}>
-          <Card style={styles.foundCard}>
-            <SectionTitle icon="check-circle" title={t("analysis.title")} color={stitch.green} />
-            <CheckRow text={t("upload.categories.statement")} />
-            <CheckRow text={t("upload.categories.payment")} />
-            <CheckRow text={t("upload.categories.contract")} />
-          </Card>
-
-          <Card style={styles.missingCard}>
-            <SectionTitle icon="pending" title="부족한 자료" color={stitch.outline} />
-            {missing.slice(0, 2).map((item) => (
-              <View key={item.item} style={styles.missingItem}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.missingTitle}>{item.item}</Text>
-                  <Text style={styles.missingBody}>{item.reason}</Text>
+        {!loading && !report ? (
+          <>
+            {needsRerun ? (
+              <Card style={styles.emptyAnalysis}>
+                <MaterialIcons name="refresh" size={48} color={stitch.blue} />
+                <Text style={styles.emptyAnalysisTitle}>{t("cases.actions.rerun")}</Text>
+                <Text style={styles.emptyAnalysisBody}>{t("cases.actions.rerunBody")}</Text>
+                <View style={styles.emptyButtonWrap}>
+                  <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
+                    {t("cases.runAnalysis")}
+                  </StitchButton>
                 </View>
-                <Text style={styles.needCheck}>확인 필요</Text>
+              </Card>
+            ) : evidenceCount === 0 ? (
+              <Card style={styles.emptyAnalysis}>
+                <MaterialIcons name="cloud-upload" size={48} color={stitch.outline} />
+                <Text style={styles.emptyAnalysisTitle}>{t("analysis.needUpload")}</Text>
+                <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
+                <View style={styles.emptyButtonWrap}>
+                  <StitchButton icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
+                    {t("cases.upload")}
+                  </StitchButton>
+                </View>
+              </Card>
+            ) : (
+              <Card style={styles.emptyAnalysis}>
+                <MaterialIcons name="analytics" size={48} color={stitch.blue} />
+                <Text style={styles.emptyAnalysisTitle}>{t("analysis.none")}</Text>
+                <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
+                <View style={styles.emptyButtonWrap}>
+                  <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
+                    {t("cases.runAnalysis")}
+                  </StitchButton>
+                </View>
+              </Card>
+            )}
+
+            {evidences.length > 0 && (
+              <Card style={styles.evidenceListCard}>
+                <Text style={styles.evidenceListTitle}>{t("upload.currentFiles")} ({evidences.length})</Text>
+                {evidences.map((item, index) => (
+                  <View key={item.id || index} style={[styles.evidenceRow, index < evidences.length - 1 && styles.evidenceDivider]}>
+                    <MaterialIcons name="description" size={20} color={stitch.blue} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.evidenceName} numberOfLines={1}>{item.file_name || item.original_filename || `파일 ${index + 1}`}</Text>
+                      <Text style={styles.evidenceCategory}>{item.category ? t("upload.categories." + item.category) : ""}</Text>
+                    </View>
+                    <MaterialIcons name="check-circle" size={18} color={stitch.green} />
+                  </View>
+                ))}
+              </Card>
+            )}
+          </>
+        ) : null}
+
+        {report ? (
+          <>
+            <Card style={styles.summary}>
+              <View style={styles.summaryTop}>
+                <Text style={styles.summaryTitle}>{t("analysis.preAnalysis")}</Text>
+                <Text style={styles.badge}>{t("analysis.title")}</Text>
               </View>
-            ))}
-          </Card>
-        </View>
+              <View style={styles.summaryBodyWrap}>
+                {(report.narrative?.summary || t("analysis.noneBody"))
+                  .split(/\n|(?<=\.)\s+/)
+                  .filter((p: string) => p.trim())
+                  .map((paragraph: string, i: number) => (
+                    <Text key={i} style={styles.summaryBody}>{paragraph.trim()}</Text>
+                  ))}
+              </View>
+              <View style={styles.infoStrip}>
+                <MaterialIcons name="info-outline" size={20} color={stitch.blue} />
+                <Text style={styles.infoText}>{t("analysis.suspected")}: {won(report.wage?.suspected_unpaid)}</Text>
+              </View>
+            </Card>
 
-        <View style={styles.sectionBlock}>
-          <Text style={styles.sectionLabel}>{t("analysis.timeline")}</Text>
-          <Card style={styles.timelineCard}>
-            {timeline.slice(0, 3).map((item, index) => (
-              <Timeline key={`${item.date}-${index}`} item={item} active={index === 0} />
-            ))}
-          </Card>
-        </View>
+            <View style={styles.grid}>
+              <AmountCard label={t("analysis.expected")} value={won(report.wage?.expected)} progress={1} color={stitch.navy} />
+              <AmountCard label={t("analysis.received")} value={won(report.wage?.received)} progress={0.82} color={stitch.blue} />
+            </View>
 
-        <Card style={styles.questionCard}>
-          <View style={styles.questionHeader}>
-            <MaterialIcons name="smart-toy" size={22} color={stitch.blue} />
-            <Text style={styles.questionTitle}>{t("chat.emptyTitle")}</Text>
-          </View>
-          <Question text="급여명세서와 실제 입금액 차이를 어떤 순서로 설명하면 좋을까요?" />
-          <Question text="공제 항목은 어떤 자료로 확인받아야 하나요?" />
-          <Question text="근무시간 기록이 부족할 때 대신 준비할 수 있는 자료가 있나요?" />
-        </Card>
+            <View style={styles.twoCol}>
+              <Card style={styles.foundCard}>
+                <SectionTitle icon="check-circle" title={t("analysis.title")} color={stitch.green} />
+                <CheckRow text={t("upload.categories.statement")} />
+                <CheckRow text={t("upload.categories.payment")} />
+                <CheckRow text={t("upload.categories.contract")} />
+              </Card>
+
+              <Card style={styles.missingCard}>
+                <SectionTitle icon="pending" title={t("analysis.missing")} color={stitch.outline} />
+                {(report.missing || []).slice(0, 2).map((item) => (
+                  <View key={item.item} style={styles.missingItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.missingTitle}>{item.item}</Text>
+                      <Text style={styles.missingBody}>{item.reason}</Text>
+                    </View>
+                    <Text style={styles.needCheck}>{t("analysis.suspected")}</Text>
+                  </View>
+                ))}
+              </Card>
+            </View>
+
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionLabel}>{t("analysis.timeline")}</Text>
+              <Card style={styles.timelineCard}>
+                {(report.timeline || []).slice(0, 3).map((item, index) => (
+                  <Timeline key={`${item.date}-${index}`} item={item} active={index === 0} />
+                ))}
+              </Card>
+            </View>
+          </>
+        ) : null}
 
         <Card style={styles.disclaimer}>
           <MaterialIcons name="gavel" size={22} color={stitch.outline} />
-          <Text style={styles.disclaimerText}>
-            {report?.narrative?.disclaimer ||
-              "BADA는 법률 판단을 하지 않습니다. 이 결과는 상담 전 자료 정리 안내이며, 최종 판단은 고용노동부 또는 상담기관에서 확인해야 합니다."}
-          </Text>
+          <Text style={styles.disclaimerText}>{t("disclaimer")}</Text>
         </Card>
 
-        <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
-          {running ? t("common.loading") : report ? t("cases.actions.rerun") : t("cases.runAnalysis")}
-        </StitchButton>
         <StitchButton tone="secondary" onPress={() => router.push({ pathname: "/chat", params: { caseId } })}>
           <Text style={styles.secondaryButton}>{t("cases.actions.chatBody")}</Text>
         </StitchButton>
@@ -304,4 +357,14 @@ const styles = StyleSheet.create({
   loadingModal: { backgroundColor: stitch.surface, borderRadius: 16, padding: 32, alignItems: "center", gap: 12, minWidth: 240, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
   loadingModalTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", marginTop: 8 },
   loadingModalBody: { color: stitch.muted, fontSize: 13, fontWeight: "700", textAlign: "center", lineHeight: 19 },
+  emptyAnalysis: { padding: 32, alignItems: "center", gap: 14, paddingHorizontal: 24 },
+  emptyAnalysisTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", textAlign: "center" },
+  emptyAnalysisBody: { color: stitch.muted, fontSize: 14, fontWeight: "700", textAlign: "center", lineHeight: 20, marginBottom: 8 },
+  emptyButtonWrap: { width: "100%", paddingHorizontal: 16 },
+  evidenceListCard: { padding: 16, gap: 0 },
+  evidenceListTitle: { color: stitch.text, fontSize: 16, fontWeight: "900", marginBottom: 12 },
+  evidenceRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
+  evidenceDivider: { borderBottomWidth: 1, borderBottomColor: "rgba(198,198,205,0.28)" },
+  evidenceName: { color: stitch.text, fontSize: 14, fontWeight: "700" },
+  evidenceCategory: { color: stitch.outline, fontSize: 12, fontWeight: "700", marginTop: 2 },
 });

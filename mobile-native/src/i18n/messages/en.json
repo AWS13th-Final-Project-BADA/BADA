@@ -110,6 +110,7 @@
     "status": "Status",
     "detail": "Case detail",
     "analysis": "Analysis",
+    "uploadHistory": "Upload history",
     "upload": "Upload files",
     "gps": "GPS record",
     "report": "Consultation report",
@@ -201,6 +202,7 @@
   },
   "analysis": {
     "title": "Analysis",
+    "preAnalysis": "Preliminary analysis",
     "expected": "Expected",
     "received": "Received",
     "suspected": "Needs check",

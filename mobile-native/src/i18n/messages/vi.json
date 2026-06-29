@@ -110,6 +110,7 @@
     "status": "Trạng thái",
     "detail": "Chi tiết hồ sơ",
     "analysis": "Kết quả phân tích",
+    "uploadHistory": "Lịch sử tải lên",
     "upload": "Tải tài liệu",
     "gps": "Ghi GPS",
     "report": "Báo cáo tư vấn",
@@ -201,6 +202,7 @@
   },
   "analysis": {
     "title": "Phân tích",
+    "preAnalysis": "Phân tích sơ bộ",
     "expected": "Dự kiến",
     "received": "Đã nhận",
     "suspected": "Cần kiểm tra",

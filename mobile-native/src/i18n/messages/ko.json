@@ -110,6 +110,7 @@
     "status": "상태",
     "detail": "사건 상세",
     "analysis": "분석 결과",
+    "uploadHistory": "자료 업로드 이력",
     "upload": "자료 올리기",
     "gps": "GPS 기록",
     "report": "상담용 리포트",
@@ -201,6 +202,7 @@
   },
   "analysis": {
     "title": "분석 결과",
+    "preAnalysis": "사전 분석 결과",
     "expected": "예상 금액",
     "received": "확인 금액",
     "suspected": "확인 필요",

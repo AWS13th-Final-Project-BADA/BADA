@@ -110,6 +110,7 @@
     "status": "状態",
     "detail": "事件詳細",
     "analysis": "分析結果",
+    "uploadHistory": "アップロード履歴",
     "upload": "資料アップロード",
     "gps": "GPS記録",
     "report": "相談用レポート",
@@ -201,6 +202,7 @@
   },
   "analysis": {
     "title": "分析結果",
+    "preAnalysis": "事前分析結果",
     "expected": "予想金額",
     "received": "確認金額",
     "suspected": "確認が必要",
