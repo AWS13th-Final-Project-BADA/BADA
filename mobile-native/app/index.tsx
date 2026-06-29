@@ -120,7 +120,7 @@ export default function Home() {
         </Card>
 
         <SectionLabel>{t("home.quickTitle")}</SectionLabel>
-        <View style={styles.quickGrid}>
+        <View style={styles.quickRow}>
           <QuickCard
             icon="folder-open"
             color={stitch.blue}
@@ -133,17 +133,9 @@ export default function Home() {
             icon="smart-toy"
             color={stitch.blue}
             bg={stitch.blueSoft}
-            title={t("home.quick.chat")}
+            title={t("home.quick.chatAsk")}
             body={t("home.quick.chatBody")}
             onPress={() => router.push("/chat")}
-          />
-          <QuickCard
-            icon="location-on"
-            color={stitch.green}
-            bg="rgba(0,150,104,0.1)"
-            title={t("home.quick.gps")}
-            body={t("home.quick.gpsBody")}
-            onPress={() => router.push("/gps")}
           />
           <QuickCard
             icon="forum"
@@ -152,14 +144,6 @@ export default function Home() {
             title={t("home.quick.community")}
             body={t("home.quick.communityBody")}
             onPress={() => router.push("/community")}
-          />
-          <QuickCard
-            icon="chat-bubble-outline"
-            color={stitch.blue}
-            bg="rgba(0,81,213,0.1)"
-            title={t("home.quick.kakao")}
-            body={t("home.quick.kakaoBody")}
-            onPress={() => router.push("/kakao")}
           />
         </View>
 
@@ -288,10 +272,11 @@ const styles = StyleSheet.create({
   stepLabel: { color: stitch.text, fontSize: 11, lineHeight: 14, fontWeight: "700", textAlign: "center" },
   stepLabelCurrent: { color: stitch.blue, fontWeight: "900" },
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  quickCard: { width: "48.3%", minHeight: 142, backgroundColor: stitch.surface, borderRadius: 12, borderWidth: 1, borderColor: "rgba(198,198,205,0.42)", padding: 16, justifyContent: "center" },
-  quickIcon: { width: 40, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center", marginBottom: 16 },
-  quickTitle: { color: stitch.text, fontSize: 15, lineHeight: 20, fontWeight: "900" },
-  quickBody: { marginTop: 3, color: stitch.outline, fontSize: 12, lineHeight: 16, fontWeight: "700" },
+  quickRow: { flexDirection: "row", gap: 10 },
+  quickCard: { flex: 1, minHeight: 120, backgroundColor: stitch.surface, borderRadius: 12, borderWidth: 1, borderColor: "rgba(198,198,205,0.42)", padding: 12, justifyContent: "center", alignItems: "center" },
+  quickIcon: { width: 40, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  quickTitle: { color: stitch.text, fontSize: 13, lineHeight: 18, fontWeight: "900", textAlign: "center" },
+  quickBody: { marginTop: 3, color: stitch.outline, fontSize: 11, lineHeight: 15, fontWeight: "700", textAlign: "center" },
   recommend: { minHeight: 84, backgroundColor: stitch.blueStrong, borderRadius: 12, flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
   recommendIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.2)" },
   recommendLabel: { color: "#fff", opacity: 0.9, fontSize: 12, fontWeight: "800" },
