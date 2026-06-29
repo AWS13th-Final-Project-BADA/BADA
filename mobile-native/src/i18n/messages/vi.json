@@ -28,7 +28,9 @@
     "cases": "Hồ sơ",
     "chat": "Chat",
     "community": "Cộng đồng",
-    "settings": "Cài đặt"
+    "settings": "Cài đặt",
+    "notifications": "Thông báo",
+    "noNotifications": "Không có thông báo"
   },
   "home": {
     "badge": "Chuẩn bị tư vấn",

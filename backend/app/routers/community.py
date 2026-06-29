@@ -126,6 +126,14 @@ def community_create_comment(
     user: User = Depends(get_current_user),
 ):
     comment = create_comment(db, user, post_id, payload)
+
+    # 게시글 작성자에게 알림 (본인 댓글 제외)
+    from ..models import CommunityPost
+    post = db.get(CommunityPost, post_id)
+    if post and post.author_id != user.id:
+        from .notifications import create_notification
+        create_notification(db, post.author_id, "comment", "내 게시글에 댓글이 달렸습니다")
+
     return serialize_comment(db, comment, user)
 
 

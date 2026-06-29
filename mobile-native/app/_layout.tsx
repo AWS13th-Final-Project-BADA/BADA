@@ -28,6 +28,7 @@ export default function RootLayout() {
           <Stack.Screen name="chat" options={{ title: "AI 상담" }} />
           <Stack.Screen name="gps" options={{ title: "GPS 근무 증거" }} />
           <Stack.Screen name="settings" options={{ title: "설정" }} />
+          <Stack.Screen name="notifications" options={{ title: "알림" }} />
         </Stack>
       </LocaleProvider>
     </SafeAreaProvider>

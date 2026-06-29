@@ -28,7 +28,9 @@
     "cases": "事件",
     "chat": "チャット",
     "community": "コミュニティ",
-    "settings": "設定"
+    "settings": "設定",
+    "notifications": "通知",
+    "noNotifications": "通知はありません"
   },
   "home": {
     "badge": "相談準備",
