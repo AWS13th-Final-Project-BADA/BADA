@@ -119,7 +119,6 @@ export default function Home() {
           <StitchButton onPress={() => router.push("/cases/new")}>{t("cases.create")}</StitchButton>
         </Card>
 
-        <SectionLabel>{t("home.quickTitle")}</SectionLabel>
         <View style={styles.quickList}>
           <Pressable style={styles.quickListItem} onPress={() => router.push("/cases")}>
             <View style={[styles.quickListIcon, { backgroundColor: "rgba(0,81,213,0.1)" }]}>
@@ -138,16 +137,6 @@ export default function Home() {
             <View style={{ flex: 1 }}>
               <Text style={styles.quickListTitle}>{t("home.quick.chatAsk")}</Text>
               <Text style={styles.quickListBody}>{t("home.quick.chatBody")}</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={22} color={stitch.outline} />
-          </Pressable>
-          <Pressable style={styles.quickListItem} onPress={() => router.push("/community")}>
-            <View style={[styles.quickListIcon, { backgroundColor: stitch.amberSoft }]}>
-              <MaterialIcons name="forum" size={22} color={stitch.amber} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.quickListTitle}>{t("home.quick.community")}</Text>
-              <Text style={styles.quickListBody}>{t("home.quick.communityBody")}</Text>
             </View>
             <MaterialIcons name="chevron-right" size={22} color={stitch.outline} />
           </Pressable>
