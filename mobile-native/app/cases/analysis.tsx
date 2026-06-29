@@ -64,7 +64,7 @@ export default function AnalysisScreen() {
 
   return (
     <StitchScreen active="assistant" scroll={false}>
-      <TopBar title={t("cases.uploadHistory")} back />
+      <TopBar title={report ? t("analysis.title") : t("cases.uploadHistory")} back />
 
       {(loading || running) && (
         <View style={styles.loadingOverlay}>
@@ -78,7 +78,7 @@ export default function AnalysisScreen() {
 
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View>
-          <Text style={styles.screenTitle}>{t("cases.uploadHistory")}</Text>
+          <Text style={styles.screenTitle}>{report ? t("analysis.title") : t("cases.uploadHistory")}</Text>
           <Text style={styles.caseId}>Case #{String(caseId).slice(0, 8)}</Text>
         </View>
 
@@ -206,6 +206,15 @@ export default function AnalysisScreen() {
           <MaterialIcons name="gavel" size={22} color={stitch.outline} />
           <Text style={styles.disclaimerText}>{t("disclaimer")}</Text>
         </Card>
+
+        {report && (
+          <StitchButton icon="picture-as-pdf" onPress={() => {
+            const url = `https://api.badasoft.com/cases/${caseId}/report.pdf`;
+            import("expo-linking").then((Linking) => Linking.openURL(url));
+          }}>
+            {t("analysis.download")}
+          </StitchButton>
+        )}
 
         <StitchButton tone="secondary" onPress={() => router.push({ pathname: "/chat", params: { caseId } })}>
           <Text style={styles.secondaryButton}>{t("cases.actions.chatBody")}</Text>
