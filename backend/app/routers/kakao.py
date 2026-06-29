@@ -11,6 +11,7 @@
 
 원칙: LLM 미사용(5초 안전) · 법적 판단/대리 안 함 · 정보 제공만(법률자문 아님).
 """
+import logging
 import os
 import re
 import sys
@@ -28,8 +29,16 @@ if str(_WORKER) not in sys.path:
     sys.path.insert(0, str(_WORKER))
 
 router = APIRouter(prefix="/kakao", tags=["kakao"])
+logger = logging.getLogger("bada.kakao")
 _MAX_TEXT = 950
 LANGS = ("ko", "vi", "en")
+
+# 스킬 처리 중 예외 발생 시 사용자에게 보낼 안전 폴백(카카오 5xx/무응답 방지).
+_SKILL_ERROR = {
+    "ko": "일시적인 오류가 발생했어요. 잠시 후 다시 시도해 주세요.",
+    "vi": "Đã xảy ra lỗi tạm thời. Vui lòng thử lại sau.",
+    "en": "A temporary error occurred. Please try again shortly.",
+}
 
 # ── 카테고리 라벨(언어별) ──
 CATEGORY = {
@@ -634,6 +643,12 @@ def _diagnose_response(utterance, case, lang, linked=True):
 # ── 핸들러 ──
 @router.post("/skill")
 async def kakao_skill(request: Request) -> dict[str, Any]:
+    """카카오 i 오픈빌더 스킬 엔드포인트.
+
+    어떤 예외가 나도 5xx로 터지지 않고 항상 200 + 안전 폴백 카드를 반환한다.
+    (카카오는 5xx 응답을 '스킬 서버 연결 오류'로 처리해 사용자에게 무응답이 됨)
+    """
+    lang = "ko"
     try:
         body = await request.json()
     except Exception:
@@ -641,8 +656,17 @@ async def kakao_skill(request: Request) -> dict[str, Any]:
     ureq = (body or {}).get("userRequest", {}) or {}
     utterance = (ureq.get("utterance", "") or "").strip()
     kakao_user_id = ((ureq.get("user") or {}).get("id"))
-    lang = _detect_lang(utterance)
 
+    try:
+        lang = _detect_lang(utterance)
+        return _route_skill(utterance, kakao_user_id, lang)
+    except Exception:
+        logger.exception("kakao skill 처리 실패 (utterance=%r)", utterance)
+        return _template(_SKILL_ERROR.get(lang, _SKILL_ERROR["ko"]), lang)
+
+
+def _route_skill(utterance: str, kakao_user_id: str | None, lang: str) -> dict[str, Any]:
+    """발화 → 인텐트 분기 → 응답. (기존 로직 그대로, 예외 방어는 호출부에서 처리)"""
     if not utterance:
         return _welcome(lang)
 
