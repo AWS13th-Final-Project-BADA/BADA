@@ -40,8 +40,36 @@ def list_cases(db: Session = Depends(get_db), user: User = Depends(get_current_u
 
 
 @router.get("/{case_id}")
-def get_case(case_id: str, db: Session = Depends(get_db)):
+def get_case(case_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     c = db.get(Case, case_id)
     if not c:
         raise HTTPException(404, "case not found")
+    if c.user_id != user.id:
+        raise HTTPException(403, "이 사건에 접근할 권한이 없습니다")
     return _dict(c)
+
+
+@router.patch("/{case_id}")
+def update_case(case_id: str, payload: CaseCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    c = db.get(Case, case_id)
+    if not c:
+        raise HTTPException(404, "case not found")
+    if c.user_id != user.id:
+        raise HTTPException(403, "이 사건에 접근할 권한이 없습니다")
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(c, key, value)
+    db.commit()
+    db.refresh(c)
+    return _dict(c)
+
+
+@router.delete("/{case_id}")
+def delete_case(case_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    c = db.get(Case, case_id)
+    if not c:
+        raise HTTPException(404, "case not found")
+    if c.user_id != user.id:
+        raise HTTPException(403, "이 사건에 접근할 권한이 없습니다")
+    db.delete(c)
+    db.commit()
+    return {"ok": True}
