@@ -183,7 +183,7 @@
     "currentFiles": "アップロードするファイル",
     "extract": "資料を読み取る",
     "extracting": "資料読み取り中",
-    "readyToAnalyze": "分析を見る",
+    "readyToAnalyze": "ファイル選択完了",
     "uploadError": "ファイルをアップロードできませんでした。",
     "extractError": "資料の読み取りに失敗しました。",
     "emptyTitle": "まだファイルが選択されていません。",

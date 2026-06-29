@@ -183,7 +183,7 @@
     "currentFiles": "올릴 자료",
     "extract": "자료 읽기",
     "extracting": "자료 읽는 중",
-    "readyToAnalyze": "분석 보러가기",
+    "readyToAnalyze": "파일 선택 완료",
     "uploadError": "파일을 업로드하지 못했습니다.",
     "extractError": "자료 읽기를 실행하지 못했습니다.",
     "emptyTitle": "아직 올릴 자료를 선택하지 않았습니다.",
