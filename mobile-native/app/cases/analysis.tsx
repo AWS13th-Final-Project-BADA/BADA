@@ -48,13 +48,24 @@ export default function AnalysisScreen() {
   return (
     <StitchScreen active="assistant">
       <TopBar title={t("analysis.title")} back />
+
+      {(loading || running) && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingModal}>
+            <ActivityIndicator size="large" color={stitch.blue} />
+            <Text style={styles.loadingModalTitle}>{running ? t("cases.runAnalysis") : t("common.loading")}</Text>
+            <Text style={styles.loadingModalBody}>{t("analysis.noneBody")}</Text>
+          </View>
+        </View>
+      )}
+
       <View style={styles.content}>
         <View>
           <Text style={styles.screenTitle}>{t("analysis.title")}</Text>
           <Text style={styles.caseId}>Case #{String(caseId).slice(0, 8)}</Text>
         </View>
 
-        {loading ? <ActivityIndicator color={stitch.blue} /> : null}
+        {loading ? null : null}
 
         <Card style={styles.summary}>
           <View style={styles.summaryTop}>
@@ -279,4 +290,8 @@ const styles = StyleSheet.create({
   disclaimer: { padding: 14, flexDirection: "row", gap: 10, backgroundColor: stitch.surfaceLow },
   disclaimerText: { flex: 1, color: stitch.muted, fontSize: 12, lineHeight: 18, fontWeight: "700" },
   secondaryButton: { color: stitch.text, fontWeight: "900", fontSize: 15 },
+  loadingOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 100, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
+  loadingModal: { backgroundColor: stitch.surface, borderRadius: 16, padding: 32, alignItems: "center", gap: 12, minWidth: 240, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
+  loadingModalTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", marginTop: 8 },
+  loadingModalBody: { color: stitch.muted, fontSize: 13, fontWeight: "700", textAlign: "center", lineHeight: 19 },
 });
