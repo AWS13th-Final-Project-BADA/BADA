@@ -11,7 +11,9 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-_LIMIT = 60  # 분당 최대 요청 수
+#_LIMIT = 60  # 분당 최대 요청 수
+
+_LIMIT = 300  # 분당 최대 요청 수 300건으로 확대 --- Jaehyun Kim
 _WINDOW = 60  # 윈도우(초)
 _EXEMPT_PATHS = {"/health", "/version", "/health/db"}
 
