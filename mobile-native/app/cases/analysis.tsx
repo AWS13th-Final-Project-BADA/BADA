@@ -16,18 +16,22 @@ export default function AnalysisScreen() {
   const router = useRouter();
   const { locale } = useLocale();
   const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [evidenceCount, setEvidenceCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`)
-      .then((data) => {
-        setReport(data);
+    Promise.all([
+      fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`).catch(() => null),
+      fetchApi<any[]>(`/cases/${caseId}/evidences`).catch(() => []),
+    ]).then(([analysisData, evidences]) => {
+      if (analysisData) {
+        setReport(analysisData);
         scrollRef.current?.scrollTo({ y: 0, animated: true });
-      })
-      .catch(() => undefined)
-      .finally(() => setLoading(false));
+      }
+      setEvidenceCount(Array.isArray(evidences) ? evidences.length : 0);
+    }).finally(() => setLoading(false));
   }, [caseId]);
 
   async function runAnalyze() {
@@ -71,16 +75,29 @@ export default function AnalysisScreen() {
         </View>
 
         {!loading && !report ? (
-          <Card style={styles.emptyAnalysis}>
-            <MaterialIcons name="cloud-upload" size={48} color={stitch.outline} />
-            <Text style={styles.emptyAnalysisTitle}>{t("analysis.needUpload")}</Text>
-            <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
-            <View style={styles.emptyButtonWrap}>
-              <StitchButton icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
-                {t("cases.upload")}
-              </StitchButton>
-            </View>
-          </Card>
+          evidenceCount === 0 ? (
+            <Card style={styles.emptyAnalysis}>
+              <MaterialIcons name="cloud-upload" size={48} color={stitch.outline} />
+              <Text style={styles.emptyAnalysisTitle}>{t("analysis.needUpload")}</Text>
+              <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
+              <View style={styles.emptyButtonWrap}>
+                <StitchButton icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
+                  {t("cases.upload")}
+                </StitchButton>
+              </View>
+            </Card>
+          ) : (
+            <Card style={styles.emptyAnalysis}>
+              <MaterialIcons name="analytics" size={48} color={stitch.blue} />
+              <Text style={styles.emptyAnalysisTitle}>{t("analysis.none")}</Text>
+              <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
+              <View style={styles.emptyButtonWrap}>
+                <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
+                  {t("cases.runAnalysis")}
+                </StitchButton>
+              </View>
+            </Card>
+          )
         ) : null}
 
         {report ? (
