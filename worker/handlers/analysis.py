@@ -25,6 +25,16 @@ from services.extract import aggregate  # noqa: E402
 logger = logging.getLogger(__name__)
 
 
+def _dt(s):
+    """ISO 문자열 → datetime 변환. 실패 시 None."""
+    if isinstance(s, datetime):
+        return s
+    try:
+        return datetime.fromisoformat(s) if s else None
+    except Exception:
+        return None
+
+
 def handle(message: dict) -> None:
     """analyze_case 메시지 처리. 실패 시 예외 → consumer가 재시도/DLQ."""
     case_id = message.get("case_id")
@@ -86,6 +96,14 @@ def _run(session, case_id: str) -> None:
     wp = {"lat": float(workplace.center_lat), "lng": float(workplace.center_lng),
           "radius_m": workplace.radius_m} if workplace else None
 
+    # 카톡 도착성 발화에서 chat_arrivals 추출 (GPS 교차검증용)
+    chat_arrivals = []
+    for u in chat_utts:
+        if u.get("kind") in ("arrival", "지급약속", "근무지시") and u.get("date"):
+            dt = _dt(u["date"]) if isinstance(u["date"], str) else u["date"]
+            if dt:
+                chat_arrivals.append(dt)
+
     ctx = {
         "agreed_hourly_wage": case.agreed_hourly_wage or ocr.get("agreed_hourly_wage"),
         "worked_hours": ocr.get("worked_hours") or [],
@@ -97,7 +115,7 @@ def _run(session, case_id: str) -> None:
         "chat_utterances": chat_utts,
         "gps_logs": gps_logs,
         "workplace": wp,
-        "chat_arrivals": [],
+        "chat_arrivals": chat_arrivals,
         "work_start_date": str(case.work_start_date) if case.work_start_date else None,
         "workplace_name": case.workplace_name or ocr.get("workplace_name"),
         "target_lang": case.primary_language or "ko",
