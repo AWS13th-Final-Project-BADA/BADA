@@ -73,6 +73,8 @@ export function TopBar({
   const { locale, changeLocale } = useLocale();
   const [langOpen, setLangOpen] = useState(false);
 
+  const handleRightPress = onRightPress || (() => router.push("/notifications"));
+
   function handleChangeLanguage(lang: Locale) {
     changeLocale(lang);
     setLangOpen(false);
@@ -90,8 +92,7 @@ export function TopBar({
         </Pressable>
         <Pressable
           style={s.topIcon}
-          onPress={onRightPress}
-          disabled={!onRightPress}
+          onPress={handleRightPress}
           accessibilityRole="button"
           accessibilityLabel={rightLabel}
         >
