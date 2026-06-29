@@ -3,6 +3,7 @@ name: Build Mobile (EAS Preview)
 # mobile-native/ 변경이 develop에 push되면 Android preview APK를 빌드한다.
 # 수동 실행도 가능 (workflow_dispatch).
 # EAS Build는 Expo 클라우드에서 실행되며, EXPO_TOKEN으로 인증한다.
+# 빌드 완료/실패 시 EAS_DISCORD_WEBHOOK_URL(설정된 경우)로 디스코드 알림을 보낸다.
 
 on:
   push:
@@ -72,16 +73,38 @@ jobs:
           fi
 
       - name: Run EAS Build
+        id: build
         working-directory: ${{ env.WORKING_DIR }}
         run: |
+          set -o pipefail
+          # 빌드 완료까지 대기하고 결과(JSON)를 받는다. (--no-wait 제거: 완성 링크를 얻기 위함)
           eas build \
             --platform android \
             --profile ${{ steps.profile.outputs.value }} \
             --non-interactive \
-            --no-wait
+            --json | tee build-output.json
+          BUILD_ID=$(jq -r '.[0].id // empty' build-output.json)
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "build_url=https://expo.dev/accounts/dkdevelop/projects/bada-mobile-native/builds/$BUILD_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Build submitted
+      - name: Notify Discord
+        if: always()
+        env:
+          WEBHOOK: ${{ secrets.EAS_DISCORD_WEBHOOK_URL }}
+          STATUS: ${{ job.status }}
+          PROFILE: ${{ steps.profile.outputs.value }}
+          BUILD_URL: ${{ steps.build.outputs.build_url }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          echo "✅ EAS Build submitted (profile: ${{ steps.profile.outputs.value }})"
-          echo "빌드 상태 확인: https://expo.dev/accounts/<owner>/projects/bada-mobile-native/builds"
-          echo "완료 시 APK 다운로드 가능 (preview) 또는 AAB 생성 (production)"
+          if [ -z "$WEBHOOK" ]; then
+            echo "EAS_DISCORD_WEBHOOK_URL 미설정 — 디스코드 알림 스킵"
+            exit 0
+          fi
+          if [ "$STATUS" = "success" ] && [ -n "$BUILD_URL" ]; then
+            CONTENT=$(printf '📱 BADA 모바일 새 빌드 완료 (%s)\n브랜치: %s\n커밋: %s\n설치·QR: %s' "$PROFILE" "$REF_NAME" "$SHA" "$BUILD_URL")
+          else
+            CONTENT=$(printf '⚠️ BADA 모바일 빌드 실패 (%s)\n브랜치: %s\n로그: %s' "$PROFILE" "$REF_NAME" "$RUN_URL")
+          fi
+          jq -nc --arg c "$CONTENT" '{content: $c}' | curl -sf -H "Content-Type: application/json" -d @- "$WEBHOOK"
