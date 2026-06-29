@@ -56,7 +56,7 @@ resource "aws_wafv2_web_acl" "main" {
         name        = "AWSManagedRulesCommonRuleSet"
         vendor_name = "AWS"
 
-        # 파일 업로드 경로에서 본문 크기 제한 규칙 제외
+        # 파일 업로드 경로에서 본문 크기 제한 규칙 제외 (multipart 업로드 허용)
         rule_action_override {
           name = "SizeRestrictions_BODY"
           action_to_use {
