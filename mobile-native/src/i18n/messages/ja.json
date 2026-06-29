@@ -27,7 +27,8 @@
     "home": "ホーム",
     "cases": "事件",
     "chat": "チャット",
-    "community": "コミュニティ"
+    "community": "コミュニティ",
+    "settings": "設定"
   },
   "home": {
     "badge": "相談準備",
@@ -74,6 +75,7 @@
       "gps": "GPS記録",
       "gpsBody": "職場記録を残す",
       "chat": "AIチャット",
+      "chatAsk": "AIチャットに質問する",
       "chatBody": "相談前の質問整理",
       "community": "コミュニティ",
       "communityBody": "似た状況を探す",

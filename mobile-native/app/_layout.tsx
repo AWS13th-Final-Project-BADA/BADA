@@ -27,6 +27,7 @@ export default function RootLayout() {
           <Stack.Screen name="community/[id]" options={{ title: "게시글" }} />
           <Stack.Screen name="chat" options={{ title: "AI 상담" }} />
           <Stack.Screen name="gps" options={{ title: "GPS 근무 증거" }} />
+          <Stack.Screen name="settings" options={{ title: "설정" }} />
         </Stack>
       </LocaleProvider>
     </SafeAreaProvider>

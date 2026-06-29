@@ -27,7 +27,8 @@
     "home": "홈",
     "cases": "사건",
     "chat": "챗봇",
-    "community": "커뮤니티"
+    "community": "커뮤니티",
+    "settings": "설정"
   },
   "home": {
     "badge": "상담 준비",
@@ -74,6 +75,7 @@
       "gps": "GPS 기록",
       "gpsBody": "근무지 기록 남기기",
       "chat": "AI 챗봇",
+      "chatAsk": "AI 챗봇에게 물어보기",
       "chatBody": "상담 전 질문 정리",
       "community": "커뮤니티",
       "communityBody": "비슷한 상황 찾아보기",

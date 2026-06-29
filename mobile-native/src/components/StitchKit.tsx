@@ -117,18 +117,36 @@ export function TopBar({
   );
 }
 
-export function BottomNav({ active }: { active?: "home" | "cases" | "upload" | "assistant" | "community" }) {
+export function BottomNav({ active }: { active?: "home" | "cases" | "upload" | "assistant" | "community" | "settings" }) {
   const router = useRouter();
+  const [fabOpen, setFabOpen] = useState(false);
+
   return (
-    <View style={s.bottomNav}>
-      <Tab icon="home" label={t("nav.home")} active={active === "home"} onPress={() => router.push("/")} />
-      <Tab icon="folder-open" label={t("nav.cases")} active={active === "cases"} onPress={() => router.push("/cases")} />
-      <Pressable style={s.centerTab} onPress={() => router.push("/cases/upload")}>
-        <MaterialIcons name="add" size={32} color="#fff" />
-      </Pressable>
-      <Tab icon="smart-toy" label={t("nav.chat")} active={active === "assistant"} onPress={() => router.push("/chat")} />
-      <Tab icon="forum" label={t("nav.community")} active={active === "community"} onPress={() => router.push("/community")} />
-    </View>
+    <>
+      {fabOpen && (
+        <Pressable style={s.fabOverlay} onPress={() => setFabOpen(false)}>
+          <View style={s.fabMenu}>
+            <Pressable style={s.fabMenuItem} onPress={() => { setFabOpen(false); router.push("/cases/new"); }}>
+              <MaterialIcons name="add-circle-outline" size={22} color={stitch.navy} />
+              <Text style={s.fabMenuText}>{t("cases.create")}</Text>
+            </Pressable>
+            <Pressable style={s.fabMenuItem} onPress={() => { setFabOpen(false); router.push("/cases"); }}>
+              <MaterialIcons name="folder-open" size={22} color={stitch.navy} />
+              <Text style={s.fabMenuText}>{t("cases.myList")}</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      )}
+      <View style={s.bottomNav}>
+        <Tab icon="home" label={t("nav.home")} active={active === "home"} onPress={() => router.push("/")} />
+        <Tab icon="forum" label={t("nav.community")} active={active === "community"} onPress={() => router.push("/community")} />
+        <Pressable style={[s.centerTab, fabOpen && s.centerTabActive]} onPress={() => setFabOpen(!fabOpen)}>
+          <MaterialIcons name={fabOpen ? "close" : "add"} size={32} color="#fff" />
+        </Pressable>
+        <Tab icon="smart-toy" label={t("nav.chat")} active={active === "assistant"} onPress={() => router.push("/chat")} />
+        <Tab icon="settings" label={t("nav.settings")} active={active === "settings"} onPress={() => router.push("/settings")} />
+      </View>
+    </>
   );
 }
 
@@ -243,6 +261,44 @@ export const s = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
+  },
+  centerTabActive: {
+    backgroundColor: stitch.blueStrong,
+  },
+  fabOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 76,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingBottom: 16,
+    zIndex: 50,
+  },
+  fabMenu: {
+    backgroundColor: stitch.surface,
+    borderRadius: 14,
+    paddingVertical: 8,
+    minWidth: 200,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  fabMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  fabMenuText: {
+    color: stitch.text,
+    fontSize: 15,
+    fontWeight: "800",
   },
   card: {
     backgroundColor: stitch.surface,

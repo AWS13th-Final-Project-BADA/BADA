@@ -119,48 +119,27 @@ export default function Home() {
           <StitchButton onPress={() => router.push("/cases/new")}>{t("cases.create")}</StitchButton>
         </Card>
 
-        <SectionLabel>{t("home.quickTitle")}</SectionLabel>
-        <View style={styles.quickGrid}>
-          <QuickCard
-            icon="folder-open"
-            color={stitch.blue}
-            bg="rgba(0,81,213,0.1)"
-            title={t("cases.myList")}
-            body={t("home.quick.caseBody")}
-            onPress={() => router.push("/cases")}
-          />
-          <QuickCard
-            icon="smart-toy"
-            color={stitch.blue}
-            bg={stitch.blueSoft}
-            title={t("home.quick.chat")}
-            body={t("home.quick.chatBody")}
-            onPress={() => router.push("/chat")}
-          />
-          <QuickCard
-            icon="location-on"
-            color={stitch.green}
-            bg="rgba(0,150,104,0.1)"
-            title={t("home.quick.gps")}
-            body={t("home.quick.gpsBody")}
-            onPress={() => router.push("/gps")}
-          />
-          <QuickCard
-            icon="forum"
-            color={stitch.amber}
-            bg={stitch.amberSoft}
-            title={t("home.quick.community")}
-            body={t("home.quick.communityBody")}
-            onPress={() => router.push("/community")}
-          />
-          <QuickCard
-            icon="chat-bubble-outline"
-            color={stitch.blue}
-            bg="rgba(0,81,213,0.1)"
-            title={t("home.quick.kakao")}
-            body={t("home.quick.kakaoBody")}
-            onPress={() => router.push("/kakao")}
-          />
+        <View style={styles.quickList}>
+          <Pressable style={styles.quickListItem} onPress={() => router.push("/cases")}>
+            <View style={[styles.quickListIcon, { backgroundColor: "rgba(0,81,213,0.1)" }]}>
+              <MaterialIcons name="folder-open" size={22} color={stitch.blue} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.quickListTitle}>{t("cases.myList")}</Text>
+              <Text style={styles.quickListBody}>{t("home.quick.caseBody")}</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={22} color={stitch.outline} />
+          </Pressable>
+          <Pressable style={styles.quickListItem} onPress={() => router.push("/chat")}>
+            <View style={[styles.quickListIcon, { backgroundColor: stitch.blueSoft }]}>
+              <MaterialIcons name="smart-toy" size={22} color={stitch.blue} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.quickListTitle}>{t("home.quick.chatAsk")}</Text>
+              <Text style={styles.quickListBody}>{t("home.quick.chatBody")}</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={22} color={stitch.outline} />
+          </Pressable>
         </View>
 
         <SectionLabel action={<Pressable onPress={() => router.push("/community")}><Text style={styles.viewAll}>{t("home.recentTitle")}</Text></Pressable>}>{t("community.title")}</SectionLabel>
@@ -288,10 +267,16 @@ const styles = StyleSheet.create({
   stepLabel: { color: stitch.text, fontSize: 11, lineHeight: 14, fontWeight: "700", textAlign: "center" },
   stepLabelCurrent: { color: stitch.blue, fontWeight: "900" },
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  quickCard: { width: "48.3%", minHeight: 142, backgroundColor: stitch.surface, borderRadius: 12, borderWidth: 1, borderColor: "rgba(198,198,205,0.42)", padding: 16, justifyContent: "center" },
-  quickIcon: { width: 40, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center", marginBottom: 16 },
-  quickTitle: { color: stitch.text, fontSize: 15, lineHeight: 20, fontWeight: "900" },
-  quickBody: { marginTop: 3, color: stitch.outline, fontSize: 12, lineHeight: 16, fontWeight: "700" },
+  quickRow: { flexDirection: "row", gap: 10 },
+  quickList: { gap: 10 },
+  quickListItem: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: stitch.surface, borderRadius: 12, borderWidth: 1, borderColor: "rgba(198,198,205,0.42)", padding: 16 },
+  quickListIcon: { width: 42, height: 42, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  quickListTitle: { color: stitch.text, fontSize: 15, fontWeight: "900" },
+  quickListBody: { color: stitch.outline, fontSize: 12, fontWeight: "700", marginTop: 2 },
+  quickCard: { flex: 1, minHeight: 120, backgroundColor: stitch.surface, borderRadius: 12, borderWidth: 1, borderColor: "rgba(198,198,205,0.42)", padding: 12, justifyContent: "center", alignItems: "center" },
+  quickIcon: { width: 40, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  quickTitle: { color: stitch.text, fontSize: 13, lineHeight: 18, fontWeight: "900", textAlign: "center" },
+  quickBody: { marginTop: 3, color: stitch.outline, fontSize: 11, lineHeight: 15, fontWeight: "700", textAlign: "center" },
   recommend: { minHeight: 84, backgroundColor: stitch.blueStrong, borderRadius: 12, flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
   recommendIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.2)" },
   recommendLabel: { color: "#fff", opacity: 0.9, fontSize: 12, fontWeight: "800" },

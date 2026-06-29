@@ -27,7 +27,8 @@
     "home": "Home",
     "cases": "Cases",
     "chat": "Chat",
-    "community": "Community"
+    "community": "Community",
+    "settings": "Settings"
   },
   "home": {
     "badge": "Consultation prep",
@@ -74,6 +75,7 @@
       "gps": "GPS record",
       "gpsBody": "Keep workplace logs",
       "chat": "AI chat",
+      "chatAsk": "Ask AI chatbot",
       "chatBody": "Prepare questions",
       "community": "Community",
       "communityBody": "Find similar situations",
