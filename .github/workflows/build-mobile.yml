@@ -94,20 +94,17 @@ jobs:
           STATUS: ${{ job.status }}
           PROFILE: ${{ steps.profile.outputs.value }}
           BUILD_URL: ${{ steps.build.outputs.build_url }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if [ -z "$WEBHOOK" ]; then
             echo "EAS_DISCORD_WEBHOOK_URL 미설정 — 디스코드 알림 스킵"
             exit 0
           fi
           if [ "$STATUS" = "success" ] && [ -n "$BUILD_URL" ]; then
-            CONTENT="📱 BADA 모바일 새 빌드 완료 (${PROFILE})
-브랜치: ${{ github.ref_name }}
-커밋: ${{ github.sha }}
-설치·QR: ${BUILD_URL}"
+            CONTENT=$(printf '📱 BADA 모바일 새 빌드 완료 (%s)\n브랜치: %s\n커밋: %s\n설치·QR: %s' "$PROFILE" "$REF_NAME" "$SHA" "$BUILD_URL")
           else
-            CONTENT="⚠️ BADA 모바일 빌드 실패 (${PROFILE})
-브랜치: ${{ github.ref_name }}
-로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            CONTENT=$(printf '⚠️ BADA 모바일 빌드 실패 (%s)\n브랜치: %s\n로그: %s' "$PROFILE" "$REF_NAME" "$RUN_URL")
           fi
-          jq -nc --arg c "$CONTENT" '{content: $c}' \
-            | curl -sf -H "Content-Type: application/json" -d @- "$WEBHOOK"
+          jq -nc --arg c "$CONTENT" '{content: $c}' | curl -sf -H "Content-Type: application/json" -d @- "$WEBHOOK"
