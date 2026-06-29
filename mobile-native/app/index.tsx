@@ -151,6 +151,14 @@ export default function Home() {
             body={t("home.quick.communityBody")}
             onPress={() => router.push("/community")}
           />
+          <QuickCard
+            icon="chat-bubble-outline"
+            color={stitch.blue}
+            bg="rgba(0,81,213,0.1)"
+            title={t("home.quick.kakao")}
+            body={t("home.quick.kakaoBody")}
+            onPress={() => router.push("/kakao")}
+          />
         </View>
 
         <Pressable style={styles.recommend} onPress={() => router.push("/cases/upload")}>

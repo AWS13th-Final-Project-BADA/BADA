@@ -76,7 +76,9 @@
       "chat": "AI chat",
       "chatBody": "Prepare questions",
       "community": "Community",
-      "communityBody": "Find similar situations"
+      "communityBody": "Find similar situations",
+      "kakao": "Kakao link",
+      "kakaoBody": "Check your case in chat"
     }
   },
   "login": {
@@ -275,6 +277,20 @@
       "translation": "Translation",
       "notice": "Notice"
     }
+  },
+  "kakao": {
+    "title": "Link Kakao chatbot",
+    "subtitle": "Send the code below to the BADA Kakao channel to check your case in the chatbot.",
+    "codeLabel": "Your link code",
+    "reissue": "Get a new code",
+    "openChannel": "Open Kakao channel",
+    "step1": "Check the code above",
+    "step2": "Tap 'Open channel' and send the code in the BADA channel",
+    "step3": "Linked — check your case in the chatbot",
+    "guide": "You only need to connect once.",
+    "error": "Could not issue a link code. Please try again later.",
+    "authError": "Login required. Please sign in again.",
+    "channelError": "Could not open the Kakao channel."
   },
   "disclaimer": "BADA does not make legal judgments. It organizes uploaded files for consultation preparation."
 }
