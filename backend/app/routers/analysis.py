@@ -97,10 +97,17 @@ def _load_report(case_id: str, db: Session) -> dict:
     return rep
 
 
-@router.get("/analysis", response_model=AnalysisReport)
+@router.get("/analysis")
 def get_analysis(case_id: str, db: Session = Depends(get_db)):
-    """저장된 분석을 /analyze 와 동일한 표준 스키마로 반환."""
-    return AnalysisReport.model_validate(_load_report(case_id, db))
+    """저장된 분석을 /analyze 와 동일한 표준 스키마로 반환. pdf_ready 포함."""
+    ar = db.query(AnalysisResult).filter(AnalysisResult.case_id == case_id).first()
+    if not ar:
+        raise HTTPException(404, "no analysis yet")
+    rep = (ar.calculation_detail or {}).get("report")
+    if not rep:
+        raise HTTPException(409, "report not available (re-run analyze)")
+    rep["pdf_ready"] = bool(ar.pdf_ko_s3_key)
+    return rep
 
 
 @router.get("/timeline")

@@ -208,12 +208,19 @@ export default function AnalysisScreen() {
         </Card>
 
         {report && (
-          <StitchButton icon="picture-as-pdf" onPress={() => {
-            const url = `https://api.badasoft.com/cases/${caseId}/report.pdf`;
-            import("expo-linking").then((Linking) => Linking.openURL(url));
-          }}>
-            {t("analysis.download")}
-          </StitchButton>
+          report.pdf_ready ? (
+            <StitchButton icon="picture-as-pdf" onPress={() => {
+              const url = `https://api.badasoft.com/cases/${caseId}/report.pdf`;
+              import("expo-linking").then((Linking) => Linking.openURL(url));
+            }}>
+              {t("analysis.download")}
+            </StitchButton>
+          ) : (
+            <Card style={styles.pdfPending}>
+              <ActivityIndicator size="small" color={stitch.blue} />
+              <Text style={styles.pdfPendingText}>PDF 생성 중... 잠시 후 다시 확인해주세요.</Text>
+            </Card>
+          )
         )}
 
         <StitchButton tone="secondary" onPress={() => router.push({ pathname: "/chat", params: { caseId } })}>
@@ -376,6 +383,8 @@ const styles = StyleSheet.create({
   emptyAnalysisTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", textAlign: "center" },
   emptyAnalysisBody: { color: stitch.muted, fontSize: 14, fontWeight: "700", textAlign: "center", lineHeight: 20, marginBottom: 8 },
   emptyButtonWrap: { width: "100%", paddingHorizontal: 16, gap: 10 },
+  pdfPending: { padding: 16, flexDirection: "row", alignItems: "center", gap: 12 },
+  pdfPendingText: { flex: 1, color: stitch.muted, fontSize: 13, fontWeight: "700" },
   evidenceListCard: { padding: 16, gap: 0 },
   evidenceListTitle: { color: stitch.text, fontSize: 16, fontWeight: "900", marginBottom: 12 },
   evidenceRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
