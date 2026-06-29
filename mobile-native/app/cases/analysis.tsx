@@ -44,11 +44,11 @@ export default function AnalysisScreen() {
     }
   }
 
-  const expected = report?.wage?.expected ?? 2300000;
-  const received = report?.wage?.received ?? 1900000;
-  const diff = report?.wage?.suspected_unpaid ?? 400000;
-  const timeline = report?.timeline?.length ? report.timeline : defaultTimeline;
-  const missing = report?.missing?.length ? report.missing : defaultMissing;
+  const expected = report?.wage?.expected;
+  const received = report?.wage?.received;
+  const diff = report?.wage?.suspected_unpaid;
+  const timeline = report?.timeline?.length ? report.timeline : [];
+  const missing = report?.missing?.length ? report.missing : [];
 
   return (
     <StitchScreen active="assistant" scroll={false}>
@@ -70,79 +70,79 @@ export default function AnalysisScreen() {
           <Text style={styles.caseId}>Case #{String(caseId).slice(0, 8)}</Text>
         </View>
 
-        {loading ? null : null}
-
-        <Card style={styles.summary}>
-          <View style={styles.summaryTop}>
-            <Text style={styles.summaryTitle}>{t("analysis.preAnalysis")}</Text>
-            <Text style={styles.badge}>자료 기준</Text>
-          </View>
-          <View style={styles.summaryBodyWrap}>
-            {(report?.narrative?.summary || t("analysis.noneBody"))
-              .split(/\n|(?<=\.)\s+/)
-              .filter((p: string) => p.trim())
-              .map((paragraph: string, i: number) => (
-                <Text key={i} style={styles.summaryBody}>{paragraph.trim()}</Text>
-              ))}
-          </View>
-          <View style={styles.infoStrip}>
-            <MaterialIcons name="info-outline" size={20} color={stitch.blue} />
-            <Text style={styles.infoText}>{t("analysis.suspected")}: {won(diff)}</Text>
-          </View>
-        </Card>
-
-        <View style={styles.grid}>
-          <AmountCard label={t("analysis.expected")} value={won(expected)} progress={1} color={stitch.navy} />
-          <AmountCard label={t("analysis.received")} value={won(received)} progress={0.82} color={stitch.blue} />
-        </View>
-
-        <View style={styles.twoCol}>
-          <Card style={styles.foundCard}>
-            <SectionTitle icon="check-circle" title={t("analysis.title")} color={stitch.green} />
-            <CheckRow text={t("upload.categories.statement")} />
-            <CheckRow text={t("upload.categories.payment")} />
-            <CheckRow text={t("upload.categories.contract")} />
+        {!loading && !report ? (
+          <Card style={styles.emptyAnalysis}>
+            <MaterialIcons name="cloud-upload" size={48} color={stitch.outline} />
+            <Text style={styles.emptyAnalysisTitle}>{t("analysis.needUpload")}</Text>
+            <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
+            <StitchButton icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
+              {t("cases.upload")}
+            </StitchButton>
           </Card>
+        ) : null}
 
-          <Card style={styles.missingCard}>
-            <SectionTitle icon="pending" title="부족한 자료" color={stitch.outline} />
-            {missing.slice(0, 2).map((item) => (
-              <View key={item.item} style={styles.missingItem}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.missingTitle}>{item.item}</Text>
-                  <Text style={styles.missingBody}>{item.reason}</Text>
-                </View>
-                <Text style={styles.needCheck}>확인 필요</Text>
+        {report ? (
+          <>
+            <Card style={styles.summary}>
+              <View style={styles.summaryTop}>
+                <Text style={styles.summaryTitle}>{t("analysis.preAnalysis")}</Text>
+                <Text style={styles.badge}>{t("analysis.title")}</Text>
               </View>
-            ))}
-          </Card>
-        </View>
+              <View style={styles.summaryBodyWrap}>
+                {(report.narrative?.summary || t("analysis.noneBody"))
+                  .split(/\n|(?<=\.)\s+/)
+                  .filter((p: string) => p.trim())
+                  .map((paragraph: string, i: number) => (
+                    <Text key={i} style={styles.summaryBody}>{paragraph.trim()}</Text>
+                  ))}
+              </View>
+              <View style={styles.infoStrip}>
+                <MaterialIcons name="info-outline" size={20} color={stitch.blue} />
+                <Text style={styles.infoText}>{t("analysis.suspected")}: {won(report.wage?.suspected_unpaid)}</Text>
+              </View>
+            </Card>
 
-        <View style={styles.sectionBlock}>
-          <Text style={styles.sectionLabel}>{t("analysis.timeline")}</Text>
-          <Card style={styles.timelineCard}>
-            {timeline.slice(0, 3).map((item, index) => (
-              <Timeline key={`${item.date}-${index}`} item={item} active={index === 0} />
-            ))}
-          </Card>
-        </View>
+            <View style={styles.grid}>
+              <AmountCard label={t("analysis.expected")} value={won(report.wage?.expected)} progress={1} color={stitch.navy} />
+              <AmountCard label={t("analysis.received")} value={won(report.wage?.received)} progress={0.82} color={stitch.blue} />
+            </View>
 
-        <Card style={styles.questionCard}>
-          <View style={styles.questionHeader}>
-            <MaterialIcons name="smart-toy" size={22} color={stitch.blue} />
-            <Text style={styles.questionTitle}>{t("chat.emptyTitle")}</Text>
-          </View>
-          <Question text="급여명세서와 실제 입금액 차이를 어떤 순서로 설명하면 좋을까요?" />
-          <Question text="공제 항목은 어떤 자료로 확인받아야 하나요?" />
-          <Question text="근무시간 기록이 부족할 때 대신 준비할 수 있는 자료가 있나요?" />
-        </Card>
+            <View style={styles.twoCol}>
+              <Card style={styles.foundCard}>
+                <SectionTitle icon="check-circle" title={t("analysis.title")} color={stitch.green} />
+                <CheckRow text={t("upload.categories.statement")} />
+                <CheckRow text={t("upload.categories.payment")} />
+                <CheckRow text={t("upload.categories.contract")} />
+              </Card>
+
+              <Card style={styles.missingCard}>
+                <SectionTitle icon="pending" title={t("analysis.missing")} color={stitch.outline} />
+                {(report.missing || []).slice(0, 2).map((item) => (
+                  <View key={item.item} style={styles.missingItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.missingTitle}>{item.item}</Text>
+                      <Text style={styles.missingBody}>{item.reason}</Text>
+                    </View>
+                    <Text style={styles.needCheck}>{t("analysis.suspected")}</Text>
+                  </View>
+                ))}
+              </Card>
+            </View>
+
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionLabel}>{t("analysis.timeline")}</Text>
+              <Card style={styles.timelineCard}>
+                {(report.timeline || []).slice(0, 3).map((item, index) => (
+                  <Timeline key={`${item.date}-${index}`} item={item} active={index === 0} />
+                ))}
+              </Card>
+            </View>
+          </>
+        ) : null}
 
         <Card style={styles.disclaimer}>
           <MaterialIcons name="gavel" size={22} color={stitch.outline} />
-          <Text style={styles.disclaimerText}>
-            {report?.narrative?.disclaimer ||
-              "BADA는 법률 판단을 하지 않습니다. 이 결과는 상담 전 자료 정리 안내이며, 최종 판단은 고용노동부 또는 상담기관에서 확인해야 합니다."}
-          </Text>
+          <Text style={styles.disclaimerText}>{t("disclaimer")}</Text>
         </Card>
 
         <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
@@ -304,4 +304,7 @@ const styles = StyleSheet.create({
   loadingModal: { backgroundColor: stitch.surface, borderRadius: 16, padding: 32, alignItems: "center", gap: 12, minWidth: 240, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
   loadingModalTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", marginTop: 8 },
   loadingModalBody: { color: stitch.muted, fontSize: 13, fontWeight: "700", textAlign: "center", lineHeight: 19 },
+  emptyAnalysis: { padding: 32, alignItems: "center", gap: 14 },
+  emptyAnalysisTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", textAlign: "center" },
+  emptyAnalysisBody: { color: stitch.muted, fontSize: 14, fontWeight: "700", textAlign: "center", lineHeight: 20 },
 });
