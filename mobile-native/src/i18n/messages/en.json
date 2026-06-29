@@ -210,8 +210,8 @@
     "timeline": "Timeline",
     "missing": "Helpful extra files",
     "download": "Open report",
-    "none": "No analysis yet",
-    "noneBody": "Upload files and run analysis.",
+    "none": "Analysis is ready.",
+    "noneBody": "Review your upload history and run the analysis.",
     "needUpload": "Upload files to this case before running analysis.",
     "runError": "Could not run analysis."
   },

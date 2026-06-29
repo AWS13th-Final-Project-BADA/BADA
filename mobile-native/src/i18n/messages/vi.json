@@ -210,8 +210,8 @@
     "timeline": "Dòng thời gian",
     "missing": "Tài liệu nên bổ sung",
     "download": "Mở báo cáo",
-    "none": "Chưa có phân tích",
-    "noneBody": "Tải tài liệu lên rồi chạy phân tích.",
+    "none": "Phân tích đã sẵn sàng.",
+    "noneBody": "Xem lịch sử tải lên và chạy phân tích.",
     "needUpload": "Cần tải tài liệu lên trước khi phân tích.",
     "runError": "Không thể chạy phân tích."
   },
