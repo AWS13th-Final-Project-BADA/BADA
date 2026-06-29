@@ -90,6 +90,9 @@ export default function AnalysisScreen() {
                 <Text style={styles.emptyAnalysisTitle}>{t("cases.actions.rerun")}</Text>
                 <Text style={styles.emptyAnalysisBody}>{t("cases.actions.rerunBody")}</Text>
                 <View style={styles.emptyButtonWrap}>
+                  <StitchButton tone="secondary" icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
+                    {t("cases.actions.addMore")}
+                  </StitchButton>
                   <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
                     {t("cases.runAnalysis")}
                   </StitchButton>
@@ -112,6 +115,9 @@ export default function AnalysisScreen() {
                 <Text style={styles.emptyAnalysisTitle}>{t("analysis.none")}</Text>
                 <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
                 <View style={styles.emptyButtonWrap}>
+                  <StitchButton tone="secondary" icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
+                    {t("cases.actions.addMore")}
+                  </StitchButton>
                   <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
                     {t("cases.runAnalysis")}
                   </StitchButton>
@@ -360,7 +366,7 @@ const styles = StyleSheet.create({
   emptyAnalysis: { padding: 32, alignItems: "center", gap: 14, paddingHorizontal: 24 },
   emptyAnalysisTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", textAlign: "center" },
   emptyAnalysisBody: { color: stitch.muted, fontSize: 14, fontWeight: "700", textAlign: "center", lineHeight: 20, marginBottom: 8 },
-  emptyButtonWrap: { width: "100%", paddingHorizontal: 16 },
+  emptyButtonWrap: { width: "100%", paddingHorizontal: 16, gap: 10 },
   evidenceListCard: { padding: 16, gap: 0 },
   evidenceListTitle: { color: stitch.text, fontSize: 16, fontWeight: "900", marginBottom: 12 },
   evidenceRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
