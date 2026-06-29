@@ -30,6 +30,9 @@ import logging
 import os
 import time
 
+from xray_setup import init_xray
+init_xray()
+
 from handlers import analysis, transcription
 
 logger = logging.getLogger("worker.consumer")
