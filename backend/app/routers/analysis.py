@@ -30,16 +30,28 @@ def _date(s):
         return None
 
 
-@router.post("/analyze", response_model=AnalysisReport)
+@router.post("/analyze")
 def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("ko"), db: Session = Depends(get_db)):
-    import time as _time
-    from ..middleware.prometheus import ANALYSIS_RUNS, ANALYSIS_DURATION
-
+    """분석 요청 — SQS에 작업을 발행하고 즉시 응답. Worker가 비동기로 처리."""
     case = db.get(Case, case_id)
     if not case:
         raise HTTPException(404, "case not found")
-    req = req or AnalyzeRequest()
 
+    # 이미 진행 중이면 중복 요청 방지
+    if case.status == "analyzing":
+        return {"status": "analyzing", "message": "이미 분석이 진행 중입니다."}
+
+    # SQS 발행 시도
+    if settings.sqs_queue_url:
+        send_analysis_job(case_id)
+        case.status = "analyzing"
+        db.commit()
+        return {"status": "analyzing", "message": "분석 요청이 접수되었습니다. 잠시 후 결과를 확인할 수 있습니다."}
+
+    # SQS 미설정 (로컬) → 동기 실행 폴백
+    import time as _time
+    from ..middleware.prometheus import ANALYSIS_RUNS, ANALYSIS_DURATION
+    req = req or AnalyzeRequest()
     _start = _time.perf_counter()
     try:
         result = analysis_service.run_analysis(db, case, req, target_lang=lang)
@@ -52,7 +64,6 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
     report = report_builder.build_report(case, result, lang=lang, provider_mode=settings.provider_mode)
     report_dict = report.model_dump()
 
-    # 영속화 — 표준 리포트 전체 + 조회/리포트용 보조 컬럼
     db.query(AnalysisResult).filter(AnalysisResult.case_id == case_id).delete()
     db.query(TimelineEvent).filter(TimelineEvent.case_id == case_id).delete()
     db.query(TranslationPair).filter(TranslationPair.case_id == case_id).delete()
@@ -63,7 +74,7 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
         total_received_wage=result["total_received_wage"],
         suspected_unpaid=result["suspected_unpaid"],
         deduction_items=result["deduction_items"],
-        calculation_detail={"report": report_dict},   # 표준 스키마를 그대로 보관 → /analysis 동일 반환
+        calculation_detail={"report": report_dict},
         missing_evidences=result["missing_evidences"],
         timeline_summary=result.get("timeline_summary", ""),
     ))
@@ -76,15 +87,9 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
                                evidence_type=p.get("evidence_type"), related_issue=p.get("related_issue")))
     case.status = "completed"
     db.commit()
-
-    # 알림 생성: 분석 완료
     from .notifications import create_notification
     create_notification(db, case.user_id, "analysis_complete", "분석이 완료되었습니다", case_id=case_id)
-
-    # Worker 비동기 후처리 (PDF 생성 등) — SQS 미설정 시 no-op
-    send_analysis_job(case_id)
-
-    return report
+    return {"status": "completed", "message": "분석 완료 (동기 모드)"}
 
 
 def _load_report(case_id: str, db: Session) -> dict:
