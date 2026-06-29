@@ -75,9 +75,11 @@ export default function AnalysisScreen() {
             <MaterialIcons name="cloud-upload" size={48} color={stitch.outline} />
             <Text style={styles.emptyAnalysisTitle}>{t("analysis.needUpload")}</Text>
             <Text style={styles.emptyAnalysisBody}>{t("analysis.noneBody")}</Text>
-            <StitchButton icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
-              {t("cases.upload")}
-            </StitchButton>
+            <View style={styles.emptyButtonWrap}>
+              <StitchButton icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
+                {t("cases.upload")}
+              </StitchButton>
+            </View>
           </Card>
         ) : null}
 
@@ -304,7 +306,8 @@ const styles = StyleSheet.create({
   loadingModal: { backgroundColor: stitch.surface, borderRadius: 16, padding: 32, alignItems: "center", gap: 12, minWidth: 240, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
   loadingModalTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", marginTop: 8 },
   loadingModalBody: { color: stitch.muted, fontSize: 13, fontWeight: "700", textAlign: "center", lineHeight: 19 },
-  emptyAnalysis: { padding: 32, alignItems: "center", gap: 14 },
+  emptyAnalysis: { padding: 32, alignItems: "center", gap: 14, paddingHorizontal: 24 },
   emptyAnalysisTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", textAlign: "center" },
-  emptyAnalysisBody: { color: stitch.muted, fontSize: 14, fontWeight: "700", textAlign: "center", lineHeight: 20 },
+  emptyAnalysisBody: { color: stitch.muted, fontSize: 14, fontWeight: "700", textAlign: "center", lineHeight: 20, marginBottom: 8 },
+  emptyButtonWrap: { width: "100%", paddingHorizontal: 16 },
 });
