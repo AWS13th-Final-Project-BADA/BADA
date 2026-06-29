@@ -262,6 +262,12 @@ export default function UploadScreen() {
           <MaterialIcons name="add-circle-outline" size={22} color={stitch.blue} />
           <Text style={styles.addMoreText}>{t("upload.dropzone")}</Text>
         </Pressable>
+
+        {files.length > 0 && (
+          <StitchButton icon="analytics" onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: activeCaseId } })}>
+            {t("upload.readyToAnalyze")}
+          </StitchButton>
+        )}
       </View>
     </StitchScreen>
   );

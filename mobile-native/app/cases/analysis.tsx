@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { fetchApi } from "@/lib/api";
@@ -18,10 +18,14 @@ export default function AnalysisScreen() {
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`)
-      .then(setReport)
+      .then((data) => {
+        setReport(data);
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+      })
       .catch(() => undefined)
       .finally(() => setLoading(false));
   }, [caseId]);
@@ -34,6 +38,7 @@ export default function AnalysisScreen() {
         body: JSON.stringify({}),
       });
       setReport(next);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     } finally {
       setRunning(false);
     }
@@ -46,25 +51,40 @@ export default function AnalysisScreen() {
   const missing = report?.missing?.length ? report.missing : defaultMissing;
 
   return (
-    <StitchScreen active="assistant">
+    <StitchScreen active="assistant" scroll={false}>
       <TopBar title={t("analysis.title")} back />
-      <View style={styles.content}>
+
+      {(loading || running) && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingModal}>
+            <ActivityIndicator size="large" color={stitch.blue} />
+            <Text style={styles.loadingModalTitle}>{running ? t("cases.runAnalysis") : t("common.loading")}</Text>
+            <Text style={styles.loadingModalBody}>{t("analysis.noneBody")}</Text>
+          </View>
+        </View>
+      )}
+
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View>
           <Text style={styles.screenTitle}>{t("analysis.title")}</Text>
           <Text style={styles.caseId}>Case #{String(caseId).slice(0, 8)}</Text>
         </View>
 
-        {loading ? <ActivityIndicator color={stitch.blue} /> : null}
+        {loading ? null : null}
 
         <Card style={styles.summary}>
           <View style={styles.summaryTop}>
             <Text style={styles.summaryTitle}>{t("analysis.title")}</Text>
             <Text style={styles.badge}>자료 기준</Text>
           </View>
-          <Text style={styles.summaryBody}>
-            {report?.narrative?.summary ||
-              "업로드한 급여명세서, 입금내역, 계약서를 기준으로 상담 전에 확인할 쟁점을 정리했습니다."}
-          </Text>
+          <View style={styles.summaryBodyWrap}>
+            {(report?.narrative?.summary || t("analysis.noneBody"))
+              .split(/\n|(?<=\.)\s+/)
+              .filter((p: string) => p.trim())
+              .map((paragraph: string, i: number) => (
+                <Text key={i} style={styles.summaryBody}>{paragraph.trim()}</Text>
+              ))}
+          </View>
           <View style={styles.infoStrip}>
             <MaterialIcons name="info-outline" size={20} color={stitch.blue} />
             <Text style={styles.infoText}>{t("analysis.suspected")}: {won(diff)}</Text>
@@ -131,7 +151,7 @@ export default function AnalysisScreen() {
         <StitchButton tone="secondary" onPress={() => router.push({ pathname: "/chat", params: { caseId } })}>
           <Text style={styles.secondaryButton}>{t("cases.actions.chatBody")}</Text>
         </StitchButton>
-      </View>
+      </ScrollView>
     </StitchScreen>
   );
 }
@@ -233,7 +253,7 @@ const defaultMissing: MissingItem[] = [
 ];
 
 const styles = StyleSheet.create({
-  content: { padding: 20, gap: 16 },
+  content: { padding: 20, gap: 16, paddingBottom: 112 },
   screenTitle: { color: stitch.text, fontSize: 28, lineHeight: 36, fontWeight: "900" },
   caseId: { marginTop: 4, color: stitch.outline, fontSize: 13, fontWeight: "800" },
   summary: { padding: 20, gap: 14 },
@@ -241,6 +261,7 @@ const styles = StyleSheet.create({
   summaryTitle: { color: stitch.text, fontSize: 20, lineHeight: 28, fontWeight: "900" },
   badge: { color: stitch.blue, backgroundColor: "rgba(0,81,213,0.1)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, overflow: "hidden", fontSize: 12, fontWeight: "900" },
   summaryBody: { color: stitch.muted, fontSize: 14, lineHeight: 22, fontWeight: "600" },
+  summaryBodyWrap: { gap: 10 },
   infoStrip: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, backgroundColor: stitch.surfaceLow, borderLeftWidth: 4, borderLeftColor: stitch.blue, borderRadius: 8 },
   infoText: { color: stitch.text, fontSize: 13, fontWeight: "900" },
   grid: { flexDirection: "row", gap: 12 },
@@ -279,4 +300,8 @@ const styles = StyleSheet.create({
   disclaimer: { padding: 14, flexDirection: "row", gap: 10, backgroundColor: stitch.surfaceLow },
   disclaimerText: { flex: 1, color: stitch.muted, fontSize: 12, lineHeight: 18, fontWeight: "700" },
   secondaryButton: { color: stitch.text, fontWeight: "900", fontSize: 15 },
+  loadingOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 100, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
+  loadingModal: { backgroundColor: stitch.surface, borderRadius: 16, padding: 32, alignItems: "center", gap: 12, minWidth: 240, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
+  loadingModalTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", marginTop: 8 },
+  loadingModalBody: { color: stitch.muted, fontSize: 13, fontWeight: "700", textAlign: "center", lineHeight: 19 },
 });
