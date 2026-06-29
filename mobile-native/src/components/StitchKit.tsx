@@ -4,7 +4,7 @@ import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, type Style
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import { SUPPORTED, t, i18n } from "@/i18n";
+import { SUPPORTED, t } from "@/i18n";
 import type { Locale } from "@/i18n";
 import { useLocale } from "@/i18n/LocaleContext";
 
@@ -60,10 +60,14 @@ export function TopBar({
   title = "BADA",
   back = false,
   right = "notifications-none",
+  onRightPress,
+  rightLabel,
 }: {
   title?: string;
   back?: boolean;
   right?: keyof typeof MaterialIcons.glyphMap;
+  onRightPress?: () => void;
+  rightLabel?: string;
 }) {
   const router = useRouter();
   const { locale, changeLocale } = useLocale();
@@ -84,7 +88,13 @@ export function TopBar({
         <Pressable style={s.topIcon} onPress={() => setLangOpen(true)}>
           <MaterialIcons name="translate" size={22} color={stitch.navy} />
         </Pressable>
-        <Pressable style={s.topIcon} onPress={() => router.push("/notifications")}>
+        <Pressable
+          style={s.topIcon}
+          onPress={onRightPress}
+          disabled={!onRightPress}
+          accessibilityRole="button"
+          accessibilityLabel={rightLabel}
+        >
           <MaterialIcons name={right} size={24} color={right === "more-horiz" ? stitch.outline : stitch.navy} />
         </Pressable>
       </View>
