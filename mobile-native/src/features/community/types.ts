@@ -74,6 +74,8 @@ export interface CommunityTranslationResult {
   source_language: string;
   target_language: string;
   translated_text: string;
+  translated_title?: string | null;
+  translated_content?: string | null;
   provider: string;
   cached: boolean;
 }

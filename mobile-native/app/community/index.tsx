@@ -247,7 +247,7 @@ function PostCard({
   onLike: () => void;
   onSave: () => void;
 }) {
-  const [translation, setTranslation] = useState("");
+  const [translation, setTranslation] = useState<{ title: string; content: string } | null>(null);
   const [translationVisible, setTranslationVisible] = useState(false);
   const [translating, setTranslating] = useState(false);
   const canTranslate = Boolean(post.language_code && post.language_code !== locale);
@@ -260,7 +260,10 @@ function PostCard({
     setTranslating(true);
     try {
       const result = await translateCommunityTarget("post", post.id, locale);
-      setTranslation(result.translated_text);
+      setTranslation({
+        title: result.translated_title || post.title,
+        content: result.translated_content || result.translated_text,
+      });
       setTranslationVisible(true);
     } catch (nextError) {
       Alert.alert(t("community.translationFailed"), communityErrorMessage(nextError, t("community.tryAgain")));
@@ -286,8 +289,8 @@ function PostCard({
           <View style={styles.categoryPill}><Text style={styles.categoryText}>{t(`community.categories.${post.category}`)}</Text></View>
         </View>
 
-        <Text style={styles.postTitle}>{post.title}</Text>
-        <Text style={styles.postBody} numberOfLines={translationVisible ? undefined : 4}>{translationVisible ? translation : post.content}</Text>
+        <Text style={styles.postTitle}>{translationVisible && translation ? translation.title : post.title}</Text>
+        <Text style={styles.postBody} numberOfLines={translationVisible ? undefined : 4}>{translationVisible && translation ? translation.content : post.content}</Text>
 
         {translationVisible ? <Text style={styles.translationNotice}>{t("community.translationNotice")}</Text> : null}
 
