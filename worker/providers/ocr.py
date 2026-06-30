@@ -51,6 +51,38 @@ def _instruction(category: str) -> str:
             "- 대화에서 직접 언급되지 않은 값은 지어내지 마세요(null).\n"
             "- 반드시 유효한 JSON만 출력하세요."
         )
+    if category in ("chat", "other"):
+        return (
+            "카테고리: 메신저 대화 캡처 (카카오톡, 문자, SNS 등).\n"
+            "이 이미지는 사업주와 근로자 간 메신저 대화 스크린샷입니다.\n\n"
+            "## 추출 규칙\n"
+            "1. raw_text: 이미지에 보이는 모든 대화 텍스트를 그대로 옮기세요 (발신자·시간 포함, 800자 이내).\n"
+            "2. utterances: **반드시** 각 말풍선을 하나의 발화로 분리하세요.\n"
+            "   - speaker: 발신자 이름 (예: '대표님', '응우옌', 이름 없으면 '발신자'/'수신자')\n"
+            "   - text: 해당 말풍선 텍스트 (원문 그대로)\n"
+            "   - kind: 아래 기준으로 분류\n"
+            "     * wage_promise: 지급 약속 ('이번 주에 보낼게요', '금요일까지 입금')\n"
+            "     * work_order: 근무 지시 ('내일 출근해', '야근 해')\n"
+            "     * underpayment_admit: 미지급/삭감 인정 ('깜빡했어', '기숙사비 뺀 거')\n"
+            "     * evasive: 회피/변명 ('원래 다 그래', '나중에 줄게')\n"
+            "     * other: 그 외\n"
+            "   - 대화에 말풍선이 있으면 utterances를 **절대 빈 배열로 두지 마세요**.\n"
+            "3. 금액 추출: 대화에서 언급된 모든 금액을 amounts에 넣으세요.\n"
+            "   - label: 무엇에 대한 금액인지 ('시급', '월급', '기숙사비', '식비', '입금액' 등)\n"
+            "   - value: 콤마·'원' 제거한 정수\n"
+            "4. hourly_wage: 시급이 언급되면 정수로 (예: '시급 10,030원' → 10030)\n"
+            "5. monthly_wage: 월급이 언급되면 정수로\n"
+            "6. deductions: 공제 항목이 언급되면 (예: '기숙사비 25만원' → name='기숙사비', amount=250000)\n"
+            "7. dates: 대화에 언급된 날짜 (YYYY-MM-DD 형식)\n"
+            "8. pay_date: 지급 약속 날짜가 있으면\n"
+            "9. workplace_name, employer_name: 언급되면 추출\n"
+            "10. signed=null (대화에서는 해당 없음)\n\n"
+            "## 핵심 원칙\n"
+            "- 대화에 보이는 금액·시급은 **반드시** amounts/hourly_wage에 넣으세요.\n"
+            "- 말풍선이 1개라도 있으면 utterances에 넣으세요. 빈 배열 금지.\n"
+            "- 불확실한 값은 confidence='low'로 표기하되, 보이는 값은 빠뜨리지 마세요.\n"
+            "- 반드시 유효한 JSON만 출력하세요."
+        )
     try:
         return load("extraction").replace("{{category}}", category)
     except Exception:
