@@ -90,7 +90,14 @@ def extract_json(system: str, content_blocks: list[dict], schema_model, max_retr
         stripped = _strip_fences(raw)
         _log.info("Bedrock 응답 (attempt=%d, len=%d): %s", attempt, len(stripped), stripped[:500])
         try:
-            result = schema_model.model_validate(json.loads(stripped))
+            data = json.loads(stripped)
+            # 모델이 entities 래핑 없이 flat하게 줄 때 흡수 (raw_text 외 전부를 entities로).
+            # 일부 프롬프트(카톡 등)는 중첩 구조를 지시하지 않아 모델이 평평하게 출력 →
+            # 이 정규화가 없으면 OcrResult가 raw_text만 건지고 entities를 통째로 버림.
+            if isinstance(data, dict) and "raw_text" in data and "entities" not in data:
+                _rt = data.pop("raw_text", "")
+                data = {"raw_text": _rt, "entities": data}
+            result = schema_model.model_validate(data)
             _log.info("Pydantic 검증 성공: entities keys=%s", list((result.entities.model_dump() if hasattr(result, 'entities') else {}).keys())[:5])
             return result
         except Exception as e:
