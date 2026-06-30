@@ -14,14 +14,15 @@ def init_xray():
     if not XRAY_ENABLED:
         return
 
-    from aws_xray_sdk.core import xray_recorder, patch_all
+    try:
+        from aws_xray_sdk.core import xray_recorder, patch_all
 
-    xray_recorder.configure(
-        service="bada-worker",
-        sampling=True,
-        context_missing="LOG_ERROR",
-        daemon_address="127.0.0.1:2000",
-    )
+        xray_recorder.configure(
+            service="bada-worker",
+            sampling=True,
+            context_missing="IGNORE_ERROR",  # 세그먼트 없어도 에러 안 뱉음
+        )
 
-    # boto3(S3, SQS, Transcribe, Bedrock), requests(Upstage) 패치
-    patch_all()
+        patch_all()
+    except Exception:
+        pass  # X-Ray 초기화 실패해도 Worker 정상 동작
