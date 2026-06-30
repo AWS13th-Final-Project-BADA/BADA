@@ -78,32 +78,54 @@ def _handle_ocr(message: dict) -> None:
             Evidence.ocr_status.in_(["pending", "processing"])
         ).all()
 
+        # 전부 processing으로 표시
         for ev in evidences:
+            ev.ocr_status = "processing"
+        session.commit()
+
+        # --- 병렬 OCR: S3 읽기 + Bedrock 호출을 동시 실행 ---
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def _ocr_one(ev_id, file_key, category):
+            """스레드에서 실행: S3 읽기 + OCR. DB 접근 안 함."""
             try:
-                ev.ocr_status = "processing"
-                session.commit()
-
-                # S3에서 파일 읽기
-                if bucket and ev.file_key:
-                    obj = s3.get_object(Bucket=bucket, Key=ev.file_key)
-                    image_bytes = obj["Body"].read()
-                else:
-                    logger.warning("S3 bucket 또는 file_key 없음: evidence_id=%s", ev.id)
-                    ev.ocr_status = "failed"
-                    session.commit()
-                    continue
-
-                # OCR 실행
-                ocr = get_ocr(ev.category or "other")
-                result = ocr.extract(image_bytes, ev.category or "other")
-                ev.extracted_entities = result.get("entities", result)
-                ev.ocr_text = result.get("raw_text", "")
-                ev.ocr_status = "done"
-                session.commit()
+                if not bucket or not file_key:
+                    return ev_id, None, None, "S3 bucket 또는 file_key 없음"
+                obj = s3.get_object(Bucket=bucket, Key=file_key)
+                image_bytes = obj["Body"].read()
+                ocr = get_ocr(category or "other")
+                result = ocr.extract(image_bytes, category or "other")
+                return ev_id, result.get("raw_text", ""), result.get("entities", result), None
             except Exception as e:
+                return ev_id, None, None, str(e)
+
+        max_workers = min(len(evidences), 50)  # 메모리 기준 안전 상한 (2048MiB 중 피크 ~600MB, 마진 67%)
+        results = {}
+
+        if evidences:
+            with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="ocr") as executor:
+                futures = {
+                    executor.submit(_ocr_one, ev.id, ev.file_key, ev.category): ev.id
+                    for ev in evidences
+                }
+                for future in as_completed(futures):
+                    ev_id, raw_text, entities, error = future.result()
+                    results[ev_id] = (raw_text, entities, error)
+
+        # --- DB 반영 (메인 스레드에서만) ---
+        for ev in evidences:
+            res = results.get(ev.id)
+            if not res:
+                continue
+            raw_text, entities, error = res
+            if error:
                 ev.ocr_status = "failed"
-                session.commit()
-                logger.warning("OCR 실패: evidence_id=%s, error=%s", ev.id, e)
+                logger.warning("OCR 실패: evidence_id=%s, error=%s", ev.id, error)
+            else:
+                ev.extracted_entities = entities
+                ev.ocr_text = raw_text
+                ev.ocr_status = "done"
+        session.commit()
 
         logger.info("extract_ocr 완료: case_id=%s, 처리=%d건", case_id, len(evidences))
     finally:
