@@ -58,15 +58,20 @@ def dispatch(message: dict) -> None:
 
 
 def _handle_ocr(message: dict) -> None:
-    """OCR 추출 — Worker의 OCR provider로 증거 파일 엔티티 추출."""
+    """OCR 추출 — 증거 파일에서 엔티티 추출 후 DB 저장."""
     from db import get_session
-    from providers.ocr import extract_entities
+    from providers.ocr import get_ocr
+    import boto3
+    import os
     import importlib
     models = importlib.import_module("models")
 
     case_id = message["case_id"]
     logger.info("extract_ocr 시작: case_id=%s", case_id)
     session = get_session()
+    s3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-northeast-2"))
+    bucket = os.environ.get("S3_BUCKET", "")
+
     try:
         evidences = session.query(models.Evidence).filter(
             models.Evidence.case_id == case_id,
@@ -77,8 +82,22 @@ def _handle_ocr(message: dict) -> None:
             try:
                 ev.ocr_status = "processing"
                 session.commit()
-                result = extract_entities(ev.file_key, ev.category)
+
+                # S3에서 파일 읽기
+                if bucket and ev.file_key:
+                    obj = s3.get_object(Bucket=bucket, Key=ev.file_key)
+                    image_bytes = obj["Body"].read()
+                else:
+                    logger.warning("S3 bucket 또는 file_key 없음: evidence_id=%s", ev.id)
+                    ev.ocr_status = "failed"
+                    session.commit()
+                    continue
+
+                # OCR 실행
+                ocr = get_ocr(ev.category or "other")
+                result = ocr.extract(image_bytes, ev.category or "other")
                 ev.extracted_entities = result
+                ev.ocr_text = (result or {}).get("raw_text", "")
                 ev.ocr_status = "done"
                 session.commit()
             except Exception as e:
