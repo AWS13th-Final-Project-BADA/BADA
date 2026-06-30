@@ -95,8 +95,8 @@ def _handle_ocr(message: dict) -> None:
                 # OCR 실행
                 ocr = get_ocr(ev.category or "other")
                 result = ocr.extract(image_bytes, ev.category or "other")
-                ev.extracted_entities = result
-                ev.ocr_text = (result or {}).get("raw_text", "")
+                ev.extracted_entities = result.get("entities", result)
+                ev.ocr_text = result.get("raw_text", "")
                 ev.ocr_status = "done"
                 session.commit()
             except Exception as e:
