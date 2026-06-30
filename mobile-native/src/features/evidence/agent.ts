@@ -168,10 +168,5 @@ export async function uploadApprovedCandidates(
     uploaded++;
   }
 
-  // OCR 추출 트리거
-  try {
-    await fetchApi(`/cases/${caseId}/evidences/extract`, { method: "POST" });
-  } catch { /* 실패해도 업로드는 성공 */ }
-
   return { uploaded };
 }

@@ -35,6 +35,63 @@ def _dt(s):
         return None
 
 
+def _run_ocr_parallel(session, evidences) -> None:
+    """OCR 미완료 증거를 병렬로 처리 (분석 전 단계)."""
+    import os
+    import boto3
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from providers.ocr import get_ocr
+
+    s3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-northeast-2"))
+    bucket = os.environ.get("S3_BUCKET", "")
+
+    # 전부 processing 표시
+    for ev in evidences:
+        ev.ocr_status = "processing"
+    session.commit()
+
+    def _ocr_one(ev_id, file_key, category):
+        try:
+            if not bucket or not file_key:
+                return ev_id, None, None, "S3 bucket 또는 file_key 없음"
+            obj = s3.get_object(Bucket=bucket, Key=file_key)
+            image_bytes = obj["Body"].read()
+            ocr = get_ocr(category or "other")
+            result = ocr.extract(image_bytes, category or "other")
+            return ev_id, result.get("raw_text", ""), result.get("entities", result), None
+        except Exception as e:
+            return ev_id, None, None, str(e)
+
+    max_workers = min(len(evidences), 50)
+    results = {}
+
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="ocr-analysis") as executor:
+        futures = {
+            executor.submit(_ocr_one, ev.id, ev.file_key, ev.category): ev.id
+            for ev in evidences
+        }
+        for future in as_completed(futures):
+            ev_id, raw_text, entities, error = future.result()
+            results[ev_id] = (raw_text, entities, error)
+
+    # DB 반영
+    for ev in evidences:
+        res = results.get(ev.id)
+        if not res:
+            continue
+        raw_text, entities, error = res
+        if error:
+            ev.ocr_status = "failed"
+            logger.warning("OCR 실패 (분석 전): evidence_id=%s, error=%s", ev.id, error)
+        else:
+            ev.extracted_entities = entities
+            ev.ocr_text = raw_text
+            ev.ocr_status = "done"
+    session.commit()
+    logger.info("OCR 병렬 처리 완료: %d건 중 %d건 성공",
+                len(evidences), sum(1 for r in results.values() if r[2] is None))
+
+
 def handle(message: dict) -> None:
     """analyze_case 메시지 처리. 실패 시 예외 → consumer가 재시도/DLQ."""
     case_id = message.get("case_id")
@@ -63,6 +120,18 @@ def _run(session, case_id: str) -> None:
         raise ValueError(f"Case not found: {case_id}")
 
     evs = session.query(Evidence).filter(Evidence.case_id == case_id).all()
+
+    # --- OCR 미완료 증거가 있으면 먼저 병렬 처리 ---
+    pending_ocr = [e for e in evs
+                   if e.file_type in ("image", "pdf")
+                   and e.ocr_status in ("pending", "processing")]
+    if pending_ocr:
+        logger.info("OCR 미완료 %d건 병렬 처리 시작: case_id=%s", len(pending_ocr), case_id)
+        _run_ocr_parallel(session, pending_ocr)
+        # DB 갱신 후 다시 조회
+        session.expire_all()
+        evs = session.query(Evidence).filter(Evidence.case_id == case_id).all()
+
     present = {e.category for e in evs}
 
     # OCR 추출값 집계
