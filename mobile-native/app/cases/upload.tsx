@@ -399,7 +399,7 @@ export default function UploadScreen() {
 
         {pendingFiles.length > 0 && (
           <StitchButton icon="cloud-upload" onPress={uploadAll}>
-            {t("upload.uploadExecute")} ({pendingFiles.length})
+            {`${t("upload.uploadExecute")} (${pendingFiles.length})`}
           </StitchButton>
         )}
 
