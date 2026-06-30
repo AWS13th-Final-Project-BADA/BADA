@@ -34,6 +34,7 @@ export default function UploadScreen() {
   const [category, setCategory] = useState<Category>("auto" as Category);
   const [busy, setBusy] = useState(false);
   const [files, setFiles] = useState<Array<{ name: string; status: string }>>([]);
+  const [pendingFiles, setPendingFiles] = useState<Array<PickedFile & { category: Category }>>([]);
   const [agentResult, setAgentResult] = useState<AgentResult | null>(null);
   const [agentScanning, setAgentScanning] = useState(false);
   const [agentSelected, setAgentSelected] = useState<Set<number>>(new Set());
@@ -79,12 +80,23 @@ export default function UploadScreen() {
       Alert.alert(t("upload.uploadError"), t("upload.emptyBody"));
       return;
     }
+    // 로컬 리스트에 추가 (S3 전송 안 함)
+    setPendingFiles((prev) => [...prev, { ...file, category: selected.key }]);
+  }
 
+  async function uploadAll() {
+    if (!activeCaseId || pendingFiles.length === 0) return;
     setBusy(true);
+    let successCount = 0;
     try {
-      await uploadEvidence(activeCaseId, file, selected.key, selected.type);
-      setFiles((prev) => [{ name: file.name, status: t("upload.done") }, ...prev]);
-      Alert.alert(t("upload.done"), t("upload.done"));
+      for (const pf of pendingFiles) {
+        const cat = categories.find((c) => c.key === pf.category) || categories[0];
+        await uploadEvidence(activeCaseId, pf, pf.category, cat.type);
+        successCount++;
+        setFiles((prev) => [{ name: pf.name, status: t("upload.done") }, ...prev]);
+      }
+      setPendingFiles([]);
+      Alert.alert(t("upload.done"), `${successCount}건 업로드 완료`);
     } catch (e: any) {
       Alert.alert(t("upload.uploadError"), String(e?.message ?? e));
     } finally {
@@ -347,21 +359,32 @@ export default function UploadScreen() {
 
         <View style={styles.attachTop}>
           <Text style={styles.sectionTitle}>{t("upload.currentFiles")}</Text>
-          <Text style={styles.count}>{files.length} items</Text>
+          <Text style={styles.count}>{pendingFiles.length + files.length} items</Text>
         </View>
         <Card style={styles.fileList}>
-          {files.length ? (
-            files.map((file, index) => (
-              <View key={`${file.name}-${index}`} style={[styles.fileRow, index < files.length - 1 && styles.fileDivider]}>
-                <MaterialIcons name="description" size={24} color={stitch.blue} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
-                  <Text style={styles.fileStatus}>{file.status}</Text>
-                </View>
-                <MaterialIcons name="check-circle" size={22} color={stitch.green} />
+          {pendingFiles.length > 0 && pendingFiles.map((file, index) => (
+            <View key={`pending-${file.name}-${index}`} style={[styles.fileRow, styles.fileDivider]}>
+              <MaterialIcons name="description" size={24} color={stitch.outline} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
+                <Text style={styles.fileStatus}>{t("upload.categories." + file.category)}</Text>
               </View>
-            ))
-          ) : (
+              <Pressable onPress={() => setPendingFiles((prev) => prev.filter((_, i) => i !== index))}>
+                <MaterialIcons name="close" size={22} color={stitch.outline} />
+              </Pressable>
+            </View>
+          ))}
+          {files.length > 0 && files.map((file, index) => (
+            <View key={`done-${file.name}-${index}`} style={[styles.fileRow, index < files.length - 1 && styles.fileDivider]}>
+              <MaterialIcons name="description" size={24} color={stitch.blue} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
+                <Text style={styles.fileStatus}>{file.status}</Text>
+              </View>
+              <MaterialIcons name="check-circle" size={22} color={stitch.green} />
+            </View>
+          ))}
+          {pendingFiles.length === 0 && files.length === 0 && (
             <View style={styles.noFiles}>
               <MaterialIcons name="cloud-upload" size={34} color={stitch.outline} />
               <Text style={styles.noFilesText}>{t("upload.emptyTitle")}</Text>
@@ -374,7 +397,13 @@ export default function UploadScreen() {
           <Text style={styles.addMoreText}>{t("upload.dropzone")}</Text>
         </Pressable>
 
-        {files.length > 0 && (
+        {pendingFiles.length > 0 && (
+          <StitchButton icon="cloud-upload" onPress={uploadAll}>
+            {t("upload.uploadExecute")} ({pendingFiles.length})
+          </StitchButton>
+        )}
+
+        {files.length > 0 && pendingFiles.length === 0 && (
           <StitchButton icon="analytics" onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: activeCaseId } })}>
             {t("upload.readyToAnalyze")}
           </StitchButton>
