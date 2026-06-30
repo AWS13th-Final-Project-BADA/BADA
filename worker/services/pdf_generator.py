@@ -63,16 +63,13 @@ def _render_html(case_id: str, result: dict, case_info: dict, lang: str) -> str:
 def _html_to_pdf(html: str) -> bytes:
     """WeasyPrint HTML→PDF 변환. 폰트 서브셋 비활성화로 속도 최적화.
 
-    fonts-noto-cjk는 15MB+ 폰트. 매번 서브셋팅하면 3분 소요.
-    optimize_size=() 로 서브셋/압축 최적화를 전부 스킵하면 2~3초에 완료.
-    PDF 크기는 좀 커지지만(~2MB) 생성 속도가 압도적으로 빠름.
+    WeasyPrint 63에서는 Document.write_pdf(uncompressed_pdf=True)로
+    폰트 서브셋을 스킵. PDF 크기 커지지만 생성 2~3초에 완료.
     """
     from weasyprint import HTML
 
-    pdf_bytes = HTML(string=html).write_pdf(
-        presentational_hints=True,
-        optimize_size=(),  # 폰트 서브셋 + 이미지 최적화 전부 스킵
-    )
+    document = HTML(string=html).render()
+    pdf_bytes = document.write_pdf(uncompressed_pdf=True)
     return pdf_bytes
 
 
