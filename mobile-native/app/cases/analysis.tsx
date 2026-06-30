@@ -181,11 +181,7 @@ export default function AnalysisScreen() {
                 <Text style={styles.badge}>{t("analysis.title")}</Text>
               </View>
               <View style={styles.summaryBodyWrap}>
-                {(report.narrative?.summary || (
-                  report.wage?.suspected_unpaid
-                    ? `미지급 추정액: ${Math.round(report.wage.suspected_unpaid).toLocaleString()}원. 업로드한 자료를 기준으로 상담 전에 확인할 쟁점을 정리했습니다.`
-                    : t("analysis.noneBody")
-                ))
+                {(report.narrative?.summary || t("analysis.noneBody"))
                   .split(/\n|(?<=\.)\s+/)
                   .filter((p: string) => p.trim())
                   .map((paragraph: string, i: number) => (
