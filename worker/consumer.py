@@ -58,15 +58,14 @@ def dispatch(message: dict) -> None:
 
 def _handle_ocr(message: dict) -> None:
     """OCR 추출 — Worker의 OCR provider로 증거 파일 엔티티 추출."""
-    from db import SessionLocal
+    from db import get_session
     from providers.ocr import extract_entities
-    from sqlalchemy.orm import Session
     import importlib
     models = importlib.import_module("models")
 
     case_id = message["case_id"]
     logger.info("extract_ocr 시작: case_id=%s", case_id)
-    session = SessionLocal()
+    session = get_session()
     try:
         evidences = session.query(models.Evidence).filter(
             models.Evidence.case_id == case_id,
