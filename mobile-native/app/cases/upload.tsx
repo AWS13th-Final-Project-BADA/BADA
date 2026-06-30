@@ -14,6 +14,7 @@ import { t } from "@/i18n";
 import { useLocale } from "@/i18n/LocaleContext";
 
 const categories: Array<{ key: Category; type: FileType }> = [
+  { key: "auto" as Category, type: "image" },
   { key: "contract", type: "pdf" },
   { key: "statement", type: "pdf" },
   { key: "payment", type: "image" },
@@ -30,7 +31,7 @@ export default function UploadScreen() {
   const [activeCaseId, setActiveCaseId] = useState<string | null>(routeCaseId);
   const [cases, setCases] = useState<Case[]>([]);
   const [loadingCases, setLoadingCases] = useState(!routeCaseId);
-  const [category, setCategory] = useState<Category>("contract");
+  const [category, setCategory] = useState<Category>("auto" as Category);
   const [busy, setBusy] = useState(false);
   const [files, setFiles] = useState<Array<{ name: string; status: string }>>([]);
   const [agentResult, setAgentResult] = useState<AgentResult | null>(null);
