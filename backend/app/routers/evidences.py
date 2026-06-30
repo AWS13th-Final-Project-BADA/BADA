@@ -90,6 +90,15 @@ async def upload_file(case_id: str, category: str = Form(...), file: UploadFile 
     # Read file data
     data = await file.read()
 
+    # --- 중복 파일 체크 (같은 파일명 + 같은 크기) ---
+    existing = db.query(Evidence).filter(
+        Evidence.case_id == case_id,
+        Evidence.file_name == file.filename,
+    ).first()
+    if existing and existing.file_size_bytes == len(data):
+        return {"id": existing.id, "file_name": existing.file_name, "category": existing.category,
+                "duplicate": True, "message": "이미 동일한 파일이 업로드되어 있습니다."}
+
     # --- File size validation for audio ---
     if file_type == "audio" and len(data) > MAX_AUDIO_FILE_SIZE:
         raise HTTPException(
