@@ -1,16 +1,14 @@
 name: Build Mobile (EAS Preview)
 
-# mobile-native/ 변경이 develop에 push되면 Android preview APK를 빌드한다.
-# 수동 실행도 가능 (workflow_dispatch).
+# 수동 실행 전용 (workflow_dispatch). push 자동 빌드는 의도적으로 제거했다.
+# 이유: EAS 무료 빌드는 월 15회 한도라, push마다 자동 빌드되어 쿼터가 소진되는 것을 막기 위함.
+# 빌드하려면: GitHub → Actions → "Build Mobile (EAS Preview)" → Run workflow.
+# Run workflow를 누른 경우에만 eas build가 제출되어 1회 차감된다(실행 안 하면 차감 0).
+# Write 권한 이상이면 누구나 Run workflow 가능.
 # EAS Build는 Expo 클라우드에서 실행되며, EXPO_TOKEN으로 인증한다.
 # 빌드 완료/실패 시 EAS_DISCORD_WEBHOOK_URL(설정된 경우)로 디스코드 알림을 보낸다.
 
 on:
-  push:
-    branches: [develop]
-    paths:
-      - "mobile-native/**"
-      - ".github/workflows/build-mobile.yml"
   workflow_dispatch:
     inputs:
       profile:
