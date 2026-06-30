@@ -108,30 +108,17 @@ class MockOcr(OcrProvider):
 
 
 class ClaudeVisionOcr(OcrProvider):
-    """이미지/PDF → Bedrock Claude Vision(raw_text 추출) → Claude Text(엔티티 구조화). 2-pass."""
+    """이미지/PDF → Bedrock Claude → raw_text + entities (1-pass). Pydantic 검증+재시도."""
 
     def extract(self, image_bytes: bytes, category: str) -> dict:
         from providers import _bedrock
-
-        # --- 1차: Vision으로 이미지에서 텍스트만 추출 ---
-        vision_prompt = (
-            "이 이미지는 임금체불 사건의 증거입니다. "
-            "이미지에 보이는 모든 텍스트를 빠짐없이 그대로 추출하세요. "
-            "표, 숫자, 이름, 날짜, 금액 등을 모두 포함하세요. "
-            "줄바꿈을 유지하고, 텍스트만 출력하세요. JSON이 아닌 순수 텍스트로 응답하세요."
-        )
+        from providers.schema import OcrResult
         blocks = [
             _bedrock.file_block(image_bytes, title=category),
-            _bedrock.text_block(vision_prompt),
+            _bedrock.text_block(_instruction(category)),
         ]
-        raw_text = _bedrock.invoke(
-            "당신은 이미지에서 텍스트를 정확히 읽어내는 OCR 도우미입니다. "
-            "보이는 텍스트를 그대로 옮기세요. 판단하지 마세요.",
-            blocks, max_tokens=4000
-        )
-
-        # --- 2차: 추출된 텍스트에서 엔티티 구조화 ---
-        return _structure_text(raw_text.strip(), category)
+        res = _bedrock.extract_json(_SYSTEM, blocks, OcrResult)
+        return {"raw_text": res.raw_text, "entities": res.entities.model_dump()}
 
 
 def _structure_text(text: str, category: str) -> dict:
