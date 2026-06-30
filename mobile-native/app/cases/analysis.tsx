@@ -52,13 +52,17 @@ export default function AnalysisScreen() {
 
       if (res.status === "analyzing") {
         // 폴링 시작 — 5초 간격으로 결과 확인 + pdf_ready까지 대기
+        let firstResult = true;
         const poll = setInterval(async () => {
           try {
             const result = await fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`);
             if (result) {
               setReport(result);
               setRunning(false);
-              scrollRef.current?.scrollTo({ y: 0, animated: true });
+              if (firstResult) {
+                scrollRef.current?.scrollTo({ y: 0, animated: true });
+                firstResult = false;
+              }
               // pdf_ready 아니면 계속 폴링 (PDF 생성 대기)
               if (result.pdf_ready) {
                 clearInterval(poll);
