@@ -105,3 +105,132 @@
 3. 분석 완료 후 PDF 다운로드 확인
 
 에뮬레이터 더미 이미지(로고, 풍경 등)로는 OCR이 엔티티를 추출하지 못해 빈 결과가 정상.
+
+---
+
+# 변경 이력 — 2026-06-30 오후 (OCR 파이프라인 근본 수정 + 성능 개선)
+
+> 작업자: 김재현, 이동규
+> 브랜치: `fix/ocr-exclude-audio`, `fix/worker-prompts-missing`, `fix/ocr-flat-entities`, `perf/ocr-1pass-restore`, `infra/worker-cpu-upgrade`
+> PR: #139, #143, #144, #149, #150, #151, #152
+
+---
+
+## OCR entities 빈 값 근본 원인 해결
+
+### 문제 현상
+- Claude Vision이 `raw_text`는 완벽하게 추출하면서 `entities`(hourly_wage, amounts 등)를 전부 null/빈 배열로 반환
+- 모든 카테고리(contract, chat, other)에서 동일 증상
+- PDF에 데이터 없음, 급여 분석 0원
+
+### 근본 원인
+**Worker Dockerfile에 `prompts/` 디렉토리 미포함** (PR #144)
+
+```dockerfile
+# 누락됐던 라인
+COPY prompts /app/prompts
+```
+
+- `extraction.md` 프롬프트 파일이 Docker 이미지에 없어서 `_instruction()`이 항상 except fallback(한 줄짜리 간략 프롬프트)으로 동작
+- 간략 프롬프트로는 LLM이 entities를 채우지 않음
+- **6월 5일 entities 구조화 도입 이후 지금까지 프롬프트가 한 번도 제대로 로드된 적 없었음**
+
+### 해결
+- `COPY prompts /app/prompts` 추가 → extraction.md 정상 로드
+- extraction.md에 "entities 빈 값 금지" 절대 규칙 추가
+- chat/other 카테고리 전용 프롬프트 신규 작성
+
+---
+
+## OCR 음성 파일(audio) 제외 필터 (PR #139)
+
+### 문제
+- Worker `_handle_ocr`에서 `file_type` 필터 없이 모든 pending/processing 증거를 Claude Vision에 전송
+- `.wav` 음성 파일 → Bedrock `ValidationException: Could not process image`
+
+### 수정
+```python
+# 변경 전
+evidences = session.query(Evidence).filter(
+    Evidence.case_id == case_id,
+    Evidence.ocr_status.in_(["pending", "processing"])
+).all()
+
+# 변경 후
+evidences = session.query(Evidence).filter(
+    Evidence.case_id == case_id,
+    Evidence.file_type.in_(["image", "pdf"]),  # audio 제외
+    Evidence.ocr_status.in_(["pending", "processing"])
+).all()
+```
+
+- audio는 업로드 시 `transcribe` 메시지로 별도 라우팅되므로 OCR에서 제외하는 것이 정상 설계
+
+---
+
+## OCR flat JSON 응답 흡수 (PR #150, 이동규)
+
+- LLM이 `entities` 래핑 없이 flat하게 줄 때(`{"raw_text": "...", "hourly_wage": 10030}`) 정규화
+- `raw_text` 외 필드를 `entities`로 감싸서 OcrResult 검증 통과
+- schema.py에 문자열 필드에 dict 올 때 대표값 추출 validator 추가
+
+---
+
+## OCR 1-pass 복귀 (PR #152)
+
+### 변경
+```
+변경 전 (2-pass): 이미지 → Vision(텍스트) → Text(구조화) → 2회 Bedrock 호출, ~40초
+변경 후 (1-pass): 이미지 → Vision(raw_text + entities JSON) → 1회 Bedrock 호출, ~20초
+```
+
+### 안전한 이유
+- `prompts/extraction.md`가 Docker에 포함됨 (PR #144)
+- flat JSON 응답도 `_bedrock.py`에서 정규화 (PR #150)
+- extraction.md에 entities 필수 추출 절대 규칙 추가됨
+
+### 효과
+- 증거 1건당 Bedrock 호출 2회 → 1회, **~20초 절약**
+
+---
+
+## Worker CPU/Memory 상향 (PR #149, #151)
+
+| 항목 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| CPU | 256 units (0.25 vCPU) | 1024 units (1 vCPU) |
+| Memory | 512 MiB | 2048 MiB |
+
+- PDF 생성(WeasyPrint 한글 폰트 임베딩)이 CPU-bound → CPU 4배로 ~50초 → ~12-15초 단축 기대
+- 비용: desired=1 기준 약 +$8/2주
+- 산정 근거 문서: `docs/infra/worker-cpu-sizing.md`
+
+---
+
+## i18n: upload.categories.auto 번역 키 추가
+
+- 자동 분류(`auto`) 카테고리로 저장된 증거가 업로드 이력에 표시될 때 `[missing translation]` 발생
+- 5개 언어(ko/en/vi/km/ja) 전부 추가
+
+---
+
+## 성능 개선 전후 비교 (증거 1건 기준, 예상치)
+
+| 단계 | 변경 전 | 변경 후 | 비고 |
+|------|---------|---------|------|
+| OCR (Bedrock) | ~40초 (2회) | ~20초 (1회) | 1-pass 복귀 |
+| 분석 LLM | ~5초 | ~5초 | 변동 없음 |
+| PDF 생성 | ~50초 | ~12-15초 | CPU 상향 |
+| **합계** | **~95초** | **~37-40초** | **55~60% 단축** |
+
+---
+
+## 발견된 이슈 업데이트
+
+| 이슈 | 상태 | 비고 |
+|------|------|------|
+| OCR entities 빈 값 | **해결** | Dockerfile prompts/ 추가 + 프롬프트 강화 |
+| 음성 파일 OCR 에러 | **해결** | file_type 필터 추가 |
+| PDF 생성 50초 소요 | **해결 예정** | CPU 상향 PR 머지됨, terraform apply 대기 |
+| 급여 분석 0원 | 정상 동작 | 근무시간(schedule) 증거 없으면 계산 불가. 시급/공제는 정상 추출됨 |
+| 1-pass 안정성 | 모니터링 | entities 빈 값 재발 시 2-pass 롤백 |
