@@ -56,6 +56,8 @@ eas build -p android --profile preview   # .apk / .aab 클라우드 빌드
 ```
 Google Play Console 등록($25, 1회). iOS는 Apple 개발자 계정($99/년).
 
+> **CI 빌드(`build-mobile.yml`)는 승인 게이트 적용** — `mobile-native/**` push 시 워크플로우가 대기하고, Actions에서 **Approve** 해야 빌드된다(미승인 시 EAS 횟수 차감 0). 로컬에서 직접 `eas build` 하면 그대로 1회 차감되니 주의. (활성화: GitHub Settings → Environments → `eas-build` → Required reviewers)
+
 ## 주의
 - 백그라운드 위치는 Android에서 "항상 허용" 권한 + 포그라운드 서비스 알림이 필요하다.
 - `@transistorsoft`(유료) 대신 **expo-location(무료)** 사용 — 라이선스 비용 없음.

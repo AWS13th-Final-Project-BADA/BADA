@@ -146,30 +146,37 @@ Backend와 차이:
 
 | 항목 | 값 |
 | --- | --- |
-| 트리거 | `develop` push + `mobile-native/**`, workflow 자체 / `workflow_dispatch` |
+| 트리거 | `develop` push + `mobile-native/**` / `workflow_dispatch` (둘 다 승인 게이트 통과 필요) |
+| 승인 게이트 | `eas-build` 환경 Required reviewers — 승인 전까지 대기, 승인해야 빌드 제출 |
 | 런타임 | Node.js 20 |
 | 패키지 설치 | `npm ci` |
 | 인증 | `EXPO_TOKEN` GitHub Secret |
 | 빌드 방식 | Expo EAS Build |
 | 기본 프로필 | `preview` |
 | 수동 선택 | `preview`, `production` |
-| 결과 처리 | `--no-wait` 제출 후 종료 |
+| 결과 처리 | 빌드 완료까지 대기 후 결과(JSON)에서 빌드 URL 추출 → Discord 알림 |
 
 실행 흐름:
 
 ```text
 mobile-native/** develop merge 또는 수동 실행
-  -> Checkout
+  -> 워크플로우 트리거 (아직 빌드 안 함)
+  -> ⏸ 'eas-build' 환경 승인 대기 (Required reviewers)   # 여기까지 EAS 차감 0
+  -> [Approve 시] Checkout
   -> Node.js 20 + npm ci
   -> expo/expo-github-action@v8
   -> 이벤트 종류에 따라 profile 결정
-  -> eas build --platform android --profile <preview|production> --non-interactive --no-wait
-  -> Expo 대시보드에서 결과 확인
+  -> eas build --platform android --profile <preview|production> --non-interactive   # 이때 1회 차감
+  -> 빌드 완료 대기 → 빌드 URL 추출 → Discord 알림
 ```
 
 중요한 점:
 
 - 이 workflow는 AWS 인프라를 변경하지 않는다
+- **EAS 무료 빌드는 월 15회 한도**이므로, 승인 게이트로 불필요한 자동 차감을 막는다
+- **승인 전에는 `eas build`가 실행되지 않아 빌드 횟수가 차감되지 않는다** (대기/거부/만료 모두 차감 0). 승인(Approve) 시에만 1회 차감
+- 빌드하려면: Actions → 해당 run → **Review deployments → Approve**
+- ⚠️ 게이트 활성화 전제: **GitHub Settings → Environments → `eas-build` → Required reviewers 등록**. 없으면 게이트가 안 걸리고 자동 빌드된다
 - GitHub Actions 성공 기준은 "Expo Build 제출 성공"이다
 - 실제 APK/AAB 생성 여부는 Expo 대시보드에서 확인해야 한다
 
