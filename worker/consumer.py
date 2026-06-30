@@ -30,8 +30,9 @@ import logging
 import os
 import time
 
-from xray_setup import init_xray
-init_xray()
+# X-Ray는 daemon sidecar 준비 후 활성화. 현재는 비활성.
+# from xray_setup import init_xray
+# init_xray()
 
 from handlers import analysis, transcription
 
