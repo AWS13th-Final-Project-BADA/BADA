@@ -369,4 +369,12 @@ def report_pdf(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_
         raise HTTPException(404, "report pdf not generated yet")
     if not settings.s3_bucket:
         raise HTTPException(409, "s3 not configured")
-    return RedirectResponse(s3.presign_get(key, expires=300), status_code=302)
+    import os, boto3
+    report_bucket = os.environ.get("S3_REPORT_BUCKET", settings.s3_bucket)
+    s3_client = boto3.client("s3", region_name=settings.aws_region)
+    url = s3_client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": report_bucket, "Key": key},
+        ExpiresIn=300,
+    )
+    return RedirectResponse(url, status_code=302)

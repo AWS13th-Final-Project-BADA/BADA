@@ -51,26 +51,29 @@ export default function AnalysisScreen() {
       });
 
       if (res.status === "analyzing") {
-        // 폴링 시작 — 5초 간격으로 결과 확인
+        // 폴링 시작 — 5초 간격으로 결과 확인 + pdf_ready까지 대기
         const poll = setInterval(async () => {
           try {
             const result = await fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`);
             if (result) {
-              clearInterval(poll);
               setReport(result);
               setRunning(false);
               scrollRef.current?.scrollTo({ y: 0, animated: true });
+              // pdf_ready 아니면 계속 폴링 (PDF 생성 대기)
+              if (result.pdf_ready) {
+                clearInterval(poll);
+              }
             }
           } catch {
             // 아직 완료 안 됨 — 계속 폴링
           }
         }, 5000);
 
-        // 최대 2분 후 타임아웃
+        // 최대 3분 후 타임아웃
         setTimeout(() => {
           clearInterval(poll);
           setRunning(false);
-        }, 120000);
+        }, 180000);
       } else {
         // 동기 모드 (로컬) — 바로 결과 조회
         const result = await fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`).catch(() => null);
