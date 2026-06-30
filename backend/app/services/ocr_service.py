@@ -200,7 +200,7 @@ def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
     results: dict = {}
     job_args = [(ev.id, ev.category, ev.file_key) for ev in targets]
     if job_args:
-        with ThreadPoolExecutor(max_workers=min(len(job_args), 4), thread_name_prefix="ocr-ex") as ex:
+        with ThreadPoolExecutor(max_workers=min(len(job_args), 30), thread_name_prefix="ocr-ex") as ex:
             for eid, res in ex.map(_extract_one, job_args):
                 results[eid] = res
 
