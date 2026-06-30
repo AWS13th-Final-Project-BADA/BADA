@@ -194,7 +194,8 @@
       "payment": "Lịch sử chuyển khoản",
       "chat": "Ảnh tin nhắn",
       "statement": "Bảng lương",
-      "other": "Khác"
+      "other": "Khác",
+      "auto": "Tự động phân loại"
     },
     "method": {
       "camera": "Chụp ảnh",

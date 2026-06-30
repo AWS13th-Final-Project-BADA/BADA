@@ -194,7 +194,8 @@
       "payment": "Deposit record",
       "chat": "Chat capture",
       "statement": "Payslip",
-      "other": "Other"
+      "other": "Other",
+      "auto": "Auto-classified"
     },
     "method": {
       "camera": "Camera",

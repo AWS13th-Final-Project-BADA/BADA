@@ -194,7 +194,8 @@
       "payment": "입금내역",
       "chat": "대화 캡처",
       "statement": "급여명세서",
-      "other": "기타"
+      "other": "기타",
+      "auto": "자동 분류"
     },
     "method": {
       "camera": "사진 촬영",

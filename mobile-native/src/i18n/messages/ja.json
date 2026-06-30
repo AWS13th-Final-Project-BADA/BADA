@@ -194,7 +194,8 @@
       "payment": "入金履歴",
       "chat": "チャットキャプチャ",
       "statement": "給与明細",
-      "other": "その他"
+      "other": "その他",
+      "auto": "自動分類"
     },
     "method": {
       "camera": "撮影",
