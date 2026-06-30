@@ -277,13 +277,13 @@ variable "backend_desired_count" {
 variable "worker_task_cpu" {
   description = "Worker ECS task CPU units"
   type        = number
-  default     = 256
+  default     = 1024
 }
 
 variable "worker_task_memory" {
   description = "Worker ECS task memory in MiB"
   type        = number
-  default     = 512
+  default     = 2048
 }
 
 variable "worker_desired_count" {
