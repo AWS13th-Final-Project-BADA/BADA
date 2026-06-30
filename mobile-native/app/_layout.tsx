@@ -1,14 +1,19 @@
+import { useCallback, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "@/i18n"; // i18n 초기화
 import { LocaleProvider } from "@/i18n/LocaleContext";
+import { AppSplash } from "@/components/AppSplash";
 
 export default function RootLayout() {
+  const [showSplash, setShowSplash] = useState(true);
+  const finishSplash = useCallback(() => setShowSplash(false), []);
+
   return (
     <SafeAreaProvider>
       <LocaleProvider>
-        <StatusBar style="dark" />
+        <StatusBar style="dark" backgroundColor="#FFFFFF" />
         <Stack
           screenOptions={{
             headerShown: false,
@@ -30,6 +35,7 @@ export default function RootLayout() {
           <Stack.Screen name="settings" options={{ title: "설정" }} />
           <Stack.Screen name="notifications" options={{ title: "알림" }} />
         </Stack>
+        {showSplash ? <AppSplash onFinish={finishSplash} /> : null}
       </LocaleProvider>
     </SafeAreaProvider>
   );
