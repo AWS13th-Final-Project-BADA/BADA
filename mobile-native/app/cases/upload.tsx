@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ApiError, fetchApi } from "@/lib/api";
 import { uploadEvidence, type PickedFile } from "@/lib/evidence";
+import { scanGallery, uploadApprovedCandidates, type AgentResult, type ScanCandidate } from "@/features/evidence/agent";
 import type { Case, Category, FileType } from "@/lib/types";
 import { Card, Chip, RemoteImage, StitchButton, StitchScreen, TopBar, stitch } from "@/components/StitchKit";
 import { stitchImages } from "@/lib/stitchAssets";
@@ -32,6 +33,9 @@ export default function UploadScreen() {
   const [category, setCategory] = useState<Category>("contract");
   const [busy, setBusy] = useState(false);
   const [files, setFiles] = useState<Array<{ name: string; status: string }>>([]);
+  const [agentResult, setAgentResult] = useState<AgentResult | null>(null);
+  const [agentScanning, setAgentScanning] = useState(false);
+  const [agentSelected, setAgentSelected] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     let mounted = true;
@@ -143,6 +147,61 @@ export default function UploadScreen() {
     }
   }
 
+  async function runAgentScan() {
+    if (!activeCaseId) return;
+    setAgentScanning(true);
+    setAgentResult(null);
+    setAgentSelected(new Set());
+    try {
+      const caseData = selectedCase;
+      const result = await scanGallery({
+        caseId: activeCaseId,
+        workStartDate: caseData?.work_start_date || "2026-01-01",
+        workEndDate: caseData?.work_end_date || undefined,
+        workplaceName: caseData?.workplace_name || undefined,
+      });
+      setAgentResult(result);
+      // 기본으로 recommend 항목 선택
+      const selected = new Set<number>();
+      result.candidates.forEach((c, i) => { if (c.decision === "recommend") selected.add(i); });
+      setAgentSelected(selected);
+    } catch (e: any) {
+      Alert.alert("스캔 실패", e?.message || "갤러리 접근 권한을 확인해주세요.");
+    } finally {
+      setAgentScanning(false);
+    }
+  }
+
+  function toggleAgentItem(index: number) {
+    setAgentSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }
+
+  async function approveAgentUpload() {
+    if (!activeCaseId || !agentResult) return;
+    const selected = agentResult.candidates.filter((_, i) => agentSelected.has(i));
+    if (!selected.length) { Alert.alert("선택된 파일이 없습니다."); return; }
+
+    setBusy(true);
+    try {
+      const { uploaded } = await uploadApprovedCandidates(activeCaseId, selected);
+      setFiles(prev => [
+        ...selected.map(c => ({ name: c.asset.filename || "image", status: "에이전트 업로드 완료" })),
+        ...prev,
+      ]);
+      setAgentResult(null);
+      Alert.alert("업로드 완료", `${uploaded}장이 등록되었습니다.`);
+    } catch (e: any) {
+      Alert.alert("업로드 실패", e?.message || "");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loadingCases) {
     return (
       <StitchScreen active="upload">
@@ -228,6 +287,57 @@ export default function UploadScreen() {
           <UploadMethod icon="upload-file" title={t("upload.method.file")} body={t("upload.method.fileBody")} onPress={pickFile} />
           <UploadMethod icon="mic" title={t("upload.method.audio")} body={t("upload.method.audioBody")} onPress={pickAudio} />
         </View>
+
+        {/* 에이전트 스캔 */}
+        <Pressable style={styles.agentCard} onPress={runAgentScan} disabled={agentScanning}>
+          <View style={styles.agentCardInner}>
+            <MaterialIcons name="auto-awesome" size={26} color="#7c3aed" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.agentTitle}>AI 증거 탐색</Text>
+              <Text style={styles.agentBody}>갤러리에서 증거를 자동으로 찾아드려요</Text>
+            </View>
+            {agentScanning && <ActivityIndicator size="small" color="#7c3aed" />}
+          </View>
+        </Pressable>
+
+        {agentResult && (
+          <Card style={styles.agentResultCard}>
+            <Text style={styles.agentResultTitle}>
+              {agentResult.totalScanned}장 스캔 → {agentResult.candidates.length}장 발견
+            </Text>
+            <Text style={styles.agentResultSub}>
+              소요: {(agentResult.durationMs / 1000).toFixed(1)}초 · 서버 비용 0원
+            </Text>
+            <ScrollView style={{ maxHeight: 240 }}>
+              {agentResult.candidates.map((c, i) => (
+                <Pressable key={c.asset.id} style={styles.candidateRow} onPress={() => toggleAgentItem(i)}>
+                  <MaterialIcons
+                    name={agentSelected.has(i) ? "check-box" : "check-box-outline-blank"}
+                    size={22}
+                    color={agentSelected.has(i) ? stitch.blue : stitch.outline}
+                  />
+                  <Image source={{ uri: c.asset.uri }} style={styles.candidateThumb} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.candidateName} numberOfLines={1}>{c.asset.filename}</Text>
+                    <Text style={styles.candidateReason} numberOfLines={1}>{c.reasons.join(" · ")}</Text>
+                  </View>
+                  <View style={[styles.decisionBadge, c.decision === "recommend" && styles.decisionRecommend]}>
+                    <Text style={styles.decisionText}>{c.decision === "recommend" ? "추천" : "확인"}</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <View style={styles.agentActions}>
+              <Pressable style={styles.agentCancel} onPress={() => setAgentResult(null)}>
+                <Text style={styles.agentCancelText}>취소</Text>
+              </Pressable>
+              <Pressable style={styles.agentApprove} onPress={approveAgentUpload}>
+                <MaterialIcons name="upload" size={18} color="#fff" />
+                <Text style={styles.agentApproveText}>선택 파일 등록 ({agentSelected.size})</Text>
+              </Pressable>
+            </View>
+          </Card>
+        )}
 
         <Card style={styles.privacy}>
           <MaterialIcons name="shield" size={24} color={stitch.blue} />
@@ -332,4 +442,23 @@ const styles = StyleSheet.create({
   uploadModal: { backgroundColor: stitch.surface, borderRadius: 16, padding: 32, alignItems: "center", gap: 12, minWidth: 220, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
   uploadModalTitle: { color: stitch.text, fontSize: 18, fontWeight: "900", marginTop: 8 },
   uploadModalBody: { color: stitch.muted, fontSize: 13, fontWeight: "700", textAlign: "center", lineHeight: 19 },
+  agentCard: { borderRadius: 12, borderWidth: 2, borderColor: "#a78bfa", backgroundColor: "#faf5ff", padding: 16 },
+  agentCardInner: { flexDirection: "row", alignItems: "center", gap: 12 },
+  agentTitle: { color: "#5b21b6", fontSize: 15, fontWeight: "900" },
+  agentBody: { color: "#7c3aed", fontSize: 12, fontWeight: "700", marginTop: 2 },
+  agentResultCard: { padding: 16, gap: 12 },
+  agentResultTitle: { color: stitch.text, fontSize: 16, fontWeight: "900" },
+  agentResultSub: { color: stitch.outline, fontSize: 12, fontWeight: "700" },
+  candidateRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "rgba(0,0,0,0.05)" },
+  candidateThumb: { width: 40, height: 40, borderRadius: 6, backgroundColor: "#eee" },
+  candidateName: { color: stitch.text, fontSize: 13, fontWeight: "800" },
+  candidateReason: { color: stitch.outline, fontSize: 11, fontWeight: "600", marginTop: 2 },
+  decisionBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, backgroundColor: "#f3f4f6" },
+  decisionRecommend: { backgroundColor: "#dcfce7" },
+  decisionText: { fontSize: 11, fontWeight: "800", color: "#374151" },
+  agentActions: { flexDirection: "row", gap: 10, marginTop: 4 },
+  agentCancel: { flex: 1, height: 44, borderRadius: 8, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: stitch.line },
+  agentCancelText: { color: stitch.text, fontSize: 14, fontWeight: "800" },
+  agentApprove: { flex: 2, height: 44, borderRadius: 8, backgroundColor: stitch.blue, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  agentApproveText: { color: "#fff", fontSize: 14, fontWeight: "900" },
 });

@@ -23,7 +23,8 @@
           "location"
         ],
         "NSCameraUsageDescription": "증거 문서를 촬영하기 위해 카메라를 사용합니다.",
-        "NSPhotoLibraryUsageDescription": "증거 이미지를 업로드하기 위해 사진 접근 권한이 필요합니다."
+        "NSPhotoLibraryUsageDescription": "증거 이미지를 업로드하기 위해 사진 접근 권한이 필요합니다.",
+        "NSPhotoLibraryAddUsageDescription": "증거 파일을 저장하기 위해 사진 라이브러리 접근이 필요합니다."
       }
     },
     "android": {
@@ -42,6 +43,7 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      "expo-media-library",
       [
         "expo-location",
         {
