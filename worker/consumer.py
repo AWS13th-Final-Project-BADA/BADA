@@ -74,6 +74,7 @@ def _handle_ocr(message: dict) -> None:
     try:
         evidences = session.query(Evidence).filter(
             Evidence.case_id == case_id,
+            Evidence.file_type.in_(["image", "pdf"]),
             Evidence.ocr_status.in_(["pending", "processing"])
         ).all()
 
