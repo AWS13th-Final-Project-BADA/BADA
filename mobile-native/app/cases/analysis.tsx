@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Linking from "expo-linking";
 import { MaterialIcons } from "@expo/vector-icons";
 import { fetchApi } from "@/lib/api";
 import type { AnalysisReport, MissingItem, TimelineItem } from "@/lib/types";
@@ -238,7 +239,7 @@ export default function AnalysisScreen() {
           report.pdf_ready ? (
             <StitchButton icon="picture-as-pdf" onPress={() => {
               const url = `https://api.badasoft.com/cases/${caseId}/report.pdf`;
-              import("expo-linking").then((Linking) => Linking.openURL(url));
+              void Linking.openURL(url);
             }}>
               {t("analysis.download")}
             </StitchButton>

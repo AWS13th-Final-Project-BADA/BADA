@@ -38,7 +38,7 @@ export function StitchScreen({
   children: ReactNode;
   scroll?: boolean;
   bottom?: boolean;
-  active?: "home" | "cases" | "upload" | "assistant" | "community";
+  active?: "home" | "cases" | "upload" | "assistant" | "community" | "settings";
 }) {
   const body = scroll ? (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[s.scroll, bottom && s.withBottomNav]}>
