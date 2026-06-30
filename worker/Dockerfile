@@ -25,6 +25,7 @@ RUN fc-cache -fv 2>/dev/null || true
 
 COPY worker /app/worker
 COPY backend/app /app/backend/app
+COPY prompts /app/prompts
 
 WORKDIR /app/worker
 
