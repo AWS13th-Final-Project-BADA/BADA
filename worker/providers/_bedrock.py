@@ -81,14 +81,21 @@ def extract_json(system: str, content_blocks: list[dict], schema_model, max_retr
 
     절대 값을 지어내지 않는다(architecture.md). 최종 실패는 호출부에서 ocr_status=failed 처리.
     """
+    import logging
+    _log = logging.getLogger("worker.bedrock")
     last = None
     blocks = list(content_blocks)
-    for _ in range(max_retries + 1):
+    for attempt in range(max_retries + 1):
         raw = invoke(system, blocks, max_tokens=8000)   # 긴 문서도 안 잘리게 충분히
+        stripped = _strip_fences(raw)
+        _log.info("Bedrock 응답 (attempt=%d, len=%d): %s", attempt, len(stripped), stripped[:500])
         try:
-            return schema_model.model_validate(json.loads(_strip_fences(raw)))
+            result = schema_model.model_validate(json.loads(stripped))
+            _log.info("Pydantic 검증 성공: entities keys=%s", list((result.entities.model_dump() if hasattr(result, 'entities') else {}).keys())[:5])
+            return result
         except Exception as e:
             last = e
+            _log.warning("Pydantic 검증 실패 (attempt=%d): %s", attempt, str(e)[:200])
             blocks = blocks + [text_block(
                 "이전 출력이 잘렸거나 JSON 형식이 아니었습니다. 반드시 유효한 JSON 하나만 출력하고, "
                 "raw_text는 핵심만 800자 이내로 줄이세요.")]
