@@ -34,19 +34,17 @@ def setup_xray(app):
 
     class XRayMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-            segment = xray_recorder.begin_segment(
-                name="bada-backend",
-                http={
-                    "request": {
-                        "method": request.method,
-                        "url": str(request.url),
-                        "user_agent": request.headers.get("user-agent", ""),
-                    }
-                },
-            )
+            # health check는 트레이싱 스킵 (ALB unhealthy 방지)
+            if request.url.path in ("/health", "/health/db", "/version", "/metrics"):
+                return await call_next(request)
+
+            segment = xray_recorder.begin_segment(name="bada-backend")
+            segment.put_http_meta("url", str(request.url))
+            segment.put_http_meta("method", request.method)
+            segment.put_http_meta("user_agent", request.headers.get("user-agent", ""))
             try:
                 response = await call_next(request)
-                segment.put_http_meta("response", {"status": response.status_code})
+                segment.put_http_meta("status", response.status_code)
                 return response
             except Exception as e:
                 segment.add_exception(e)
