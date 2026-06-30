@@ -173,11 +173,21 @@ export default function UploadScreen() {
         workEndDate: caseData?.work_end_date || undefined,
         workplaceName: caseData?.workplace_name || undefined,
       });
-      setAgentResult(result);
-      // 기본으로 recommend 항목 선택
-      const selected = new Set<number>();
-      result.candidates.forEach((c, i) => { if (c.decision === "recommend") selected.add(i); });
-      setAgentSelected(selected);
+
+      // 사용자 확인 없이 바로 업로드 — 서버 classify()가 최종 판별
+      if (result.candidates.length > 0) {
+        const { uploaded } = await uploadApprovedCandidates(activeCaseId, result.candidates);
+        setFiles(prev => [
+          ...result.candidates.slice(0, uploaded).map(c => ({ name: c.asset.filename || "image", status: "AI 자동 등록" })),
+          ...prev,
+        ]);
+        Alert.alert(
+          "증거 탐색 완료",
+          `${result.totalScanned}장 스캔 → ${result.candidates.length}장 후보 → ${uploaded}장 등록 완료.\n서버에서 자동 분류 후 무관 자료는 제외됩니다.`
+        );
+      } else {
+        Alert.alert("증거 탐색 완료", `${result.totalScanned}장을 스캔했지만 관련 파일을 찾지 못했습니다.`);
+      }
     } catch (e: any) {
       Alert.alert("스캔 실패", e?.message || "갤러리 접근 권한을 확인해주세요.");
     } finally {
@@ -312,45 +322,6 @@ export default function UploadScreen() {
             {agentScanning && <ActivityIndicator size="small" color="#7c3aed" />}
           </View>
         </Pressable>
-
-        {agentResult && (
-          <Card style={styles.agentResultCard}>
-            <Text style={styles.agentResultTitle}>
-              {agentResult.totalScanned}장 스캔 → {agentResult.candidates.length}장 발견
-            </Text>
-            <Text style={styles.agentResultSub}>
-              소요: {(agentResult.durationMs / 1000).toFixed(1)}초 · 서버 비용 0원
-            </Text>
-            <View>
-              {agentResult.candidates.map((c, i) => (
-                <Pressable key={c.asset.id} style={styles.candidateRow} onPress={() => toggleAgentItem(i)}>
-                  <MaterialIcons
-                    name={agentSelected.has(i) ? "check-box" : "check-box-outline-blank"}
-                    size={22}
-                    color={agentSelected.has(i) ? stitch.blue : stitch.outline}
-                  />
-                  <Image source={{ uri: c.asset.uri }} style={styles.candidateThumb} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.candidateName} numberOfLines={1}>{c.asset.filename}</Text>
-                    <Text style={styles.candidateReason} numberOfLines={1}>{c.reasons.join(" · ")}</Text>
-                  </View>
-                  <View style={[styles.decisionBadge, c.decision === "recommend" && styles.decisionRecommend]}>
-                    <Text style={styles.decisionText}>{c.decision === "recommend" ? "추천" : "확인"}</Text>
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-            <View style={styles.agentActions}>
-              <Pressable style={styles.agentCancel} onPress={() => setAgentResult(null)}>
-                <Text style={styles.agentCancelText}>취소</Text>
-              </Pressable>
-              <Pressable style={styles.agentApprove} onPress={approveAgentUpload}>
-                <MaterialIcons name="upload" size={18} color="#fff" />
-                <Text style={styles.agentApproveText}>선택 파일 등록 ({agentSelected.size})</Text>
-              </Pressable>
-            </View>
-          </Card>
-        )}
 
         <Card style={styles.privacy}>
           <MaterialIcons name="shield" size={24} color={stitch.blue} />
