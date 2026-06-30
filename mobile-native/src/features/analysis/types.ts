@@ -47,6 +47,7 @@ export interface Narrative {
 }
 export interface AnalysisReport {
   schema_version: string;
+  pdf_ready?: boolean;
   case: {
     id: string;
     workplace: string | null;

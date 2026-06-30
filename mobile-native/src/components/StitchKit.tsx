@@ -38,7 +38,7 @@ export function StitchScreen({
   children: ReactNode;
   scroll?: boolean;
   bottom?: boolean;
-  active?: "home" | "cases" | "upload" | "assistant" | "community";
+  active?: "home" | "cases" | "upload" | "assistant" | "community" | "settings";
 }) {
   const body = scroll ? (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[s.scroll, bottom && s.withBottomNav]}>
@@ -82,7 +82,7 @@ export function TopBar({
 
   return (
     <View style={s.topbar}>
-      <Pressable style={s.topIcon} onPress={() => (back ? router.back() : undefined)}>
+      <Pressable style={[s.topIcon, s.topLeftIcon]} onPress={() => (back ? router.back() : undefined)}>
         <MaterialIcons name={back ? "arrow-back" : "account-circle"} size={24} color={back ? stitch.navy : "transparent"} />
       </Pressable>
       <Text style={s.topTitle} numberOfLines={1}>{title}</Text>
@@ -217,14 +217,25 @@ export const s = StyleSheet.create({
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     backgroundColor: "rgba(247,249,251,0.96)",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(198,198,205,0.32)",
+    position: "relative",
   },
   topIcon: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 20 },
-  topTitle: { color: stitch.navy, fontSize: 22, lineHeight: 30, fontWeight: "900", flex: 1, textAlign: "center" },
-  topRightGroup: { flexDirection: "row", alignItems: "center" },
+  topLeftIcon: { position: "absolute", left: 20 },
+  topTitle: {
+    position: "absolute",
+    left: 108,
+    right: 108,
+    color: stitch.navy,
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  topRightGroup: { position: "absolute", right: 20, flexDirection: "row", alignItems: "center" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "flex-start", alignItems: "flex-end", paddingTop: 60, paddingRight: 16 },
   langMenu: { backgroundColor: stitch.surface, borderRadius: 12, paddingVertical: 8, minWidth: 160, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
   langOption: { paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
