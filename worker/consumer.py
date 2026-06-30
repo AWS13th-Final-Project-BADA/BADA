@@ -61,10 +61,9 @@ def _handle_ocr(message: dict) -> None:
     """OCR 추출 — 증거 파일에서 엔티티 추출 후 DB 저장."""
     from db import get_session
     from providers.ocr import get_ocr
+    from app.models import Evidence
     import boto3
     import os
-    import importlib
-    models = importlib.import_module("models")
 
     case_id = message["case_id"]
     logger.info("extract_ocr 시작: case_id=%s", case_id)
@@ -73,9 +72,9 @@ def _handle_ocr(message: dict) -> None:
     bucket = os.environ.get("S3_BUCKET", "")
 
     try:
-        evidences = session.query(models.Evidence).filter(
-            models.Evidence.case_id == case_id,
-            models.Evidence.ocr_status.in_(["pending", "processing"])
+        evidences = session.query(Evidence).filter(
+            Evidence.case_id == case_id,
+            Evidence.ocr_status.in_(["pending", "processing"])
         ).all()
 
         for ev in evidences:
