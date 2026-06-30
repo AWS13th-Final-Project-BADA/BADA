@@ -309,7 +309,7 @@ export default function UploadScreen() {
             <Text style={styles.agentResultSub}>
               소요: {(agentResult.durationMs / 1000).toFixed(1)}초 · 서버 비용 0원
             </Text>
-            <ScrollView style={{ maxHeight: 240 }}>
+            <View>
               {agentResult.candidates.map((c, i) => (
                 <Pressable key={c.asset.id} style={styles.candidateRow} onPress={() => toggleAgentItem(i)}>
                   <MaterialIcons
@@ -327,7 +327,7 @@ export default function UploadScreen() {
                   </View>
                 </Pressable>
               ))}
-            </ScrollView>
+            </View>
             <View style={styles.agentActions}>
               <Pressable style={styles.agentCancel} onPress={() => setAgentResult(null)}>
                 <Text style={styles.agentCancelText}>취소</Text>

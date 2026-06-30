@@ -68,7 +68,7 @@ export async function scanGallery(config: AgentConfig): Promise<AgentResult> {
     mediaType: [MediaLibrary.MediaType.photo],
     createdAfter: startDate.getTime(),
     createdBefore: endDate.getTime(),
-    first: 500, // 최대 500장 스캔
+    first: 9999, // ponytail: 기간 필터가 실질적 제한 역할. 제한 없이 전부 스캔
     sortBy: [MediaLibrary.SortBy.creationTime],
   });
 
@@ -129,8 +129,8 @@ export async function scanGallery(config: AgentConfig): Promise<AgentResult> {
     return b.score - a.score;
   });
 
-  // 최대 20장까지만
-  const finalCandidates = candidates.slice(0, 20);
+  // ponytail: 제한 없이 전부 보여줌 — 바깥 스크롤로 탐색
+  const finalCandidates = candidates;
 
   return {
     totalScanned,
