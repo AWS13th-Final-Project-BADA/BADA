@@ -104,15 +104,33 @@ def _load_report(case_id: str, db: Session) -> dict:
 
 @router.get("/analysis")
 def get_analysis(case_id: str, db: Session = Depends(get_db)):
-    """저장된 분석을 /analyze 와 동일한 표준 스키마로 반환. pdf_ready 포함."""
+    """저장된 분석을 표준 스키마로 반환. pdf_ready 포함."""
     ar = db.query(AnalysisResult).filter(AnalysisResult.case_id == case_id).first()
     if not ar:
         raise HTTPException(404, "no analysis yet")
     rep = (ar.calculation_detail or {}).get("report")
-    if not rep:
-        raise HTTPException(409, "report not available (re-run analyze)")
-    rep["pdf_ready"] = bool(ar.pdf_ko_s3_key)
-    return rep
+    if rep:
+        rep["pdf_ready"] = bool(ar.pdf_ko_s3_key)
+        return rep
+    # Worker가 저장한 형식 (report 키 없음) → 원시 AR 데이터 반환
+    return {
+        "wage": {
+            "expected": ar.total_expected_wage,
+            "received": ar.total_received_wage,
+            "suspected_unpaid": ar.suspected_unpaid,
+        },
+        "deduction_items": ar.deduction_items or [],
+        "missing": ar.missing_evidences or [],
+        "timeline": [
+            {"date": str(e.event_date) if e.event_date else None, "type": e.event_type,
+             "text": e.description, "text_translated": e.description_translated,
+             "confidence": e.confidence}
+            for e in db.query(TimelineEvent).filter(TimelineEvent.case_id == case_id).all()
+        ],
+        "narrative": {"summary": ar.timeline_summary or "", "disclaimer": ""},
+        "calculation_detail": ar.calculation_detail or {},
+        "pdf_ready": bool(ar.pdf_ko_s3_key),
+    }
 
 
 @router.get("/timeline")
