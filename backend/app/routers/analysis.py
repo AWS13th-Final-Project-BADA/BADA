@@ -370,7 +370,8 @@ def report_pdf(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_
     if not settings.s3_bucket:
         raise HTTPException(409, "s3 not configured")
     import os, boto3
-    report_bucket = os.environ.get("S3_REPORT_BUCKET", settings.s3_bucket)
+    # report 버킷: S3_REPORT_BUCKET 환경변수 → 없으면 evidence 버킷명에서 추론
+    report_bucket = os.environ.get("S3_REPORT_BUCKET") or settings.s3_bucket.replace("-evidence", "-report")
     s3_client = boto3.client("s3", region_name=settings.aws_region)
     url = s3_client.generate_presigned_url(
         "get_object",
