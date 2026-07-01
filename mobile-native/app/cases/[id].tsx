@@ -103,7 +103,11 @@ export default function CaseDetailScreen() {
 
         <View style={styles.actionRow}>
           <Action icon="upload-file" label={t("cases.upload")} onPress={() => router.push({ pathname: "/cases/upload", params: { caseId: id } })} />
-          <Action icon="analytics" label={t("cases.uploadHistory")} onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: id } })} />
+          {data?.status === "completed" ? (
+            <Action icon="fact-check" label={t("analysis.title")} onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: id } })} />
+          ) : (
+            <Action icon="analytics" label={t("cases.uploadHistory")} onPress={() => router.push({ pathname: "/cases/analysis", params: { caseId: id } })} />
+          )}
         </View>
 
         <View style={styles.manageRow}>
