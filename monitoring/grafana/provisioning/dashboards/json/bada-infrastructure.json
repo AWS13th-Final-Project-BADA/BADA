@@ -21,11 +21,11 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
-        "namespace": "AWS/ECS",
-        "metricName": "CPUUtilization",
+        "namespace": "ECS/ContainerInsights",
+        "metricName": "CpuUtilized",
         "statistics": ["Average"],
         "period": "300",
-        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
+        "dimensions": {"ClusterName": ["bada-dev-cluster"], "ServiceName": ["bada-dev-backend"]},
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -37,11 +37,11 @@
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
-        "namespace": "AWS/ECS",
-        "metricName": "MemoryUtilization",
+        "namespace": "ECS/ContainerInsights",
+        "metricName": "MemoryUtilized",
         "statistics": ["Average"],
         "period": "300",
-        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
+        "dimensions": {"ClusterName": ["bada-dev-cluster"], "ServiceName": ["bada-dev-backend"]},
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -53,11 +53,11 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
-        "namespace": "AWS/ECS",
-        "metricName": "CPUUtilization",
+        "namespace": "ECS/ContainerInsights",
+        "metricName": "CpuUtilized",
         "statistics": ["Average"],
         "period": "300",
-        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+        "dimensions": {"ClusterName": ["bada-dev-cluster"], "ServiceName": ["bada-dev-worker"]},
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -69,11 +69,11 @@
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
-        "namespace": "AWS/ECS",
-        "metricName": "MemoryUtilization",
+        "namespace": "ECS/ContainerInsights",
+        "metricName": "MemoryUtilized",
         "statistics": ["Average"],
         "period": "300",
-        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+        "dimensions": {"ClusterName": ["bada-dev-cluster"], "ServiceName": ["bada-dev-worker"]},
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
