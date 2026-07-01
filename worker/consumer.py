@@ -150,21 +150,52 @@ def _process_message(sqs, msg: dict) -> None:
         sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt)
         return
 
+    task_type = body.get("task") or body.get("type") or "unknown"
+    start = time.time()
+
+    try:
+        from metrics import WORKER_IDLE, SQS_MESSAGES, SQS_PROCESSING_TIME
+        WORKER_IDLE.set(0)
+    except ImportError:
+        pass
+
     try:
         dispatch(body)
     except Exception:
         # 삭제하지 않음 → 가시성 타임아웃 후 재수신, 반복 실패 시 DLQ
         logger.exception("handler 실패(재시도 예정): id=%s body=%s", mid, body)
+        try:
+            SQS_MESSAGES.labels(task_type=task_type, status="failed").inc()
+            SQS_PROCESSING_TIME.labels(task_type=task_type).observe(time.time() - start)
+            WORKER_IDLE.set(1)
+        except Exception:
+            pass
         return
 
     sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt)
     logger.info("처리 완료 및 삭제: id=%s", mid)
+
+    try:
+        SQS_MESSAGES.labels(task_type=task_type, status="success").inc()
+        SQS_PROCESSING_TIME.labels(task_type=task_type).observe(time.time() - start)
+        WORKER_IDLE.set(1)
+    except Exception:
+        pass
 
 
 def run_forever() -> None:
     """SQS 폴링 루프 (운영 모드)."""
     if not QUEUE_URL:
         raise RuntimeError("SQS_QUEUE_URL 환경변수가 설정되지 않았습니다")
+
+    # Prometheus 메트릭 서버 시작
+    try:
+        from metrics import start_metrics_server
+        start_metrics_server(port=9090)
+        logger.info("Prometheus 메트릭 서버 시작: port=9090")
+    except Exception as e:
+        logger.warning("메트릭 서버 시작 실패 (계속 진행): %s", e)
+
     sqs = _sqs_client()
     logger.info("consumer 시작: queue=%s region=%s", QUEUE_URL, AWS_REGION)
     while True:
