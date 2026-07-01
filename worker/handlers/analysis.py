@@ -137,11 +137,12 @@ def handle(message: dict) -> None:
     if not case_id:
         raise ValueError("analyze_case: 'case_id' is required")
 
-    logger.info("analyze_case 시작 (2단계 DB 직접): case_id=%s", case_id)
+    lang = message.get("lang", "ko")
+    logger.info("analyze_case 시작 (2단계 DB 직접): case_id=%s, lang=%s", case_id, lang)
 
     session = get_session()
     try:
-        _run(session, case_id)
+        _run(session, case_id, lang=lang)
     except Exception:
         session.rollback()
         raise
@@ -151,7 +152,7 @@ def handle(message: dict) -> None:
     logger.info("analyze_case 완료: case_id=%s", case_id)
 
 
-def _run(session, case_id: str) -> None:
+def _run(session, case_id: str, lang: str = "ko") -> None:
     from app.models import AnalysisResult, Case, Evidence, TimelineEvent, TranslationPair
 
     case = session.query(Case).filter(Case.id == case_id).first()
@@ -238,7 +239,7 @@ def _run(session, case_id: str) -> None:
         "chat_arrivals": chat_arrivals,
         "work_start_date": str(case.work_start_date) if case.work_start_date else None,
         "workplace_name": case.workplace_name or ocr.get("workplace_name"),
-        "target_lang": case.primary_language or "ko",
+        "target_lang": lang,
     }
 
     result = process_case(case_id, ctx)
@@ -300,7 +301,7 @@ def _run(session, case_id: str) -> None:
             "work_start_date": str(case.work_start_date) if case.work_start_date else None,
             "work_end_date": str(case.work_end_date) if case.work_end_date else None,
         }
-        s3_key = generate_evidence_pack(case_id, result, case_info, lang="ko")
+        s3_key = generate_evidence_pack(case_id, result, case_info, lang=lang)
         ar.pdf_ko_s3_key = s3_key
         session.commit()
         logger.info("PDF 생성 완료: case_id=%s, key=%s", case_id, s3_key)

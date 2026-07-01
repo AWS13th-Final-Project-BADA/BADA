@@ -46,7 +46,7 @@ export default function AnalysisScreen() {
   async function runAnalyze() {
     setRunning(true);
     try {
-      const res = await fetchApi<{ status: string }>(`/cases/${caseId}/analyze?lang=ko`, {
+      const res = await fetchApi<{ status: string }>(`/cases/${caseId}/analyze?lang=${locale}`, {
         method: "POST",
         body: JSON.stringify({}),
       });
