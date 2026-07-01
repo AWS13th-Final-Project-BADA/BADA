@@ -149,11 +149,11 @@ aws secretsmanager get-secret-value \
 | 대시보드 | 패널 데이터 | 기대 |
 |----------|------------|------|
 | Overview | Prometheus 메트릭 | `/metrics` 엔드포인트 있으면 데이터 표시 |
-| Infrastructure | CloudWatch | ECS CPU/Mem, RDS, ALB 데이터 즉시 표시 |
+| Infrastructure | CloudWatch | ECS Container Insights CPU/Mem, RDS, ALB 데이터 표시 |
 | Backend | Prometheus | `/metrics` 의존, 없으면 No data |
 | Worker | Prometheus + CW | Worker 메트릭 없으면 Prometheus 패널 No data, SQS 패널은 표시 |
 
-> **Infrastructure 대시보드는 즉시 데이터가 보여야 함** — CloudWatch는 AWS 자체 수집이라 추가 설정 불필요.
+> **Infrastructure 대시보드의 ECS CPU/Memory 패널은 `ECS/ContainerInsights` namespace의 `CpuUtilized`/`MemoryUtilized`를 사용한다.** ECS Cluster Container Insights가 켜져 있어야 하며, Grafana UI 수동 수정이 아니라 `monitoring/grafana/provisioning/dashboards/json/bada-infrastructure.json` 변경 후 Terraform apply로 영구 반영한다.
 
 ---
 

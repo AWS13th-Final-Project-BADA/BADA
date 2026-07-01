@@ -25,7 +25,7 @@
         "metricName": "CpuUtilized",
         "statistics": ["Average"],
         "period": "300",
-        "dimensions": {"ClusterName": ["bada-dev-cluster"], "ServiceName": ["bada-dev-backend"]},
+        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -41,7 +41,7 @@
         "metricName": "MemoryUtilized",
         "statistics": ["Average"],
         "period": "300",
-        "dimensions": {"ClusterName": ["bada-dev-cluster"], "ServiceName": ["bada-dev-backend"]},
+        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -57,7 +57,7 @@
         "metricName": "CpuUtilized",
         "statistics": ["Average"],
         "period": "300",
-        "dimensions": {"ClusterName": ["bada-dev-cluster"], "ServiceName": ["bada-dev-worker"]},
+        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -73,7 +73,7 @@
         "metricName": "MemoryUtilized",
         "statistics": ["Average"],
         "period": "300",
-        "dimensions": {"ClusterName": ["bada-dev-cluster"], "ServiceName": ["bada-dev-worker"]},
+        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
