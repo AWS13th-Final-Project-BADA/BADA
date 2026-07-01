@@ -153,7 +153,7 @@ export async function uploadApprovedCandidates(
     const uri = assetInfo.localUri || assetInfo.uri;
 
     const fd = new FormData();
-    fd.append("category", "other"); // 서버에서 자동 분류
+    fd.append("category", "auto"); // 서버에서 자동 분류
     fd.append("file", {
       uri,
       name: c.asset.filename || `evidence-${Date.now()}.jpg`,
@@ -167,6 +167,12 @@ export async function uploadApprovedCandidates(
     });
     uploaded++;
   }
+
+  // 4단계: 서버 분류+OCR 트리거 (Bedrock/Upstage)
+  // 업로드 완료 후 비동기로 실행 — 결과는 분석 화면에서 폴링
+  await fetchApi(`/cases/${caseId}/evidences/extract`, { method: "POST" }).catch(() => {
+    // extract 실패해도 업로드 자체는 성공으로 처리 (OCR은 분석 시 재시도 가능)
+  });
 
   return { uploaded };
 }
