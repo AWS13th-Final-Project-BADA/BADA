@@ -62,7 +62,17 @@ def invoke(system: str, content_blocks: list[dict], max_tokens: int = 2000) -> s
         "system": system,
         "messages": [{"role": "user", "content": content_blocks}],
     }
-    r = _bedrock().invoke_model(modelId=BEDROCK_MODEL_ID, body=json.dumps(body))
+    try:
+        from metrics import track_bedrock
+    except ImportError:
+        track_bedrock = None
+
+    if track_bedrock:
+        with track_bedrock("invoke"):
+            r = _bedrock().invoke_model(modelId=BEDROCK_MODEL_ID, body=json.dumps(body))
+    else:
+        r = _bedrock().invoke_model(modelId=BEDROCK_MODEL_ID, body=json.dumps(body))
+
     payload = json.loads(r["body"].read())
     return payload["content"][0]["text"]
 
