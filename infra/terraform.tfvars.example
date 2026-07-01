@@ -49,11 +49,11 @@ backend_desired_count = 0
 worker_desired_count  = 1
 frontend_desired_count = 0
 
-# Minimum Fargate task size for dev/MVP.
+# Worker uses the OCR/analysis sizing baseline; backend keeps the minimum Fargate task size for dev/MVP.
 backend_task_cpu    = 256
 backend_task_memory = 512
-worker_task_cpu     = 512
-worker_task_memory  = 1024
+worker_task_cpu     = 1024
+worker_task_memory  = 2048
 frontend_task_cpu   = 256
 frontend_task_memory = 512
 ecs_cpu_architecture = "ARM64"
