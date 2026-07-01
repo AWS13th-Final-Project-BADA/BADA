@@ -48,12 +48,24 @@
   - [x] README.md 갱신 + 아키텍처 다이어그램 — e03263e
   - [x] 카오스 엔지니어링 시나리오 문서 — 81d2720
   - [x] 웹 프론트엔드 제거 + CD 정리 — bb58341
-  - [ ] #3 행 수준 인가
-  - [ ] #10 X-Ray SDK 통합
-  - [ ] #14 구조화 로깅
+  - [x] #3 행 수준 인가 (verify_case_owner + Cases/Evidences API)
+  - [x] #10 X-Ray SDK 통합 (코드 완료, Backend 비활성화 상태 — daemon sidecar 대기)
+  - [x] #14 구조화 로깅 (python-json-logger + RequestIdMiddleware)
+  - [x] OCR entities 근본 수정 (Dockerfile prompts/ 포함 + 1-pass 복귀)
+  - [x] OCR 병렬 처리 (max_workers=50, 12건 240초→25초)
+  - [x] 분석 시점 OCR 실행 (업로드 시 즉시 OCR 제거, 비용 절약)
+  - [x] STT → entities 구조화 파이프라인 완성
+  - [x] Worker CPU 상향 (256→1024, PDF 50초→15초)
+  - [x] Container Insights 활성화
+  - [x] Worker Prometheus 비즈니스 메트릭 추가
+  - [x] 일괄 업로드 UX 변경 (파일 모아두기 → 업로드 실행)
+  - [x] 분석 결과 다국어 지원 (사용자 locale → LLM target_lang)
+  - [x] 분석 결과 화면 i18n 하드코딩 제거
   - [ ] #16 Terraform Plan in PR
   - [ ] #19 모바일 로그인 E2E
   - [ ] #20 APK 배포 파이프라인
+  - [ ] Grafana Infrastructure 대시보드 수정 (인프라 담당 대기)
+  - [ ] Prometheus Worker 타겟 추가 (인프라 담당 대기)
   - [ ] Phase 2~4 (TF 분리 후)
 
 ## Post-MVP 의사결정 (2026-06-25 확정)
