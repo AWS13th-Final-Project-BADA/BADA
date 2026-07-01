@@ -92,6 +92,45 @@ def _run_ocr_parallel(session, evidences) -> None:
                 len(evidences), sum(1 for r in results.values() if r[2] is None))
 
 
+def _extract_audio_entities(session, evidences) -> None:
+    """전사 완료된 음성 증거에서 entities를 구조화 (텍스트 → Claude Text)."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from providers.ocr import _structure_text
+
+    def _structure_one(ev_id, ocr_text, category):
+        try:
+            result = _structure_text(ocr_text, category or "audio")
+            return ev_id, result.get("entities", {}), None
+        except Exception as e:
+            return ev_id, None, str(e)
+
+    max_workers = min(len(evidences), 50)
+    results = {}
+
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="audio-ent") as executor:
+        futures = {
+            executor.submit(_structure_one, ev.id, ev.ocr_text, ev.category): ev.id
+            for ev in evidences
+        }
+        for future in as_completed(futures):
+            ev_id, entities, error = future.result()
+            results[ev_id] = (entities, error)
+
+    for ev in evidences:
+        res = results.get(ev.id)
+        if not res:
+            continue
+        entities, error = res
+        if error:
+            logger.warning("음성 entities 구조화 실패: evidence_id=%s, error=%s", ev.id, error)
+            ev.extracted_entities = {}
+        else:
+            ev.extracted_entities = entities
+    session.commit()
+    logger.info("음성 entities 구조화 완료: %d건 중 %d건 성공",
+                len(evidences), sum(1 for r in results.values() if r[1] is None))
+
+
 def handle(message: dict) -> None:
     """analyze_case 메시지 처리. 실패 시 예외 → consumer가 재시도/DLQ."""
     case_id = message.get("case_id")
@@ -129,6 +168,18 @@ def _run(session, case_id: str) -> None:
         logger.info("OCR 미완료 %d건 병렬 처리 시작: case_id=%s", len(pending_ocr), case_id)
         _run_ocr_parallel(session, pending_ocr)
         # DB 갱신 후 다시 조회
+        session.expire_all()
+        evs = session.query(Evidence).filter(Evidence.case_id == case_id).all()
+
+    # --- 음성 전사 완료 + entities 미추출 → 텍스트 기반 구조화 ---
+    audio_need_entities = [e for e in evs
+                           if e.file_type == "audio"
+                           and e.ocr_status == "done"
+                           and e.ocr_text
+                           and not e.extracted_entities]
+    if audio_need_entities:
+        logger.info("음성 entities 구조화 %d건 시작: case_id=%s", len(audio_need_entities), case_id)
+        _extract_audio_entities(session, audio_need_entities)
         session.expire_all()
         evs = session.query(Evidence).filter(Evidence.case_id == case_id).all()
 
