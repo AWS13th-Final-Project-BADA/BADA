@@ -88,16 +88,22 @@ export default function UploadScreen() {
     if (!activeCaseId || pendingFiles.length === 0) return;
     setBusy(true);
     let successCount = 0;
+    const uploaded: Array<{ name: string; status: string }> = [];
     try {
       for (const pf of pendingFiles) {
         const cat = categories.find((c) => c.key === pf.category) || categories[0];
         await uploadEvidence(activeCaseId, pf, pf.category, cat.type);
         successCount++;
-        setFiles((prev) => [{ name: pf.name, status: t("upload.done") }, ...prev]);
+        uploaded.push({ name: pf.name, status: t("upload.done") });
       }
+      setFiles((prev) => [...uploaded, ...prev]);
       setPendingFiles([]);
       Alert.alert(t("upload.done"), `${successCount}건 업로드 완료`);
     } catch (e: any) {
+      // 부분 성공 반영
+      if (uploaded.length > 0) {
+        setFiles((prev) => [...uploaded, ...prev]);
+      }
       Alert.alert(t("upload.uploadError"), String(e?.message ?? e));
     } finally {
       setBusy(false);
