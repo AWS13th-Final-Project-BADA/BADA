@@ -43,7 +43,7 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
 
     # SQS 발행 시도
     if settings.sqs_queue_url:
-        send_analysis_job(case_id)
+        send_analysis_job(case_id, lang=lang)
         case.status = "analyzing"
         db.commit()
         return {"status": "analyzing", "message": "분석 요청이 접수되었습니다. 잠시 후 결과를 확인할 수 있습니다."}
