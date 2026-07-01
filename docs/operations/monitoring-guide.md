@@ -21,6 +21,18 @@
 4. Worker exporter 구현 후 Prometheus target과 Worker 처리량 패널 추가
 5. 음성 전사 E2E 실행 중 로그·지연·실패 지표를 대시보드에서 확인
 
+### Worker Prometheus 메트릭 (2026-07-01 구현 완료)
+
+Worker에 `prometheus_client` + `:9090/metrics` HTTP 서버가 추가됨. 계측 항목:
+- `worker_sqs_messages_total{task_type, status}`: SQS 메시지 처리
+- `worker_bedrock_calls_total{purpose, status}`: Bedrock 호출 횟수/레이턴시
+- `worker_ocr_processed_total`: OCR 처리 건수
+- `worker_stt_processed_total`: STT 전사 건수
+- `worker_pdf_generated_total`: PDF 생성 건수
+- `worker_analysis_duration_seconds`: 분석 전체 소요시간
+
+**잔여 인프라 작업**: Prometheus scrape config에 Worker 타겟(`bada-dev-worker:9090`) 추가 필요.
+
 완료 기준은 주요 대시보드가 실제 데이터를 표시하고, 테스트 장애나 임계치 초과 시 SNS 이메일과 OK 복구 알림이 정상 수신되는 것입니다.
 
 ## Grafana Alert 남은 작업

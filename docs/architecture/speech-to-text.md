@@ -30,6 +30,14 @@
 핵심 설계 결정: **음성 녹음은 "증거"이므로, Transcribe 원문을 AI 보정 없이 그대로 보존한다.**
 화자 분리는 Transcribe의 채널 식별(스테레오) 또는 Speaker Diarization(모노)에 전적으로 의존한다.
 
+### 분석 시점 entities 구조화 (2026-07-01 추가)
+
+전사 완료(ocr_text 저장) 후 **분석 실행 시점에** 음성 텍스트에서 entities를 구조화한다.
+- `handlers/analysis.py` → `_extract_audio_entities()`: 전사 텍스트 → `_structure_text("audio")` → Bedrock Claude Text → JSON entities
+- 병렬 처리(max_workers=50): 음성 여러 건이어도 동시 구조화
+- 추출 가능 entities: hourly_wage, amounts, deductions, dates, pay_date, utterances(kind 분류)
+- **업로드 시점에는 전사만 수행**하고, entities 구조화는 분석 실행 시 lazy 처리 (Bedrock 비용 절약)
+
 ---
 
 ## 1. 지원 형식

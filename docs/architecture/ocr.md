@@ -12,15 +12,19 @@
    │  POST /cases/{id}/evidences/upload
    ▼
 [backend/routers/evidences] → storage 저장 → DB Evidence(pending)
-   │  POST .../extract
-   ▼
-[ocr_service] 파일 읽기 → [worker/providers/ocr] 엔진 선택
-   │                          └ Claude Vision / Upstage → [_bedrock]/[_upstage]
-   │                          └ [schema] 로 검증·정규화
-   ├ PII 마스킹 · sanity 모순검사 · 근거 confidence 계산
-   ▼  (엔티티를 DB에 저장, 사용자가 화면에서 수정 → PATCH /entities)
+   │  (업로드 시 OCR 트리거 안 함 — 분석 시점에 lazy 실행)
    │  POST .../analyze
    ▼
+[handlers/analysis._run_ocr_parallel] 병렬 OCR (max_workers=50)
+   │  image/pdf pending → ClaudeVisionOcr.extract() (1-pass)
+   │  audio 전사완료 → _extract_audio_entities() (병렬 구조화)
+   ▼
+[worker/providers/ocr] ClaudeVisionOcr (1-pass)
+   │  이미지 → Bedrock Claude Vision → raw_text + entities JSON 직접 반환
+   │  prompts/extraction.md 로드 (Docker에 COPY prompts /app/prompts)
+   │  flat JSON 응답 시 _bedrock.py에서 자동 정규화 (entities 래핑)
+   ├ PII 마스킹 · sanity 모순검사 · 근거 confidence 계산
+   ▼  (엔티티를 DB에 저장, 사용자가 화면에서 수정 → PATCH /entities)
 [analysis_service] 저장된 엔티티로 ctx 구성 → [worker/pipeline.process_case]
    │   ├ wage(차액) deductions(공제) missing(누락) geofence(GPS)
    │   ├ compare(증거 대조) legal(법령 점검)
