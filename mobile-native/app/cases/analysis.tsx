@@ -253,7 +253,7 @@ export default function AnalysisScreen() {
           ) : (
             <Card style={styles.pdfPending}>
               <ActivityIndicator size="small" color={stitch.blue} />
-              <Text style={styles.pdfPendingText}>PDF 생성 중... 잠시 후 다시 확인해주세요.</Text>
+              <Text style={styles.pdfPendingText}>{t("analysis.pdfGenerating")}</Text>
             </Card>
           )
         )}
@@ -327,8 +327,8 @@ function Timeline({ item, active }: { item: TimelineItem; active?: boolean }) {
         <View style={[styles.timelineDot, active && styles.timelineDotOn]} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[styles.timelineDate, active && styles.timelineDateOn]}>{item.date || "날짜 미확인"}</Text>
-        <Text style={styles.timelineTitle}>{item.type === "payment" ? "입금 자료 확인" : "자료 확인"}</Text>
+        <Text style={[styles.timelineDate, active && styles.timelineDateOn]}>{item.date || t("analysis.dateUnknown")}</Text>
+        <Text style={styles.timelineTitle}>{item.type === "payment" ? t("analysis.paymentConfirm") : t("analysis.documentConfirm")}</Text>
         <Text style={styles.timelineBody}>{item.text}</Text>
       </View>
     </View>
