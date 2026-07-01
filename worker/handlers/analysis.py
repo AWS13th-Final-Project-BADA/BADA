@@ -269,7 +269,7 @@ def _run(session, case_id: str) -> None:
             title=ev.get("title", ""),
             description=ev.get("description", ""),
             description_translated=ev.get("description_translated"),
-            event_date=ev.get("date"),
+            event_date=_dt(ev.get("date")),
             confidence=ev.get("confidence", "medium"),
             source="ai",
             source_evidence_id=ev.get("source_evidence_id"),
