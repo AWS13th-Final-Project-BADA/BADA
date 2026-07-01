@@ -138,6 +138,7 @@ resource "aws_iam_role_policy" "monitoring_readonly" {
           "logs:GetQueryResults",
           "logs:StartQuery",
           "logs:StopQuery",
+          "oam:ListSinks",
           "tag:GetResources"
         ]
         Resource = "*"
