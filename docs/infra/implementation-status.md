@@ -27,7 +27,7 @@
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
 | 배포 자동화 | Backend/Worker GitHub Actions OIDC 배포, Mobile EAS Build, Terraform Plan-in-PR 및 AWS 권한 반영 |
 | 롤백 | Backend 수동 workflow + Worker·Grafana ECS CLI, Backend·Worker 자동 circuit breaker (`docs/runbooks/rollback-and-recovery.md`) |
-| 모니터링 | Prometheus + Grafana ECS, CloudWatch datasource, Logs/Alarms/SNS/MCP, Grafana Task Role의 Alarm SNS Topic 한정 `sns:Publish`, Grafana `BADA-SNS` Contact Point·G1~G8 Rule·Notification Policy 적용 완료 |
+| 모니터링 | Prometheus + Grafana ECS, CloudWatch datasource, ECS Container Insights 기반 Infrastructure dashboard, Logs/Alarms/SNS/MCP, Grafana Task Role의 Alarm SNS Topic 한정 `sns:Publish`, Grafana `BADA-SNS` Contact Point·G1~G8 Rule·Notification Policy 적용 완료 |
 | X-Ray 분산 추적 | 부분 완료 | ECS Task Role X-Ray 권한, X-Ray daemon sidecar, `/aws/ecs/bada-dev/xray` Log Group 적용. Worker는 `XRAY_ENABLED=true`로 실행 중. Backend는 SDK import 오류(`aws_xray_sdk.ext.fastapi`)로 임시 비활성화 |
 | Week 3 복구 검증 | Worker 재시도·DLQ·재시작 멱등성 검증, ALB 로그 30일 보존 적용 완료 (PR #60) |
 | Week 3 운영 런북·Grafana 권한 | 팀 공용 장애·롤백 런북과 Alarm SNS Topic 한정 Publish 권한 반영 완료 (PR #61) |
