@@ -61,7 +61,8 @@ export async function scanGallery(config: AgentConfig): Promise<AgentResult> {
 
   const startDate = new Date(config.workStartDate);
   startDate.setDate(startDate.getDate() - 30); // 30일 여유
-  const endDate = config.workEndDate ? new Date(config.workEndDate) : new Date();
+  // ponytail: endDate는 항상 현재 시점. 퇴직 후 캡처한 증거(카톡 스크린샷 등)도 포함해야 함.
+  const endDate = new Date();
 
   // 갤러리에서 기간 내 이미지/PDF 가져오기
   const assets = await MediaLibrary.getAssetsAsync({
@@ -153,7 +154,7 @@ export async function uploadApprovedCandidates(
     const uri = assetInfo.localUri || assetInfo.uri;
 
     const fd = new FormData();
-    fd.append("category", "other"); // 서버에서 자동 분류
+    fd.append("category", "auto"); // 서버에서 자동 분류
     fd.append("file", {
       uri,
       name: c.asset.filename || `evidence-${Date.now()}.jpg`,
@@ -167,6 +168,10 @@ export async function uploadApprovedCandidates(
     });
     uploaded++;
   }
+
+  // 4단계: 서버 분류+OCR 트리거 (Bedrock/Upstage)
+  // fire-and-forget — 응답 안 기다림. 분석 시 Worker가 pending OCR 자동 처리하므로 안전.
+  fetchApi(`/cases/${caseId}/evidences/extract`, { method: "POST" }).catch(() => {});
 
   return { uploaded };
 }
