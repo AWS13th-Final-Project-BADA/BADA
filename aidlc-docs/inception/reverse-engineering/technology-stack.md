@@ -19,7 +19,7 @@
 | Pydantic | 2.9.2 | 데이터 검증, 설정 관리, LLM 출력 스키마 |
 | Jinja2 | 3.1.4 | PDF 렌더링용 HTML 템플릿 |
 | WeasyPrint | 62.3 | HTML/CSS → PDF 변환 (다국어 폰트) |
-| Capacitor | (package.json) | 모바일 앱 래퍼 (스트레치) |
+| React Native + Expo | (mobile-native/) | 네이티브 모바일 앱 (expo-router) |
 
 ## Infrastructure (AWS)
 
@@ -33,7 +33,7 @@
 | pgvector | RAG 임베딩 벡터 검색 | ✅ |
 | S3 | 증거 파일 + 리포트 PDF 저장 (KMS-SSE) | ✅ |
 | SQS + DLQ | 비동기 분석 작업 큐 | ✅ |
-| Cognito | 사용자 인증 (User Pool + Google IdP) | ✅ (인프라), ⚠️ (앱 연동 미완) |
+| Cognito | User Pool 리소스 (레거시) | ✅ (인프라 잔존), 앱 인증은 소셜 OAuth 직접 구현으로 단일화 |
 | Secrets Manager | DB 비밀번호, JWT secret 등 민감 정보 | ✅ |
 | SSM Parameter Store | 비민감 설정값 (Cognito domain 등) | ✅ |
 | Amazon Bedrock | Claude Sonnet 4.6 — OCR, 문장화, 요약, 챗봇 | ✅ (권한), ⚠️ (ECS 실호출 미검증) |
@@ -74,7 +74,7 @@
 | Upstage Document Parse | requests | 정형 문서 OCR |
 | Parseur | requests | 대안 문서 파싱 |
 | 카카오톡 스킬 API | urllib | 챗봇 연동 |
-| Google OAuth | Cognito | 소셜 로그인 |
+| Google OAuth | requests (직접) | 소셜 로그인 |
 | 카카오 OAuth | requests | 소셜 로그인 |
 | 네이버 OAuth | requests | 소셜 로그인 |
 

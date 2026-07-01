@@ -55,14 +55,13 @@ All endpoints are prefixed based on their router registration in `main.py`.
 ### Auth (`/auth`)
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/auth/cognito/login` | Cognito Hosted UI 로그인 리다이렉트 |
-| GET | `/auth/cognito/callback` | Cognito 인증 코드 교환 |
-| GET | `/auth/cognito/logout` | Cognito 로그아웃 |
 | GET | `/auth/{provider}/login` | 소셜 로그인 시작 (kakao, google, naver) |
 | GET | `/auth/{provider}/callback` | 소셜 로그인 콜백 (code 교환 → JWT 발급) |
 | POST | `/auth/kakao/link-code` | 카카오톡 연동 코드 발급 |
 | GET | `/auth/me` | 현재 로그인 사용자 정보 |
-| POST | `/auth/logout` | 로그아웃 (토큰 무효화) |
+| POST | `/auth/logout` | 로그아웃 (클라이언트 토큰 삭제) |
+
+> 인증 토큰은 외부 IdP 없이 백엔드가 자체 발급하는 **HS256 JWT**(기본 7일 만료)다. 모바일 클라이언트는 API가 401을 반환하면 저장 토큰을 삭제하고 로그인 화면으로 이동한다(자동 로그아웃). Cognito는 앱 인증 경로에서 제거되어 소셜 OAuth(Google/Kakao/Naver) 직접 구현으로 단일화됨.
 
 ### Kakao Skill (`/kakao`)
 | Method | Path | Purpose |

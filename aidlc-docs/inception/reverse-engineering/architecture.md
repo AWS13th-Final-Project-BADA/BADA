@@ -11,7 +11,7 @@ flowchart TB
     subgraph Client["Client Layer"]
         Browser["Browser (PWA)"]
         KakaoBot["카카오톡 봇"]
-        Mobile["Mobile App (Capacitor)"]
+        Mobile["Mobile App (React Native + Expo)"]
     end
 
     subgraph AWS["AWS Cloud (ap-northeast-2)"]
@@ -29,7 +29,7 @@ flowchart TB
         end
 
         SQS["SQS Queue\n+ DLQ"]
-        Cognito["Cognito\n(Google IdP)"]
+        SocialAuth["소셜 OAuth\n(Google/Kakao/Naver)"]
         SM["Secrets Manager"]
         SSM["SSM Parameter Store"]
         CW["CloudWatch\nLogs + Alarms"]
@@ -50,7 +50,7 @@ flowchart TB
     Backend --> RDS
     Backend --> S3Ev
     Backend --> SQS
-    Backend --> Cognito
+    Backend --> SocialAuth
     Backend --> Bedrock
     Backend --> Translate
     Backend --> SM
@@ -73,7 +73,7 @@ flowchart TB
 ### Backend (FastAPI API Server)
 - **Purpose**: 모든 클라이언트 요청의 단일 진입점
 - **Responsibilities**: REST API, 인증, 파일 업로드/다운로드, OCR 즉시 호출, 분석 오케스트레이션(동기), SQS 메시지 발행(비동기), AI 챗봇, GPS 수집, 커뮤니티
-- **Dependencies**: RDS, S3, SQS, Cognito, Bedrock, Translate, Secrets Manager
+- **Dependencies**: RDS, S3, SQS, 소셜 OAuth(Google/Kakao/Naver), Bedrock, Translate, Secrets Manager
 - **Type**: Application
 
 ### Worker (SQS Consumer)
@@ -137,7 +137,7 @@ sequenceDiagram
   - pgvector 확장 — RAG 임베딩 벡터 검색
 
 - **Third-party Services**:
-  - Google OAuth (via Cognito) — 소셜 로그인
+  - Google OAuth — 소셜 로그인 (직접 구현)
   - 카카오 OAuth — 소셜 로그인
   - 네이버 OAuth — 소셜 로그인
 
