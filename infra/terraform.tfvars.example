@@ -59,8 +59,8 @@ frontend_task_memory = 512
 ecs_cpu_architecture = "ARM64"
 
 # AWS X-Ray distributed tracing.
-# Backend stays disabled until the app middleware uses a supported SDK integration.
-backend_xray_enabled = false
+# Backend/Worker X-Ray is enabled after PR #187 switched to safe manual segments.
+backend_xray_enabled = true
 worker_xray_enabled  = true
 xray_daemon_image    = "public.ecr.aws/xray/aws-xray-daemon:latest"
 

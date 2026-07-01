@@ -50,7 +50,7 @@ MVP 원칙:
 - ECS Task Role에는 Bedrock/Translate 외에 Amazon Transcribe 호출 권한 포함
 - ECS Task Role에는 X-Ray trace 전송 권한(`xray:PutTraceSegments`, `xray:PutTelemetryRecords`)도 포함한다.
 - Worker는 `worker_xray_enabled=true`로 X-Ray daemon sidecar를 실행한다.
-- Backend는 현재 `backend_xray_enabled=false`다. Backend 코드의 `aws_xray_sdk.ext.fastapi` import 오류가 해소되면 `true`로 전환한다.
+- Backend는 PR #187 이후 `backend_xray_enabled=true`로 전환 가능하다. PR #187은 `patch_all()`과 지원되지 않는 `begin_segment(http=...)` 호출을 제거하고 안전한 수동 segment 방식으로 바꿨다.
 - CloudWatch Alarm은 ALB/ECS/RDS/SQS 핵심 지표 기준으로 생성하며, 기본은 콘솔 확인용이다.
 - ALB access log는 S3에 저장하고 기본 30일 후 자동 만료한다.
 - CloudWatch MCP는 Terraform 관리 최소권한 AssumeRole을 통해서만 AWS에 접근한다.
@@ -86,8 +86,8 @@ ALB /health        : 200 {"status":"ok"}
 ALB /version       : 200 {"name":"BADA","version":"0.1.0","auth_mode":"oauth","storage_mode":"s3"}
 S3 Evidence object : SSE-KMS 저장 확인
 RDS schema         : alembic_version=20260616_0004, community tables/provider columns/timeline confidence 확인
-Worker X-Ray       : bada-dev-worker:26, xray-daemon RUNNING
-Backend X-Ray      : bada-dev-backend:79, disabled until backend SDK import fix
+Worker X-Ray       : XRAY_ENABLED=true, xray-daemon RUNNING
+Backend X-Ray      : XRAY_ENABLED=true, xray-daemon RUNNING
 ```
 
 Cognito Hosted UI / OAuth:
