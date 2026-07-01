@@ -30,9 +30,9 @@ import logging
 import os
 import time
 
-# X-Ray는 daemon sidecar 준비 후 활성화. 현재는 비활성.
-# from xray_setup import init_xray
-# init_xray()
+# X-Ray 초기화 (XRAY_ENABLED=true일 때만 활성, patch_all 안 씀)
+from xray_setup import init_xray, begin_segment, end_segment
+init_xray()
 
 from handlers import analysis, transcription
 
@@ -153,6 +153,9 @@ def _process_message(sqs, msg: dict) -> None:
     task_type = body.get("task") or body.get("type") or "unknown"
     start = time.time()
 
+    # X-Ray 세그먼트 (실패해도 무시)
+    segment = begin_segment(f"worker-{task_type}")
+
     try:
         from metrics import WORKER_IDLE, SQS_MESSAGES, SQS_PROCESSING_TIME
         WORKER_IDLE.set(0)
@@ -170,6 +173,7 @@ def _process_message(sqs, msg: dict) -> None:
             WORKER_IDLE.set(1)
         except Exception:
             pass
+        end_segment()
         return
 
     sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt)
@@ -181,6 +185,8 @@ def _process_message(sqs, msg: dict) -> None:
         WORKER_IDLE.set(1)
     except Exception:
         pass
+
+    end_segment()
 
 
 def run_forever() -> None:
