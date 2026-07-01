@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchApi } from "@/lib/api";
@@ -32,6 +32,28 @@ export default function NewCase() {
     const current = form.issue_types ?? [];
     set("issue_types", current.includes(issue) ? current.filter((item) => item !== issue) : [...current, issue]);
   }
+
+  // 편집 모드면 기존 사건 값을 불러와 폼을 채운다. (실패 시 빈 폼 유지 — 기존 동작 보존)
+  useEffect(() => {
+    if (!isEdit) return;
+    let cancelled = false;
+    fetchApi<Case>(`/cases/${editId}`)
+      .then((c) => {
+        if (cancelled || !c) return;
+        setForm({
+          workplace_name: c.workplace_name ?? "",
+          employer_name: c.employer_name ?? "",
+          work_start_date: c.work_start_date ?? "",
+          work_end_date: c.work_end_date ?? "",
+          agreed_hourly_wage: c.agreed_hourly_wage ?? null,
+          issue_types: c.issue_types ?? [],
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, editId]);
 
   async function submit() {
     if (busy) return;
