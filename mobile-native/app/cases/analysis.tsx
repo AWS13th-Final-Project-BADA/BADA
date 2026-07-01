@@ -259,14 +259,9 @@ export default function AnalysisScreen() {
         )}
 
         {report && (
-          <>
-            <StitchButton tone="secondary" icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
-              {t("cases.actions.addMore")}
-            </StitchButton>
-            <StitchButton icon="analytics" onPress={runAnalyze} disabled={running}>
-              {t("cases.runAnalysis")}
-            </StitchButton>
-          </>
+          <StitchButton tone="secondary" icon="upload-file" onPress={() => router.push({ pathname: "/cases/upload", params: { caseId } })}>
+            {t("cases.actions.addMore")}
+          </StitchButton>
         )}
 
         <StitchButton tone="secondary" onPress={() => router.push({ pathname: "/chat", params: { caseId } })}>
