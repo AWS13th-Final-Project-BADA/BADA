@@ -33,7 +33,8 @@ export default function UploadScreen() {
   const [loadingCases, setLoadingCases] = useState(!routeCaseId);
   const [category, setCategory] = useState<Category>("auto" as Category);
   const [busy, setBusy] = useState(false);
-  const [files, setFiles] = useState<Array<{ name: string; status: string }>>([]);
+  const [files, setFiles] = useState<Array<{ name: string; status: string; uri?: string }>>([]);
+  const [filesExpanded, setFilesExpanded] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<Array<PickedFile & { category: Category }>>([]);
   const [agentResult, setAgentResult] = useState<AgentResult | null>(null);
   const [agentScanning, setAgentScanning] = useState(false);
@@ -341,7 +342,11 @@ export default function UploadScreen() {
         <Card style={styles.fileList}>
           {pendingFiles.length > 0 && pendingFiles.map((file, index) => (
             <View key={`pending-${file.name}-${index}`} style={[styles.fileRow, styles.fileDivider]}>
-              <MaterialIcons name="description" size={24} color={stitch.outline} />
+              {file.uri && file.mimeType?.startsWith("image") ? (
+                <Image source={{ uri: file.uri }} style={styles.fileThumb} />
+              ) : (
+                <MaterialIcons name="description" size={24} color={stitch.outline} />
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
                 <Text style={styles.fileStatus}>{t("upload.categories." + file.category)}</Text>
@@ -351,9 +356,13 @@ export default function UploadScreen() {
               </Pressable>
             </View>
           ))}
-          {files.length > 0 && files.map((file, index) => (
-            <View key={`done-${file.name}-${index}`} style={[styles.fileRow, index < files.length - 1 && styles.fileDivider]}>
-              <MaterialIcons name="description" size={24} color={stitch.blue} />
+          {files.length > 0 && (files.length <= 5 || filesExpanded ? files : files.slice(0, 5)).map((file, index) => (
+            <View key={`done-${file.name}-${index}`} style={[styles.fileRow, index < Math.min(files.length, filesExpanded ? files.length : 5) - 1 && styles.fileDivider]}>
+              {file.uri ? (
+                <Image source={{ uri: file.uri }} style={styles.fileThumb} />
+              ) : (
+                <MaterialIcons name="description" size={24} color={stitch.blue} />
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
                 <Text style={styles.fileStatus}>{file.status}</Text>
@@ -361,6 +370,18 @@ export default function UploadScreen() {
               <MaterialIcons name="check-circle" size={22} color={stitch.green} />
             </View>
           ))}
+          {files.length > 5 && !filesExpanded && (
+            <Pressable style={styles.showMoreRow} onPress={() => setFilesExpanded(true)}>
+              <Text style={styles.showMoreText}>{files.length - 5}개 더 보기</Text>
+              <MaterialIcons name="expand-more" size={20} color={stitch.blue} />
+            </Pressable>
+          )}
+          {files.length > 5 && filesExpanded && (
+            <Pressable style={styles.showMoreRow} onPress={() => setFilesExpanded(false)}>
+              <Text style={styles.showMoreText}>접기</Text>
+              <MaterialIcons name="expand-less" size={20} color={stitch.blue} />
+            </Pressable>
+          )}
           {pendingFiles.length === 0 && files.length === 0 && (
             <View style={styles.noFiles}>
               <MaterialIcons name="cloud-upload" size={34} color={stitch.outline} />
@@ -368,11 +389,6 @@ export default function UploadScreen() {
             </View>
           )}
         </Card>
-
-        <Pressable style={styles.addMore} onPress={pickFile} disabled={busy}>
-          <MaterialIcons name="add-circle-outline" size={22} color={stitch.blue} />
-          <Text style={styles.addMoreText}>{t("upload.dropzone")}</Text>
-        </Pressable>
 
         {pendingFiles.length > 0 && (
           <StitchButton icon="cloud-upload" onPress={uploadAll}>
@@ -385,6 +401,11 @@ export default function UploadScreen() {
             {t("upload.readyToAnalyze")}
           </StitchButton>
         )}
+
+        <Pressable style={styles.addMore} onPress={pickFile} disabled={busy}>
+          <MaterialIcons name="add-circle-outline" size={22} color={stitch.blue} />
+          <Text style={styles.addMoreText}>{t("upload.dropzone")}</Text>
+        </Pressable>
       </View>
     </StitchScreen>
   );
@@ -443,6 +464,9 @@ const styles = StyleSheet.create({
   fileStatus: { marginTop: 3, color: stitch.outline, fontSize: 12, fontWeight: "700" },
   noFiles: { minHeight: 92, alignItems: "center", justifyContent: "center", gap: 8 },
   noFilesText: { color: stitch.outline, fontSize: 13, fontWeight: "800" },
+  fileThumb: { width: 40, height: 40, borderRadius: 6, backgroundColor: "#eee" },
+  showMoreRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 12, borderTopWidth: 1, borderTopColor: "rgba(198,198,205,0.28)" },
+  showMoreText: { color: stitch.blue, fontSize: 13, fontWeight: "800" },
   addMore: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 48, borderRadius: 8, borderWidth: 1, borderColor: "rgba(0,81,213,0.16)", backgroundColor: "rgba(0,81,213,0.04)" },
   addMoreText: { color: stitch.blue, fontSize: 14, fontWeight: "900" },
   uploadOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 100, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
