@@ -3,8 +3,11 @@
 환경변수 XRAY_ENABLED=true 일 때만 활성화. 로컬에서는 비활성.
 ECS Task Role에 xray:PutTraceSegments + xray:PutTelemetryRecords 권한 필요.
 
-X-Ray SDK는 FastAPI 전용 미들웨어를 제공하지 않으므로,
-Starlette(ASGI) 기반 미들웨어로 세그먼트를 수동 생성한다.
+안전 설계:
+- patch_all() 사용 안 함 (기존 boto3/SQS/S3 호출 방해 방지)
+- 수동 세그먼트만 생성 (Service Map에 노드 표시 목적)
+- context_missing="IGNORE_ERROR" (daemon 없어도 에러 안 뱉음)
+- health check 경로 스킵 (ALB unhealthy 방지)
 """
 from __future__ import annotations
 
@@ -18,38 +21,52 @@ def setup_xray(app):
     if not XRAY_ENABLED:
         return
 
-    from aws_xray_sdk.core import xray_recorder, patch_all
-    from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-    from starlette.requests import Request
-    from starlette.responses import Response
+    try:
+        from aws_xray_sdk.core import xray_recorder
+        from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+        from starlette.requests import Request
+        from starlette.responses import Response
 
-    xray_recorder.configure(
-        service="bada-backend",
-        sampling=True,
-        context_missing="LOG_ERROR",
-    )
+        xray_recorder.configure(
+            service="bada-backend",
+            sampling=True,
+            context_missing="IGNORE_ERROR",
+        )
 
-    # boto3, requests, sqlalchemy 자동 패치 → 하위 호출도 추적
-    patch_all()
+        # patch_all() 의도적으로 사용하지 않음 — 기존 비즈니스 로직 방해 방지
 
-    class XRayMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-            # health check는 트레이싱 스킵 (ALB unhealthy 방지)
-            if request.url.path in ("/health", "/health/db", "/version", "/metrics"):
-                return await call_next(request)
+        class XRayMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+                # health check / metrics는 트레이싱 스킵
+                if request.url.path in ("/health", "/health/db", "/version", "/metrics"):
+                    return await call_next(request)
 
-            segment = xray_recorder.begin_segment(name="bada-backend")
-            segment.put_http_meta("url", str(request.url))
-            segment.put_http_meta("method", request.method)
-            segment.put_http_meta("user_agent", request.headers.get("user-agent", ""))
-            try:
-                response = await call_next(request)
-                segment.put_http_meta("status", response.status_code)
-                return response
-            except Exception as e:
-                segment.add_exception(e)
-                raise
-            finally:
-                xray_recorder.end_segment()
+                segment = None
+                try:
+                    segment = xray_recorder.begin_segment(name="bada-backend")
+                    segment.put_http_meta("url", str(request.url))
+                    segment.put_http_meta("method", request.method)
+                except Exception:
+                    # X-Ray 세그먼트 생성 실패해도 요청 처리는 계속
+                    pass
 
-    app.add_middleware(XRayMiddleware)
+                try:
+                    response = await call_next(request)
+                    if segment:
+                        segment.put_http_meta("status", response.status_code)
+                    return response
+                except Exception as e:
+                    if segment:
+                        segment.add_exception(e)
+                    raise
+                finally:
+                    try:
+                        if segment:
+                            xray_recorder.end_segment()
+                    except Exception:
+                        pass
+
+        app.add_middleware(XRayMiddleware)
+
+    except ImportError:
+        pass  # aws_xray_sdk 미설치 환경 (로컬)
