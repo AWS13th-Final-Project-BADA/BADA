@@ -54,6 +54,28 @@ export default function CaseDetailScreen() {
     );
   }
 
+  async function handleDeleteEvidence(eid: string, name: string) {
+    Alert.alert(
+      "자료를 삭제합니다.",
+      `"${name}"을(를) 삭제할까요?`,
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await fetchApi(`/cases/${id}/evidences/${eid}`, { method: "DELETE" });
+              await load();
+            } catch {
+              Alert.alert(t("cases.loadError"));
+            }
+          },
+        },
+      ]
+    );
+  }
+
   if (loading) {
     return (
       <StitchScreen active="cases">
@@ -115,6 +137,7 @@ export default function CaseDetailScreen() {
                 ok={item.ocr_status === "done" || item.ocr_status === "completed"}
                 title={item.file_name}
                 body={item.category ? t("upload.categories." + item.category) : t("upload.category")}
+                onDelete={() => handleDeleteEvidence(item.id, item.file_name)}
               />
             ))
           ) : (
@@ -162,7 +185,7 @@ function Section({ title, action, onAction, children }: { title: string; action?
   );
 }
 
-function EvidenceRow({ ok, warning, title, body }: { ok?: boolean; warning?: boolean; title: string; body: string }) {
+function EvidenceRow({ ok, warning, title, body, onDelete }: { ok?: boolean; warning?: boolean; title: string; body: string; onDelete?: () => void }) {
   return (
     <View style={styles.evidenceRow}>
       <MaterialIcons name={ok ? "check-circle" : warning ? "warning" : "radio-button-unchecked"} size={24} color={ok ? stitch.green : warning ? stitch.amber : stitch.outline} />
@@ -170,7 +193,13 @@ function EvidenceRow({ ok, warning, title, body }: { ok?: boolean; warning?: boo
         <Text style={styles.evidenceTitle} numberOfLines={1}>{title}</Text>
         <Text style={styles.evidenceBody}>{body}</Text>
       </View>
-      <MaterialIcons name="more-vert" size={22} color={stitch.outline} />
+      {onDelete ? (
+        <Pressable onPress={onDelete} hitSlop={8}>
+          <MaterialIcons name="delete-outline" size={22} color={stitch.outline} />
+        </Pressable>
+      ) : (
+        <MaterialIcons name="more-vert" size={22} color={stitch.outline} />
+      )}
     </View>
   );
 }
