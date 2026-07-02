@@ -43,7 +43,7 @@
 
 | ID | 태스크 | Pillar | 우선순위 | 상태 |
 |---|---|---|---|---|
-| B-1 | RTO/RPO 정의 + RDS restore rehearsal 절차 | Reliability | P1 | 대기 |
+| B-1 | RTO/RPO 정의 + RDS restore rehearsal 절차 | Reliability | P1 | **문서화 완료 (2026-07-02)** — `docs/operations/rto-rpo-and-restore-rehearsal.md` (확정 RTO≤2h/RPO≤24h, 시나리오별 경로, PITR 복원 측정 절차+워크시트). 실측 타임드 리허설 실행은 담당자 몫 |
 | B-2 | Dependency scan(SCA) CI 추가 (pip-audit/Trivy/Dependabot) | Security | P1 | **구현 완료 (2026-07-02)** — `.github/workflows/ci.yml`에 pip-audit 잡 추가(backend/worker requirements). 초기 non-blocking(continue-on-error), 리포트 축적 후 하드 게이트 전환 예정 |
 | B-3 | ECR 이미지 Critical/High 취약점 해소 | Security | P1 | 부분 (Backend Critical 1/High 3 등) |
 | B-4 | Cost allocation tag + Cost Explorer/CUR 분석 | Cost | P2 | 대기 |
@@ -70,7 +70,7 @@
 | 1 | S3 Evidence/Report Lifecycle (90d→IA, 1y→Glacier, incomplete MPU 정리) | B-5 | ~$0 | 쉬움(설정 제거) |
 | 2 | Dependency scan CI 워크플로 추가 | B-2 | $0 | 쉬움 |
 | 3 | VPC Endpoint **S3 Gateway만**(무료) ✅완료 | C-3 일부 | 무료 | 쉬움 |
-| 4 | RDS restore rehearsal 1회 + RTO/RPO 문서화 | B-1 | 스냅샷 소액 | 스냅샷 삭제 |
+| 4 | RDS restore rehearsal 1회 + RTO/RPO 문서화 ✅문서화 | B-1 | 스냅샷 소액 | 스냅샷 삭제 |
 | 5 | Cost allocation tag + Cost Explorer 캡처 | B-4 | $0 | 쉬움 |
 
 ### 계층 2 — 데모 임팩트용, 토글 (선택적, 대체로 보류 권장)

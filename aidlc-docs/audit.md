@@ -340,3 +340,12 @@
 **Context**: POST-MVP 프로덕션 고도화 - C-3 일부(S3 Gateway) 구현
 
 ---
+
+
+## POST-MVP - RTO/RPO 정의 + 복원 리허설 문서화 (B-1)
+**Timestamp**: 2026-07-02T17:25:52+09:00
+**User Input**: "ㅇㅇ 순서대로 했어. C-3 일부 먼저 하고, 그 다음에 B-1 하자"
+**AI Response**: 계층1 B-1 문서화. `docs/operations/rto-rpo-and-restore-rehearsal.md` 생성 — 확정 RTO≤2h/RPO≤24h, 시나리오별 복구 경로(AZ장애/인스턴스손상/오삭제/리전), PITR 복원 실측 절차 + 측정 워크시트(T0~T3), 승인 조건, 종료 연동. 기존 rds-recovery.md(실행 런북)·sli-slo(가용성 99%)와 연계. 실제 타임드 리허설 실행은 인프라 담당자 몫(AWS 조작·점검 창구 필요). remaining-tasks B-1 반영.
+**Context**: POST-MVP 프로덕션 고도화 - B-1 문서화
+
+---
