@@ -381,7 +381,7 @@ aws ecs wait services-stable --region ap-northeast-2 --cluster bada-dev-cluster 
 | Worker Fargate Spot (#15) | 완료 | `FARGATE_SPOT` capacity provider 전환 (PR #206) |
 | GuardDuty / Security Hub (#11) | 완료 | 본체 + 종료 토글(`security_monitoring_enabled`) (PR #207) |
 | Terraform Plan-in-PR (#16) | 완료 | `infra/**` PR에서 읽기전용 plan-role로 fmt/validate/plan 자동 실행·PR 코멘트 (2026-07-02 확인) |
-| k6 부하 테스트 (#9) | 담당 진행 | Auto Scaling 발동 + Grafana/CloudWatch 그래프 캡처 (다른 팀원) |
+| k6 부하 테스트 (#9) | 완료 (2026-07-02) | 3종 검증 — ① Backend CPU 폐쇄형 부하: CPU 100% 3분 지속 → AlarmHigh → **1→2 scale-out** ② 사용자 여정(읽기): ~29rps에서 **p95 ~30ms·에러 0%·CPU 22~36%**(I/O 바운드) ③ Worker SQS 적체: Visible 44k → backlog 알람 → **1→3 scale-out**. 스크립트 `load-test/` (PR #212/#213) |
 
 ## 7. Well-Architected Tool 현황
 
@@ -428,7 +428,7 @@ Pillar별 리스크:
 | P0 | Worker SQS consumer 구현 후 Worker Service 기동 검증 | Reliability / Cost | 완료 (`desired=1`, 처리·DLQ·멱등성 검증) |
 | P1 | RTO/RPO와 RDS restore rehearsal 절차 정의 | Reliability | 대기 |
 | P1 | ECR image scan, dependency scan, CI 보안 검증 강화 | Security | CI 보안 검증(ruff/bandit/pytest-cov) 완료 (#17), ECR scan-on-push 활성. dependency scan은 대기 |
-| P1 | ECS Backend/Worker Auto Scaling과 부하 테스트 기준 수립 | Performance / Reliability | Auto Scaling 적용 완료 (#4, PR #203). 부하 테스트(k6, #9)는 담당 진행 |
+| P1 | ECS Backend/Worker Auto Scaling과 부하 테스트 기준 수립 | Performance / Reliability | Auto Scaling 적용 완료 (#4, PR #203). 부하 테스트(k6, #9) **완료** — Backend 1→2, Worker 1→3 scale-out 실증, 읽기 여정은 I/O 바운드 확인 (PR #212/#213) |
 | P2 | Cost allocation tag, Cost Explorer/CUR 기반 비용 분석 강화 | Cost Optimization | 대기 |
 | P2 | S3 lifecycle/retention 정책과 데이터 분류 기준 구체화 | Security / Sustainability | ALB 로그 30일 적용 완료, Evidence/Report 정책 대기 |
 
