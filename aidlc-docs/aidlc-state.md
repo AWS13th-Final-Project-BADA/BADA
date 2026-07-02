@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-06-19T17:26:13+09:00
-- **Current Stage**: POST-MVP — 프로덕션 고도화 (의사결정 18건 확정, 2026-06-25)
+- **Current Stage**: POST-MVP — 프로덕션 고도화 (인프라 고도화 #4/#11/#13/#15/#16 반영 2026-07-02; #5/#12/#18 보류)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -64,16 +64,21 @@
   - [x] PDF 항상 한국어 고정 (제출용 원본)
   - [x] FE 타임아웃 5분으로 상향
   - [x] Backend 실시간 번역 서비스 (translation.py) 추가
-  - [ ] #16 Terraform Plan in PR
-  - [ ] #19 모바일 로그인 E2E
-  - [ ] #20 APK 배포 파이프라인
+  - [x] #16 Terraform Plan in PR (terraform-plan.yml + 읽기전용 plan-role, 2026-07-02 확인)
+  - [x] #4 Auto Scaling (Backend CPU 70% + Worker SQS backlog-per-task Target Tracking, min=1/max=3, `ignore_changes=[desired_count]` 안전판) — PR #203
+  - [x] #13 Task Role 분리 (Backend/Worker 서비스별 최소권한 Role: producer vs consumer) — PR #205
+  - [x] #15 Worker Fargate Spot (`FARGATE_SPOT` capacity provider, On-Demand base 토글, Backend는 On-Demand 유지) — PR #206
+  - [x] #11 GuardDuty/Security Hub (본체 + `security_monitoring_enabled` 종료 토글 + PR 플랜 X-Ray drift 오탐 제거) — PR #207
+  - [x] #1 소셜 OAuth 직접 구현 (구글/카카오/네이버 `/auth/{provider}/login·callback` + `bada://` 딥링크 토큰, `AUTH_MODE=oauth`, Cognito 미사용 협의)
+  - [x] #19 모바일 로그인 E2E (앱 `WebBrowser.openAuthSessionAsync` → 딥링크 토큰 수신, 로그인 화면 3종 provider 코드 완비)
+  - [x] #20 APK 배포 파이프라인 (`build-mobile.yml` EAS Build + `eas.json` preview/production, **수동 `workflow_dispatch` 전용**)
   - [x] Grafana Infrastructure 대시보드 수정 (ECS/ContainerInsights 적용 완료)
   - [x] Prometheus Worker 타겟 추가 (9090 포트 + Cloud Map 적용 완료)
-  - [ ] Phase 2~4 (TF 분리 후)
+  - [~] Phase 2~4 인프라 고도화 — #4/#11/#13/#15 완료(2026-07-02, TF 분리 없이 적용). #5(TF 분리)/#12(Private Subnet+NAT)/#18(VPC Endpoint)은 종료 기간·비용 대비 보류
 
 ## Post-MVP 의사결정 (2026-06-25 확정)
 - 상세: `docs/decision-record-20260625.md`
 - 웹 프론트엔드 제거 → mobile-native 전환 (deploy-dev-frontend.yml 삭제, frontend_enabled=false 예정)
 - 즉시 실행: 19(모바일 로그인 E2E), 20(APK 배포), 3(행 수준 인가), 6(모델 비교), 10(X-Ray), 14(구조화 로깅), 16(TF Plan PR), 17(CI 강화)
-- TF 분리 후: 2, 4, 5, 7, 8, 11, 12, 13, 15, 18
-- 최종 검증: 9(k6 부하 테스트)
+- TF 분리 후 후보: 2·7·8(완료), **4·11·13·15(완료 — 2026-07-02, TF 분리 없이 적용)**, 5·12·18(보류 — 종료 기간·비용 대비 위험 초과)
+- 최종 검증: 9(k6 부하 테스트) — 담당 진행 (Auto Scaling 머지로 발동 가능)

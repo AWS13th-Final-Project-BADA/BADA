@@ -26,6 +26,14 @@
 
 ## 확정 의사결정 (18건)
 
+> **실행 상태 (2026-07-02 갱신)**
+> - ✅ **완료**: 1(소셜 OAuth 직접구현)·2(RDS 암호화)·3(행수준 인가)·4(Auto Scaling, PR #203)·6(모델 비교)·7(WAF)·8(Multi-AZ)·10(X-Ray)·11(GuardDuty/Security Hub + 종료 토글, PR #207)·13(Task Role 분리, PR #205)·14(구조화 로깅)·15(Worker Fargate Spot, PR #206)·16(TF Plan-in-PR)·17(CI 강화)·19(모바일 로그인 E2E — 코드 완비)·20(APK 파이프라인)
+> - 🔧 **보류**: 5(TF 분리)·12(ECS Private Subnet+NAT)·18(VPC Endpoint) — 종료 기간(7/10)·비용 대비 위험이 가치를 초과. To-Be 다이어그램으로 갈음.
+> - 🚧 **담당 진행**: 9(k6 부하 테스트 — Auto Scaling 머지로 발동 가능)
+> - 참고(모바일): #20 APK 빌드는 EAS 무료 쿼터(월 15회) 절약을 위해 **수동 실행(`workflow_dispatch`) 전용**으로 전환(자동 push 빌드 제거). #1은 앱 계층 소셜 OAuth로 단일화 완료이며 **Cognito 미사용 협의**(리소스는 잔존, 종료 시 정리).
+> - 참고: 4·11·13·15는 원래 "TF 분리(5) 후" 조건이었으나, TF 분리 없이 단일 `infra/`에서 안전하게 적용함(#4는 `ignore_changes=[desired_count]`, #11은 `moved` 블록, #15는 `capacity_provider_strategy`).
+> - 상세 현황: `docs/infra/implementation-status.md`
+
 | # | 항목 | 결정 | 비용(2주) | 실행 조건 |
 |---|------|------|-----------|----------|
 | 1 | 모바일 인증 | Cognito 제거 → 소셜 OAuth 직접 구현 (Google + Kakao + Naver) | $0 | 진행 |
@@ -133,6 +141,12 @@
 ## 종료 체크리스트 (7/10)
 
 7/10 이후 비용 리소스 정리:
+
+> **2026-07-02 갱신**: 아래 항목 중 상당수는 변수 토글로 정리 가능해졌다.
+> - Auto Scaling: `backend_autoscaling_enabled=false` / `worker_autoscaling_enabled=false`
+> - GuardDuty/Security Hub: `security_monitoring_enabled=false`
+> - Worker Fargate Spot: `worker_fargate_spot_enabled=false` (On-Demand 복귀)
+> - NAT Gateway / VPC Interface Endpoint: **보류로 생성 안 함** → 정리 대상 아님
 
 - [ ] Auto Scaling policy 삭제, desired=0
 - [ ] NAT Gateway 삭제
