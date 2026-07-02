@@ -50,25 +50,33 @@
       "title": "SQS 대기 메시지",
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
-      "datasource": {"uid": "cloudwatch"},
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
       "targets": [
         {
+          "refId": "A",
           "namespace": "AWS/SQS",
           "metricName": "ApproximateNumberOfMessagesVisible",
-          "statistics": ["Average"],
+          "statistic": "Average",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
           "period": "60",
           "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+          "matchExact": true,
           "region": "${aws_region}",
-          "alias": "Main"
+          "label": "Main"
         },
         {
+          "refId": "B",
           "namespace": "AWS/SQS",
           "metricName": "ApproximateNumberOfMessagesVisible",
-          "statistics": ["Average"],
+          "statistic": "Average",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
           "period": "60",
           "dimensions": {"QueueName": ["${sqs_dlq_name}"]},
+          "matchExact": true,
           "region": "${aws_region}",
-          "alias": "DLQ"
+          "label": "DLQ"
         }
       ]
     },
@@ -77,17 +85,21 @@
       "title": "SQS 처리 중 (In-Flight)",
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
-      "datasource": {"uid": "cloudwatch"},
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
       "targets": [{
+        "refId": "A",
         "namespace": "AWS/SQS",
         "metricName": "ApproximateNumberOfMessagesNotVisible",
-        "statistics": ["Average"],
+        "statistic": "Average",
+        "metricQueryType": 0,
+        "metricEditorMode": 0,
         "period": "60",
         "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+        "matchExact": true,
         "region": "${aws_region}"
       }]
     }
   ],
   "schemaVersion": 39,
-  "version": 2
+  "version": 3
 }
