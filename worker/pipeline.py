@@ -82,13 +82,13 @@ def process_case(case_id: str, ctx: dict) -> dict:
     result["translation_pairs"] = tr.build_translation_pairs(ctx, result, translator, target_lang)
 
     # 5단계: 타임라인 (규칙 정렬 + 카톡 발화 이벤트 + 문장화/번역)
-    result["timeline"] = tl.build_timeline(ctx, result, llm, translator, target_lang)
+    result["timeline"] = tl.build_timeline(ctx, result, llm, translator, "ko")
 
     # 6단계: 요약 (LLM, 실패/빈값 시 폴백) → 가드레일로 단정 표현 차단
     descs = [e["description"] for e in result["timeline"]]
     src = " ".join(descs)
     try:
-        summary = (llm.summarize_case(descs, lang=target_lang) or "").strip()
+        summary = (llm.summarize_case(descs, lang="ko") or "").strip()
     except Exception:
         summary = ""
     # 숫자 환각 가드: 요약이 사실 목록에 없는 금액을 단정하면 결정론적 사실로 되돌림

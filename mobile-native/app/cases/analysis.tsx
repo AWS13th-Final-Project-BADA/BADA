@@ -26,7 +26,7 @@ export default function AnalysisScreen() {
 
   useEffect(() => {
     Promise.all([
-      fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`).catch((e) => {
+      fetchApi<AnalysisReport>(`/cases/${caseId}/analysis?lang=${locale}`).catch((e) => {
         if (e?.status === 409) return "NEEDS_RERUN";
         return null;
       }),
@@ -56,7 +56,7 @@ export default function AnalysisScreen() {
         let firstResult = true;
         const poll = setInterval(async () => {
           try {
-            const result = await fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`);
+            const result = await fetchApi<AnalysisReport>(`/cases/${caseId}/analysis?lang=${locale}`);
             if (result) {
               setReport(result);
               setRunning(false);
@@ -81,7 +81,7 @@ export default function AnalysisScreen() {
         }, 180000);
       } else {
         // 동기 모드 (로컬) — 바로 결과 조회
-        const result = await fetchApi<AnalysisReport>(`/cases/${caseId}/analysis`).catch(() => null);
+        const result = await fetchApi<AnalysisReport>(`/cases/${caseId}/analysis?lang=${locale}`).catch(() => null);
         if (result) setReport(result);
         setRunning(false);
         scrollRef.current?.scrollTo({ y: 0, animated: true });
