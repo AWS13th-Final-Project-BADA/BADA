@@ -77,7 +77,7 @@ resource "aws_ecs_task_definition" "backend" {
   cpu                      = tostring(var.backend_task_cpu)
   memory                   = tostring(var.backend_task_memory)
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn            = aws_iam_role.ecs_task.arn
+  task_role_arn            = aws_iam_role.ecs_task_backend.arn
 
   runtime_platform {
     operating_system_family = "LINUX"
@@ -196,7 +196,7 @@ resource "aws_ecs_task_definition" "worker" {
   cpu                      = tostring(var.worker_task_cpu)
   memory                   = tostring(var.worker_task_memory)
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn            = aws_iam_role.ecs_task.arn
+  task_role_arn            = aws_iam_role.ecs_task_worker.arn
 
   runtime_platform {
     operating_system_family = "LINUX"
