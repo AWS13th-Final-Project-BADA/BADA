@@ -88,7 +88,7 @@ def process_case(case_id: str, ctx: dict) -> dict:
     descs = [e["description"] for e in result["timeline"]]
     src = " ".join(descs)
     try:
-        summary = (llm.summarize_case(descs) or "").strip()
+        summary = (llm.summarize_case(descs, lang=target_lang) or "").strip()
     except Exception:
         summary = ""
     # 숫자 환각 가드: 요약이 사실 목록에 없는 금액을 단정하면 결정론적 사실로 되돌림
