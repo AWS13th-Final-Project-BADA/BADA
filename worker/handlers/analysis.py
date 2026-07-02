@@ -301,7 +301,7 @@ def _run(session, case_id: str, lang: str = "ko") -> None:
             "work_start_date": str(case.work_start_date) if case.work_start_date else None,
             "work_end_date": str(case.work_end_date) if case.work_end_date else None,
         }
-        s3_key = generate_evidence_pack(case_id, result, case_info, lang=lang)
+        s3_key = generate_evidence_pack(case_id, result, case_info, lang="ko")
         ar.pdf_ko_s3_key = s3_key
         session.commit()
         logger.info("PDF 생성 완료: case_id=%s, key=%s", case_id, s3_key)

@@ -14,9 +14,9 @@ _UTT_LABEL = {
 }
 
 
-def _ss(llm, fact):
+def _ss(llm, fact, lang="ko"):
     try:
-        return llm.summarize_event(fact)
+        return llm.summarize_event(fact, lang=lang)
     except Exception:
         return fact
 
@@ -69,7 +69,7 @@ def build_timeline(ctx: dict, result: dict, llm, translator, target_lang: str = 
     # LLM 문장화 + 숫자 환각 가드(없는 금액 생성 시 결정론적 원문 복귀)
     descriptions: list[str] = []
     for e in raw:
-        desc = _ss(llm, e["fact"])
+        desc = _ss(llm, e["fact"], target_lang)
         descriptions.append(guardrails.keep_grounded(desc, e["fact"]))
 
     # 배치 번역(효율적, 순서·길이 보존, ko면 원문 그대로). 실패 시 원문 폴백.
