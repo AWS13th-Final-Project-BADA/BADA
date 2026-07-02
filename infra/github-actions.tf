@@ -156,7 +156,8 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         ]
         Resource = [
           aws_iam_role.ecs_task_execution.arn,
-          aws_iam_role.ecs_task.arn
+          aws_iam_role.ecs_task_backend.arn,
+          aws_iam_role.ecs_task_worker.arn
         ]
         Condition = {
           StringEquals = {
