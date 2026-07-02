@@ -349,3 +349,12 @@
 **Context**: POST-MVP 프로덕션 고도화 - B-1 문서화
 
 ---
+
+
+## POST-MVP - 비용 할당 태그 + 비용 분석 (B-4)
+**Timestamp**: 2026-07-02T17:32:43+09:00
+**User Input**: "ㅇㅇ 다음거 하자"
+**AI Response**: 계층1 마지막 B-4 구현. `infra/providers.tf`에 aws provider `default_tags`(Project/Environment/ManagedBy) catch-all 추가 — 기존 merge(common_tags)와 동일 값이라 기존 리소스 plan 무변화, 누락 리소스만 보강(fmt/validate 통과). `docs/operations/cost-allocation-and-analysis.md` 생성 — 태그 체계, Billing 콘솔 활성화 절차(관리계정 수동), Cost Explorer 분석·캡처 체크리스트, Budgets 연계, 종료 연동. 태그 활성화·캡처는 담당자 몫. remaining-tasks B-4 반영. 이로써 계층1(B-5/B-2/C-3일부/B-1/B-4) 전부 처리.
+**Context**: POST-MVP 프로덕션 고도화 - B-4 구현 (계층1 완료)
+
+---
