@@ -186,6 +186,8 @@
     "readyToAnalyze": "វិភាគ",
     "uploadExecute": "ផ្ទុកឡើង",
     "uploadError": "មិនអាចបញ្ចូលឯកសារបានទេ។",
+    "cameraPermissionTitle": "ត្រូវការការអនុញ្ញាត",
+    "cameraPermissionBody": "សូមអនុញ្ញាតកាមេរ៉ាដើម្បីថតឯកសារ។",
     "extractError": "មិនអាចអានឯកសារបានទេ។",
     "emptyTitle": "មិនទាន់បានជ្រើសរើសឯកសារទេ។",
     "emptyBody": "ចាប់ផ្តើមជាមួយកិច្ចសន្យា បញ្ជីប្រាក់ខែ និងបង្កាន់ដៃបញ្ជូន។",

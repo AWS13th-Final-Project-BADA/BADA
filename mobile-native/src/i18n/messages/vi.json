@@ -186,6 +186,8 @@
     "readyToAnalyze": "Chạy phân tích",
     "uploadExecute": "Tải lên",
     "uploadError": "Không thể tải tệp lên.",
+    "cameraPermissionTitle": "Cần quyền truy cập",
+    "cameraPermissionBody": "Vui lòng cho phép camera để chụp tài liệu.",
     "extractError": "Không thể bắt đầu đọc tài liệu.",
     "emptyTitle": "Chưa chọn tệp nào.",
     "emptyBody": "Hãy bắt đầu với hợp đồng, bảng lương và lịch sử chuyển khoản.",

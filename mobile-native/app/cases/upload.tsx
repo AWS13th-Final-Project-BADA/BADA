@@ -99,7 +99,7 @@ export default function UploadScreen() {
       }
       setFiles((prev) => [...uploaded, ...prev]);
       setPendingFiles([]);
-      Alert.alert(t("upload.done"), `${successCount}건 업로드 완료`);
+      Alert.alert(t("upload.done"), `${successCount} ${t("upload.done")}`);
     } catch (e: any) {
       // 부분 성공 반영
       if (uploaded.length > 0) {
@@ -114,7 +114,7 @@ export default function UploadScreen() {
   async function pickCamera() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("권한이 필요해요", "문서를 촬영하려면 카메라 권한을 허용해 주세요.");
+      Alert.alert(t("upload.cameraPermissionTitle"), t("upload.cameraPermissionBody"));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
@@ -196,7 +196,7 @@ export default function UploadScreen() {
         Alert.alert("증거 탐색 완료", `${result.totalScanned}장을 스캔했지만 관련 파일을 찾지 못했습니다.`);
       }
     } catch (e: any) {
-      Alert.alert("스캔 실패", e?.message || "갤러리 접근 권한을 확인해주세요.");
+      Alert.alert(t("upload.uploadError"), e?.message || "갤러리 접근 권한을 확인해주세요.");
     } finally {
       setAgentScanning(false);
     }
@@ -214,7 +214,7 @@ export default function UploadScreen() {
   async function approveAgentUpload() {
     if (!activeCaseId || !agentResult) return;
     const selected = agentResult.candidates.filter((_, i) => agentSelected.has(i));
-    if (!selected.length) { Alert.alert("선택된 파일이 없습니다."); return; }
+    if (!selected.length) { Alert.alert(t("upload.emptyTitle")); return; }
 
     setBusy(true);
     try {
@@ -224,9 +224,9 @@ export default function UploadScreen() {
         ...prev,
       ]);
       setAgentResult(null);
-      Alert.alert("업로드 완료", `${uploaded}장이 등록되었습니다.`);
+      Alert.alert(t("upload.done"), `${uploaded} ${t("upload.done")}`);
     } catch (e: any) {
-      Alert.alert("업로드 실패", e?.message || "");
+      Alert.alert(t("upload.uploadError"), e?.message || "");
     } finally {
       setBusy(false);
     }

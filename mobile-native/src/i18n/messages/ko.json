@@ -186,6 +186,8 @@
     "readyToAnalyze": "분석 실행",
     "uploadExecute": "업로드 실행",
     "uploadError": "파일을 업로드하지 못했습니다.",
+    "cameraPermissionTitle": "권한이 필요해요",
+    "cameraPermissionBody": "문서를 촬영하려면 카메라 권한을 허용해 주세요.",
     "extractError": "자료 읽기를 실행하지 못했습니다.",
     "emptyTitle": "아직 올릴 자료를 선택하지 않았습니다.",
     "emptyBody": "계약서, 급여명세서, 입금내역부터 올리면 분석을 시작할 수 있습니다.",
