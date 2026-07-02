@@ -41,6 +41,31 @@ jobs:
       - name: Bandit scan
         run: bandit -r backend/app worker/ -c pyproject.toml --severity-level medium --confidence-level high -f txt
 
+  dependency-scan:
+    name: Dependency Scan (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: pip install pip-audit==2.7.3
+
+      # 초기 도입: 취약점을 가시화하되 병합을 막지 않는다(non-blocking).
+      # ECR 이미지 스캔에서 이미 Critical/High가 확인된 상태라, 우선 리포트를
+      # 축적한 뒤 정책적으로 하드 게이트(continue-on-error 제거)로 전환한다.
+      - name: pip-audit (backend)
+        continue-on-error: true
+        run: pip-audit -r backend/requirements.txt --desc
+
+      - name: pip-audit (worker)
+        continue-on-error: true
+        run: pip-audit -r worker/requirements.txt --desc
+
   test:
     name: Tests + Coverage
     runs-on: ubuntu-latest

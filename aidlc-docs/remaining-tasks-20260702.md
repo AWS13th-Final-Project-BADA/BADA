@@ -44,7 +44,7 @@
 | ID | 태스크 | Pillar | 우선순위 | 상태 |
 |---|---|---|---|---|
 | B-1 | RTO/RPO 정의 + RDS restore rehearsal 절차 | Reliability | P1 | 대기 |
-| B-2 | Dependency scan(SCA) CI 추가 (pip-audit/Trivy/Dependabot) | Security | P1 | 대기 (ruff/bandit/cov는 완료) |
+| B-2 | Dependency scan(SCA) CI 추가 (pip-audit/Trivy/Dependabot) | Security | P1 | **구현 완료 (2026-07-02)** — `.github/workflows/ci.yml`에 pip-audit 잡 추가(backend/worker requirements). 초기 non-blocking(continue-on-error), 리포트 축적 후 하드 게이트 전환 예정 |
 | B-3 | ECR 이미지 Critical/High 취약점 해소 | Security | P1 | 부분 (Backend Critical 1/High 3 등) |
 | B-4 | Cost allocation tag + Cost Explorer/CUR 분석 | Cost | P2 | 대기 |
 | B-5 | S3 Evidence/Report Lifecycle·retention 정책 | Security/Sustainability | P2 | **구현 완료 (2026-07-02)** — `infra/data.tf` lifecycle(IA 90d→Glacier 365d + MPU 정리), `s3_lifecycle_enabled` 종료 토글. fmt/validate 통과. plan/apply는 PR에서 담당자 |

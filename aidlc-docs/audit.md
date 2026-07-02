@@ -322,3 +322,12 @@
 **Context**: POST-MVP 프로덕션 고도화 - 남은 태스크 B-5 구현
 
 ---
+
+
+## POST-MVP - Dependency Scan CI 구현 (B-2)
+**Timestamp**: 2026-07-02T17:21:54+09:00
+**User Input**: "ㅇㅇ 다음 태스크"
+**AI Response**: 계층1 B-2(Dependency scan) 구현. `.github/workflows/ci.yml`에 `dependency-scan` 잡 추가 — pip-audit 2.7.3로 backend/worker requirements 스캔. 초기 도입은 가시성 우선(continue-on-error, non-blocking), ECR Critical/High 기존 상태 고려해 리포트 축적 후 하드 게이트 전환 예정. YAML safe_load 통과.
+**Context**: POST-MVP 프로덕션 고도화 - 남은 태스크 B-2 구현
+
+---
