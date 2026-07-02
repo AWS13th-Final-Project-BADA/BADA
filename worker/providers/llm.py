@@ -13,7 +13,7 @@ _FORBID = "금지 표현(불법/확정/무조건/바로 신고)을 쓰지 말고
 
 class LlmProvider(ABC):
     @abstractmethod
-    def summarize_event(self, fact: str) -> str: ...
+    def summarize_event(self, fact: str, lang: str = "ko") -> str: ...
 
     @abstractmethod
     def summarize_case(self, facts: list[str], lang: str = "ko") -> str: ...
@@ -22,7 +22,7 @@ class LlmProvider(ABC):
 class MockLlm(LlmProvider):
     """로컬 기본값. 결정적 — 입력 사실을 그대로 사용."""
 
-    def summarize_event(self, fact: str) -> str:
+    def summarize_event(self, fact: str, lang: str = "ko") -> str:
         return fact
 
     def summarize_case(self, facts: list[str], lang: str = "ko") -> str:
@@ -32,9 +32,10 @@ class MockLlm(LlmProvider):
 class BedrockLlm(LlmProvider):
     """Bedrock Claude Text 실제 호출. 사실 추가/판단 금지, 문장만 다듬음."""
 
-    def summarize_event(self, fact: str) -> str:
+    def summarize_event(self, fact: str, lang: str = "ko") -> str:
         from providers import _bedrock
-        system = f"주어진 사실을 자연스러운 한국어 한 문장으로 정리하세요. 사실을 추가하거나 판단하지 마세요. {_FORBID}"
+        lang_instruction = "" if lang == "ko" else f" 반드시 {lang} 언어로 작성하세요."
+        system = f"주어진 사실을 자연스러운 한 문장으로 정리하세요. 사실을 추가하거나 판단하지 마세요. {_FORBID}{lang_instruction}"
         return _bedrock.invoke(system, [_bedrock.text_block(f"사실: {fact}\n한 문장:")], max_tokens=300).strip()
 
     def summarize_case(self, facts: list[str], lang: str = "ko") -> str:
