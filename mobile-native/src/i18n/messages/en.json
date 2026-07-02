@@ -223,6 +223,12 @@
     "dateUnknown": "Date unknown",
     "paymentConfirm": "Payment confirmed",
     "documentConfirm": "Document confirmed",
+    "missingReason": {
+      "payment": "No bank deposit records. Transaction history is needed to verify deposit dates and amounts.",
+      "schedule": "No work hour records. Attendance logs or work schedule would make the calculation more accurate.",
+      "contract": "Insufficient workplace identification. The first page of the employment contract would help.",
+      "chat": "No payment promise evidence. Chat messages (KakaoTalk/text) with the employer would help."
+    },
     "none": "Analysis is ready.",
     "noneBody": "Review your upload history and run the analysis.",
     "needUpload": "Upload files to this case before running analysis.",

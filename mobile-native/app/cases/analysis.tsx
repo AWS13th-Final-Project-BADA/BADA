@@ -217,8 +217,8 @@ export default function AnalysisScreen() {
                 {(report.missing || []).slice(0, 2).map((item) => (
                   <View key={item.item} style={styles.missingItem}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.missingTitle}>{item.item}</Text>
-                      <Text style={styles.missingBody}>{item.reason}</Text>
+                      <Text style={styles.missingTitle}>{t(`upload.categories.${item.item}`)}</Text>
+                      <Text style={styles.missingBody}>{t(`analysis.missingReason.${item.reason}`)}</Text>
                     </View>
                     <Text style={styles.needCheck}>{t("analysis.suspected")}</Text>
                   </View>

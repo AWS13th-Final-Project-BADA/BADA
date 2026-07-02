@@ -223,6 +223,12 @@
     "dateUnknown": "Ngày chưa xác định",
     "paymentConfirm": "Xác nhận chuyển khoản",
     "documentConfirm": "Xác nhận tài liệu",
+    "missingReason": {
+      "payment": "Không có sao kê ngân hàng. Cần lịch sử giao dịch để xác minh ngày và số tiền.",
+      "schedule": "Không có bằng chứng giờ làm. Bảng chấm công hoặc lịch làm việc sẽ giúp tính chính xác hơn.",
+      "contract": "Thiếu thông tin nhận dạng nơi làm việc. Trang đầu hợp đồng lao động sẽ hữu ích.",
+      "chat": "Không có bằng chứng hứa trả lương. Tin nhắn với chủ (KakaoTalk/SMS) sẽ hữu ích."
+    },
     "none": "Phân tích đã sẵn sàng.",
     "noneBody": "Xem lịch sử tải lên và chạy phân tích.",
     "needUpload": "Cần tải tài liệu lên trước khi phân tích.",
