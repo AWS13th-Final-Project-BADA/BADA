@@ -186,6 +186,8 @@
     "readyToAnalyze": "分析実行",
     "uploadExecute": "アップロード実行",
     "uploadError": "ファイルをアップロードできませんでした。",
+    "cameraPermissionTitle": "権限が必要です",
+    "cameraPermissionBody": "書類を撮影するにはカメラの許可が必要です。",
     "extractError": "資料の読み取りに失敗しました。",
     "emptyTitle": "まだファイルが選択されていません。",
     "emptyBody": "契約書、給与明細、入金履歴からアップロードしましょう。",

@@ -186,6 +186,8 @@
     "readyToAnalyze": "Run Analysis",
     "uploadExecute": "Upload",
     "uploadError": "Could not upload the file.",
+    "cameraPermissionTitle": "Permission required",
+    "cameraPermissionBody": "Please allow camera access to photograph documents.",
     "extractError": "Could not start file reading.",
     "emptyTitle": "No files selected yet.",
     "emptyBody": "Start with contracts, payslips, and deposit records to run analysis.",
