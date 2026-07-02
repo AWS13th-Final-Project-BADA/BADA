@@ -202,18 +202,23 @@ flowchart TB
 - [남은 태스크](aidlc-docs/remaining-tasks-20260702.md)
 - [팀 태스크 배분](aidlc-docs/team-task-distribution.md)
 
-## CI/CD
+## CI
 
 - **CI**: pytest + coverage + bandit(SAST) + ruff(lint) + pip-audit(SCA) — PR마다 자동 실행
 - **Terraform Plan in PR**: `infra/**` 변경 시 읽기전용 plan-role로 fmt/validate/plan 자동 코멘트
-- **Backend CD**: `develop` push → ECR → ECS 배포 → health check
-- **Worker CD**: 동일 구조
+
+## CD / 배포 전략
+
+- **Backend CD**: `develop` push → ECR → ECS 배포 → ALB `/health` 200 게이트
+- **Worker CD**: 동일 구조 (`worker/**` 변경 시)
+- **배포 방식**: ECS **Rolling Update** + **Deployment Circuit Breaker(자동 롤백)** — backend/worker/frontend 전 서비스 적용. Blue/Green(CodeDeploy)은 의도적 보류(서킷 브레이커로 갈음)
+- **수동 롤백**: backend 전용 `rollback-dev-backend.yml`, worker/grafana는 ECS CLI
 - **모바일**: EAS Build (수동 `workflow_dispatch`)
 
 ## 테스트
 
 ```bash
-# 전체 테스트 (215 tests)
+# 전체 테스트 (backend ~50 · worker ~168 + PBT)
 cd backend && pytest -q
 cd worker && pytest -q
 
