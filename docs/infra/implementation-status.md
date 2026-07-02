@@ -28,7 +28,7 @@
 | 배포 자동화 | Backend/Worker GitHub Actions OIDC 배포, Mobile EAS Build, Terraform Plan-in-PR 및 AWS 권한 반영 |
 | 롤백 | Backend 수동 workflow + Worker·Grafana ECS CLI, Backend·Worker 자동 circuit breaker (`docs/runbooks/rollback-and-recovery.md`) |
 | 모니터링 | Prometheus + Grafana ECS, CloudWatch datasource, Logs/Alarms/SNS/MCP, Grafana Task Role의 Alarm SNS Topic 한정 `sns:Publish`, Grafana `BADA-SNS` Contact Point·G1~G8 Rule·Notification Policy 적용 완료, **Container Insights 활성화**, **Worker Prometheus 메트릭 추가** |
-| X-Ray 분산 추적 | 부분 완료 | ECS Task Role X-Ray 권한, X-Ray daemon sidecar, `/aws/ecs/bada-dev/xray` Log Group 적용. Worker는 `XRAY_ENABLED=true`로 실행 중. Backend는 SDK import 오류(`aws_xray_sdk.ext.fastapi`)로 임시 비활성화 |
+| X-Ray 분산 추적 | 활성화 진행 | ECS Task Role X-Ray 권한, X-Ray daemon sidecar, `/aws/ecs/bada-dev/xray` Log Group 적용. PR #187 이후 Backend/Worker 모두 안전한 수동 segment 방식으로 전환했으며 Terraform에서 `backend_xray_enabled=true`, `worker_xray_enabled=true` 기준으로 재활성화 |
 | Week 3 복구 검증 | Worker 재시도·DLQ·재시작 멱등성 검증, ALB 로그 30일 보존 적용 완료 (PR #60) |
 | Week 3 운영 런북·Grafana 권한 | 팀 공용 장애·롤백 런북과 Alarm SNS Topic 한정 Publish 권한 반영 완료 (PR #61) |
 | PR #63~모니터링 후속 검증 | Backend CD의 운영 HTTPS 200 게이트 성공, Backend `:49`, Grafana `:6`, Terraform No changes, ECS/Target/Alarm/SQS 정상 |
@@ -49,8 +49,8 @@
 | Frontend Task Definition | 제거됨 |
 | Frontend Target Group | 제거됨 |
 | Frontend URL | `https://badasoft.com` → Backend 폴백 |
-| Backend Task Definition | `bada-dev-backend:79` 사용, `XRAY_ENABLED=false` |
-| Worker Task Definition | `bada-dev-worker:26` 사용, `XRAY_ENABLED=true`, `xray-daemon` sidecar 실행 |
+| Backend Task Definition | PR #187 이미지 기준, `XRAY_ENABLED=true`, `xray-daemon` sidecar 실행 |
+| Worker Task Definition | PR #187 이미지 기준, `XRAY_ENABLED=true`, `xray-daemon` sidecar 실행 |
 | Target Group | `healthy` |
 | ALB `/health` | `200 {"status":"ok"}` |
 | ALB `/version` | `200 {"name":"BADA","version":"0.1.0","auth_mode":"oauth","storage_mode":"s3"}` |
