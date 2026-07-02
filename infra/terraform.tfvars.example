@@ -20,6 +20,13 @@ app_port               = 8000
 log_retention_days     = 14
 alb_log_retention_days = 30
 
+# S3 Evidence/Report Lifecycle (비용 최적화 계층 전환)
+# 종료 시 s3_lifecycle_enabled = false 로 되돌리면 룰만 제거(객체는 보존).
+s3_lifecycle_enabled         = true
+s3_ia_transition_days        = 90
+s3_glacier_transition_days   = 365
+s3_abort_incomplete_mpu_days = 7
+
 # Cognito Hosted UI / OAuth authorization code grant.
 cognito_domain_prefix = "bada-dev-165749212250"
 cognito_callback_urls = ["https://api.badasoft.com/auth/cognito/callback"]
