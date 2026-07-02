@@ -66,8 +66,8 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
       "datasource": {"uid": "prometheus"},
       "targets": [
-        {"expr": "sum(rate(analysis_runs_total{status=\"success\"}[5m]))", "legendFormat": "성공"},
-        {"expr": "sum(rate(analysis_runs_total{status=\"failed\"}[5m]))", "legendFormat": "실패"}
+        {"expr": "sum(rate(bada_analysis_runs_total{status=\"success\"}[5m]))", "legendFormat": "성공"},
+        {"expr": "sum(rate(bada_analysis_runs_total{status=\"failed\"}[5m]))", "legendFormat": "실패"}
       ]
     },
     {
@@ -76,7 +76,7 @@
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
       "datasource": {"uid": "prometheus"},
-      "targets": [{"expr": "sum(rate(ocr_requests_total[5m])) by (provider, status)", "legendFormat": "{{provider}}/{{status}}"}]
+      "targets": [{"expr": "sum(rate(worker_ocr_processed_total[5m])) by (category, status)", "legendFormat": "{{category}}/{{status}}"}]
     }
   ],
   "schemaVersion": 39,

@@ -4,7 +4,10 @@ locals {
   monitoring_service_discovery_namespace = "${local.name_prefix}.local"
   prometheus_config_base64 = base64encode(templatefile(
     "${path.module}/../monitoring/prometheus/prometheus.yml",
-    { domain_name = var.domain_name }
+    {
+      domain_name                 = var.domain_name
+      service_discovery_namespace = local.monitoring_service_discovery_namespace
+    }
   ))
   grafana_datasources_base64 = base64encode(templatefile(
     "${path.module}/../monitoring/grafana/provisioning/datasources/datasources.yml",
@@ -92,6 +95,28 @@ resource "aws_service_discovery_service" "prometheus" {
   }
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-prometheus-discovery" })
+}
+
+resource "aws_service_discovery_service" "worker" {
+  count = var.monitoring_enabled ? 1 : 0
+  name  = "worker"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.monitoring[0].id
+
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+
+    routing_policy = "MULTIVALUE"
+  }
+
+  health_check_custom_config {
+    failure_threshold = 1
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-discovery" })
 }
 
 # Grafana CloudWatch 데이터소스용 전용 읽기 권한.

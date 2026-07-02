@@ -31,8 +31,8 @@
       "type": "stat",
       "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
       "targets": [
-        {"expr": "sum(analysis_runs_total{status=\"success\"})", "legendFormat": "성공"},
-        {"expr": "sum(analysis_runs_total{status=\"failed\"})", "legendFormat": "실패"}
+        {"expr": "sum(bada_analysis_runs_total{status=\"success\"})", "legendFormat": "성공"},
+        {"expr": "sum(bada_analysis_runs_total{status=\"failed\"})", "legendFormat": "실패"}
       ]
     },
     {
@@ -58,7 +58,7 @@
       "title": "Worker 메시지 처리량",
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
-      "targets": [{"expr": "sum(rate(worker_messages_processed_total[5m])) by (handler)", "legendFormat": "{{handler}}"}]
+      "targets": [{"expr": "sum(rate(worker_sqs_messages_total[5m])) by (task_type)", "legendFormat": "{{task_type}}"}]
     },
     {
       "id": 8,

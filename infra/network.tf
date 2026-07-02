@@ -133,6 +133,17 @@ resource "aws_security_group" "ecs" {
     }
   }
 
+  dynamic "ingress" {
+    for_each = var.monitoring_enabled ? [1] : []
+    content {
+      description     = "Prometheus scraping from monitoring"
+      from_port       = 9090
+      to_port         = 9090
+      protocol        = "tcp"
+      security_groups = [aws_security_group.monitoring[0].id]
+    }
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
