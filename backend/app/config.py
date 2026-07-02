@@ -44,7 +44,8 @@ class Settings(BaseSettings):
     upstage_api_key: str = ""
     parseur_api_key: str = ""
 
-    retention_days: int = 90
+    retention_days: int = 90  # 일반 데이터(증거파일 등) 기본 보존. GPS는 예외로 3년 — security.md 3항 참조
+    gps_retention_days: int = 1095  # GPS 로그 전용 보존 (3년, 임금채권 소멸시효 기준)
 
     auth_jwt_enabled: bool = True
     jwt_secret: str = "dev-insecure-change-me"
