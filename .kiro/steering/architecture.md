@@ -95,6 +95,40 @@ ctx["gps_logs"] = [
 기존 행 처리 방식을 정해야 한다 (예: 빈 문자열 기본값 부여 후 제약 추가).
 MVP 초기라 데이터가 없으면 해당 없음.
 
+### GPS 로그 장기 아카이빙 (설계만 완료, 구현 보류)
+
+> 재직 중 GPS 수집이 몇 달~몇 년 이어질 수 있어, RDS `gps_logs`에 무기한 누적하면
+> 스토리지·백업 비용이 계속 늘어난다. 아래는 설계만 확정하고, 애플리케이션 코드는
+> 아직 구현하지 않았다(Terraform lifecycle 규칙만 선반영 — `infra/data.tf`
+> `gps-archive/` prefix).
+
+**보존 정책 원칙**
+- 완전 삭제 시점은 임금채권 소멸시효(3년) 기준. `gps_retention_days`(3년)로 일반
+  데이터 `retention_days`(90일)와 분리 관리한다 — security.md 3항 참조.
+- 3년 안에서도 "안 쓰는 구간은 저렴한 저장소로, 다시 쓸 땐 즉시 조회 가능"해야
+  하므로 Glacier Flexible/Deep Archive(분~시간 지연)는 부적합. 실제 조회가
+  보관 기간 내 한두 번뿐일 것으로 예상돼 S3 Standard-IA 단계도 건너뛰고
+  **GLACIER_IR(즉시조회 가능한 Glacier)**로 바로 이관한다.
+
+**아카이빙 트리거**
+- 사건이 완료되고 GPS ping이 일정 기간(예: 14일) 없으면 "비활성"으로 간주,
+  해당 사건의 `gps_logs`를 JSON으로 S3 `gps-archive/{case_id}.json`에 export.
+- export 시 `/summary`의 `integrity.sha256`을 그대로 포함시켜, RDS 원본이
+  삭제돼도 무결성 증명은 파일 자체로 유지되게 한다.
+
+**구현 시 반드시 처리해야 할 위험 지점 (다음 단계 착수 시 참고)**
+1. `/gps/verify`의 체인 검증이 RDS-S3 경계를 넘는 로그에 대해 prev_hash를
+   이어서 검증하도록 로직 확장 필요 — 현재 `gps.py::verify_chain`은 단일
+   소스(RDS)만 가정하고 있어 그대로 두면 아카이브된 사건에서 오탐 발생.
+2. 읽기 경로 4곳(`/summary`, `/verify`, `/logs`, `report_builder.py`)에
+   "RDS 미존재 시 S3 폴백" 추가 필요. 누락 시 아카이브된 사건의 Evidence Pack
+   GPS 섹션이 비거나 에러.
+3. "사건 비활성 감지" 배치의 실행 위치 — tech.md가 Step Functions를 금지하므로
+   Worker의 주기 작업 또는 EventBridge + 경량 Lambda 중 선택 필요.
+
+**보류 이유**: 데모 트래픽 규모에서는 RDS 부담이 실질적으로 발생하지 않고,
+위 3항목이 GPS 무결성 검증이라는 핵심 기능을 직접 건드려 회귀 위험이 크다.
+
 ## 7. (MVP+) 챗봇 = 제한적 Agentic Workflow
 
 완전 자율 Agent를 만들지 않는다. 도구 호출은 아래로 제한:
