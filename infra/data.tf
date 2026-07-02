@@ -77,7 +77,12 @@ resource "aws_s3_bucket_lifecycle_configuration" "evidence" {
     id     = "tiering-evidence"
     status = "Enabled"
 
-    filter {} # 버킷 전체 객체
+    # 실제 업로드 키는 전부 cases/{case_id}/... 이다(backend/app/routers/evidences.py).
+    # gps-archive/ prefix와 겹치지 않게 명시적으로 scope해, 아래 GPS 룰과의
+    # 스토리지 클래스 전환 순서 충돌(IA→GLACIER vs 즉시 GLACIER_IR)을 방지한다.
+    filter {
+      prefix = "cases/"
+    }
 
     transition {
       days          = var.s3_ia_transition_days
@@ -91,6 +96,31 @@ resource "aws_s3_bucket_lifecycle_configuration" "evidence" {
 
     abort_incomplete_multipart_upload {
       days_after_initiation = var.s3_abort_incomplete_mpu_days
+    }
+  }
+
+  # GPS 로그 아카이브 prefix — 선반영, 아직 이 prefix에 쓰는 애플리케이션 코드 없음.
+  # architecture.md GPS 아카이빙 설계 참고. 구현 전까지는 대상 객체가 없는 inert 룰.
+  dynamic "rule" {
+    for_each = var.gps_archive_lifecycle_enabled ? [1] : []
+    content {
+      id     = "gps-archive-glacier-ir"
+      status = "Enabled"
+
+      filter {
+        prefix = var.gps_archive_prefix
+      }
+
+      # 보관 기간 내 조회가 한두 번뿐일 것으로 예상 → 즉시조회 가능한 저가 등급으로 바로 전환.
+      # (Standard-IA를 거치지 않는 이유: 접근 빈도가 이보다 더 낮아 Glacier IR이 더 경제적)
+      transition {
+        days          = var.gps_archive_glacier_ir_transition_days
+        storage_class = "GLACIER_IR"
+      }
+
+      abort_incomplete_multipart_upload {
+        days_after_initiation = var.s3_abort_incomplete_mpu_days
+      }
     }
   }
 }

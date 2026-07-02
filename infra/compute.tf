@@ -141,6 +141,7 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "COGNITO_LOGOUT_URI", value = var.cognito_logout_urls[0] },
         { name = "COGNITO_SCOPES", value = join(" ", var.cognito_oauth_scopes) },
         { name = "RETENTION_DAYS", value = tostring(var.retention_days) },
+        { name = "GPS_RETENTION_DAYS", value = tostring(var.gps_retention_days) },
         { name = "XRAY_ENABLED", value = tostring(var.backend_xray_enabled) },
         { name = "AWS_XRAY_DAEMON_ADDRESS", value = "127.0.0.1:2000" },
         { name = "AWS_XRAY_CONTEXT_MISSING", value = "LOG_ERROR" }

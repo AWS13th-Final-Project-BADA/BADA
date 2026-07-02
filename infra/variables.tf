@@ -244,6 +244,33 @@ variable "s3_abort_incomplete_mpu_days" {
   default     = 7
 }
 
+# ---- GPS 로그 아카이브 (선반영, 애플리케이션 코드 미구현) ----
+# architecture.md의 GPS 아카이빙 설계 참고. worker/backend 어디에도 이 prefix에
+# 쓰는 로직이 없어 현재는 대상 객체가 없는 inert 룰이다. 향후 "사건 비활성 감지 →
+# gps_logs export" 로직이 구현되면 이 prefix로 JSON을 업로드하는 것을 전제로 한다.
+variable "gps_archive_lifecycle_enabled" {
+  description = "GPS 로그 아카이브 prefix에 대한 Glacier Instant Retrieval 전환 룰 활성화. 아직 코드가 이 prefix에 쓰지 않아 실제 적용 대상 객체는 없다(선반영). 종료 시 false로 되돌리면 룰 제거."
+  type        = bool
+  default     = true
+}
+
+variable "gps_archive_prefix" {
+  description = "GPS 로그 아카이브 export 파일이 위치할 evidence 버킷 내 prefix. 애플리케이션 코드가 구현되면 이 prefix로 export한다."
+  type        = string
+  default     = "gps-archive/"
+}
+
+variable "gps_archive_glacier_ir_transition_days" {
+  description = "GPS 아카이브 객체를 GLACIER_IR(즉시 조회 가능한 Glacier)로 전환하기까지의 일수. 보관 기간 내 조회가 한두 번뿐일 것으로 예상되어 생성 즉시 전환해도 무방하다(0 = 즉시)."
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = var.gps_archive_glacier_ir_transition_days >= 0
+    error_message = "gps_archive_glacier_ir_transition_days must be 0 or greater."
+  }
+}
+
 variable "sqs_visibility_timeout_seconds" {
   description = "Time an in-flight analysis message remains hidden. 15 minutes covers the worker transcription timeout with a buffer."
   type        = number
@@ -534,9 +561,15 @@ variable "worker_structured_engine" {
 }
 
 variable "retention_days" {
-  description = "Application data retention period in days"
+  description = "General application data (evidence files, etc.) retention period in days. GPS logs are the exception at 3 years — see gps_retention_days and security.md."
   type        = number
   default     = 90
+}
+
+variable "gps_retention_days" {
+  description = "GPS log retention period in days. 3 years (1095 days), aligned with the Korean wage-claim statute of limitations (Labor Standards Act Art. 49). Distinct from retention_days (general data, 90 days) — see security.md."
+  type        = number
+  default     = 1095
 }
 
 variable "github_owner" {
