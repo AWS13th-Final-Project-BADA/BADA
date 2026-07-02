@@ -439,7 +439,7 @@ Pillar별 리스크:
 | 문서 | 목적 |
 | --- | --- |
 | `infra/README.md` | Terraform 실행 방법과 인프라 코드 구조 |
-| `docs/OWNERSHIP.md` | 파트별 담당 영역 |
+| `docs/operations/ownership.md` | 파트별 담당 영역 |
 | `.github/workflows/deploy-dev.yml` | Backend 자동배포 workflow |
 | `.github/workflows/deploy-dev-worker.yml` | Worker 자동배포 workflow |
 | `.github/workflows/build-mobile.yml` | 모바일 앱 EAS Build workflow |
@@ -448,7 +448,7 @@ Pillar별 리스크:
 | `docs/runbooks/demo-incident-response.md` | 데모 핵심 경로 장애 진단·대응 |
 | `docs/runbooks/rds-recovery.md` | RDS 복원·암호화 전환·rollback 절차 |
 | `docs/runbooks/project-closure.md` | 프로젝트 종료·데이터 보존·비용 리소스 정리 |
-| `docs/infra-security-operations-plan.md` | ECR·Task Role·비용 운영 결정 |
+| `docs/infra/security-operations-plan.md` | ECR·Task Role·비용 운영 결정 |
 | `docs/operations/rto-rpo-and-restore-rehearsal.md` | RTO/RPO 정의 + RDS 복원 리허설 측정 워크시트 (B-1) |
 | `docs/operations/cost-allocation-and-analysis.md` | 비용 할당 태그 + Cost Explorer 분석 절차 (B-4) |
 | `aidlc-docs/remaining-tasks-20260702.md` | 남은 태스크 정리 (카테고리 A/B/C + 실행 계층) |

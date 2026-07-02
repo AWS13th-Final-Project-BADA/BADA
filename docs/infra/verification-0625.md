@@ -1,5 +1,7 @@
 # 인프라 검증 결과 및 요청사항 (2026-06-25)
 
+> 📌 **히스토리 스냅샷 (2026-06-25)** — 이 문서의 검증 결과·요청 항목(소셜 OAuth 딥링크, 프론트 PR, Worker E2E 등)은 **모두 완료**됐다. 시점 기록용으로 보존하며, **현재 인프라 상태는 `docs/infra/implementation-status.md`가 단일 출처**다.
+
 > PR #65 `feature/agent` + PR #66 `feature/mobile-native` 머지 후 인프라 재검증.
 
 ---

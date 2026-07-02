@@ -131,7 +131,7 @@ network → database → auth → storage → shared
 ## 적용 기준 (시점) — 프로덕션 전환 Phase 2 항목
 
 > 이 리팩터링(서비스별 state 분리, 옵션 C)은 **MVP/dev 즉시 적용 항목이 아니다.**
-> `docs/production-roadmap.md`의 Phase 2(고가용성 + 성능, "실 사용자 유입" 트리거)와 동일 시점에 검토한다.
+> `docs/infra/production-roadmap.md`의 Phase 2(고가용성 + 성능, "실 사용자 유입" 트리거)와 동일 시점에 검토한다.
 > 인프라 담당(`infra/*.tf` 소유)이 시점과 방식을 확정한다.
 
 ### 적용을 시작할 조건 (아래 중 하나 이상 충족 시)
