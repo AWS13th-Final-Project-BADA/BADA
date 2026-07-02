@@ -43,6 +43,10 @@ env:
   TF_VAR_worker_container_image: 165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-worker:latest
   TF_VAR_backend_desired_count: "1"
   TF_VAR_worker_desired_count: "1"
+  # X-Ray: 프로덕션 apply 값(true)과 일치시켜 PR 플랜의 태스크 정의 drift 오탐 방지.
+  # 이 변수가 없으면 기본값(backend=false)으로 plan이 돌아 X-Ray 사이드카가 제거되는 것처럼 보인다.
+  TF_VAR_backend_xray_enabled: "true"
+  TF_VAR_worker_xray_enabled: "true"
   TF_VAR_worker_task_cpu: "512"
   TF_VAR_worker_task_memory: "1024"
   TF_VAR_cognito_callback_urls: '["https://api.badasoft.com/auth/cognito/callback"]'
