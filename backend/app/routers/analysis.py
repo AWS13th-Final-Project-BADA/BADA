@@ -103,16 +103,38 @@ def _load_report(case_id: str, db: Session) -> dict:
 
 
 @router.get("/analysis")
-def get_analysis(case_id: str, db: Session = Depends(get_db)):
-    """저장된 분석을 표준 스키마로 반환. pdf_ready 포함."""
+def get_analysis(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_db)):
+    """저장된 분석을 표준 스키마로 반환. lang!=ko면 summary/timeline을 실시간 번역."""
     ar = db.query(AnalysisResult).filter(AnalysisResult.case_id == case_id).first()
     if not ar:
         raise HTTPException(404, "no analysis yet")
+
+    def _translate(text: str) -> str:
+        """한국어 원문을 요청 lang으로 번역. ko이거나 실패면 원문 그대로."""
+        if lang == "ko" or not text:
+            return text
+        try:
+            from ..services.translation import get_translator
+            return get_translator().translate(text, lang)
+        except Exception:
+            return text
+
     rep = (ar.calculation_detail or {}).get("report")
     if rep:
         rep["pdf_ready"] = bool(ar.pdf_ko_s3_key)
+        if lang != "ko":
+            if rep.get("narrative", {}).get("summary"):
+                rep["narrative"]["summary"] = _translate(rep["narrative"]["summary"])
+            for t_item in rep.get("timeline", []):
+                if t_item.get("text"):
+                    t_item["text"] = _translate(t_item["text"])
         return rep
     # Worker가 저장한 형식 (report 키 없음) → 원시 AR 데이터 반환
+    timeline_events = db.query(TimelineEvent).filter(TimelineEvent.case_id == case_id).all()
+    summary = ar.timeline_summary or ""
+    if lang != "ko":
+        summary = _translate(summary)
+
     return {
         "wage": {
             "expected": ar.total_expected_wage,
@@ -123,11 +145,12 @@ def get_analysis(case_id: str, db: Session = Depends(get_db)):
         "missing": ar.missing_evidences or [],
         "timeline": [
             {"date": str(e.event_date) if e.event_date else None, "type": e.event_type,
-             "text": e.description, "text_translated": e.description_translated,
+             "text": _translate(e.description) if lang != "ko" else e.description,
+             "text_translated": e.description_translated,
              "confidence": e.confidence}
-            for e in db.query(TimelineEvent).filter(TimelineEvent.case_id == case_id).all()
+            for e in timeline_events
         ],
-        "narrative": {"summary": ar.timeline_summary or "", "disclaimer": ""},
+        "narrative": {"summary": summary, "disclaimer": ""},
         "calculation_detail": ar.calculation_detail or {},
         "pdf_ready": bool(ar.pdf_ko_s3_key),
     }
