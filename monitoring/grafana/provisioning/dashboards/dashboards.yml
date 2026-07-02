@@ -6,7 +6,9 @@ providers:
     folder: "BADA"
     type: file
     disableDeletion: false
-    editable: true
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
     options:
       path: /etc/grafana/provisioning/dashboards/json
       foldersFromFilesStructure: false
