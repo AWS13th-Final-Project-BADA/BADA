@@ -45,7 +45,7 @@
 |---|---|---|---|---|
 | B-1 | RTO/RPO 정의 + RDS restore rehearsal 절차 | Reliability | P1 | **문서화 완료 (2026-07-02)** — `docs/operations/rto-rpo-and-restore-rehearsal.md` (확정 RTO≤2h/RPO≤24h, 시나리오별 경로, PITR 복원 측정 절차+워크시트). 실측 타임드 리허설 실행은 담당자 몫 |
 | B-2 | Dependency scan(SCA) CI 추가 (pip-audit/Trivy/Dependabot) | Security | P1 | **구현 완료 (2026-07-02)** — `.github/workflows/ci.yml`에 pip-audit 잡 추가(backend/worker requirements). 초기 non-blocking(continue-on-error), 리포트 축적 후 하드 게이트 전환 예정 |
-| B-3 | ECR 이미지 Critical/High 취약점 해소 | Security | P1 | 부분 (Backend Critical 1/High 3 등) |
+| B-3 | ECR 이미지 Critical/High 취약점 해소 | Security | P1 | **부분 완료 (2026-07-02)** — 저위험 범프 PR: requests 2.33.0, python-multipart 0.0.31, pypdf 6.13.3, jinja2 3.1.6, pytest 9.0.3 (BE 18건 중 ~11건, Worker 12건 중 ~6건 해소). 남은 것: fastapi+starlette 메이저, weasyprint 68+pillow 12(별도 PR — PDF E2E 필요) |
 | B-4 | Cost allocation tag + Cost Explorer/CUR 분석 | Cost | P2 | **구현 완료 (2026-07-02)** — `infra/providers.tf` default_tags(Project/Environment/ManagedBy catch-all), `docs/operations/cost-allocation-and-analysis.md`(활성화 절차+Cost Explorer 분석+캡처 체크리스트). 태그 활성화(Billing)·캡처는 담당자 |
 | B-5 | S3 Evidence/Report Lifecycle·retention 정책 | Security/Sustainability | P2 | **구현 완료 (2026-07-02)** — `infra/data.tf` lifecycle(IA 90d→Glacier 365d + MPU 정리), `s3_lifecycle_enabled` 종료 토글. fmt/validate 통과. plan/apply는 PR에서 담당자 |
 
