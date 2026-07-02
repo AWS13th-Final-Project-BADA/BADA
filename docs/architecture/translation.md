@@ -26,6 +26,12 @@
 
 핵심: **분석을 다시 돌리지 않아도** 언어를 바꿔가며 리포트를 볼 수 있다.
 
+### 구현 경로 (2026-07-02 완성)
+- **Worker**: `pipeline.py` → 분석 결과 항상 한국어로 생성 → DB에 한국어 저장
+- **Backend**: `GET /analysis?lang=en` → `backend/app/services/translation.py` → Amazon Translate 실시간 번역
+- **FE**: `/analysis?lang=${locale}` 호출 → 사용자 언어로 화면 표시
+- **PDF**: `lang="ko"` 고정 → 항상 한국어 (노동부/법원 제출용 원본)
+
 ---
 
 ## 1. 지원 언어 (8개)
