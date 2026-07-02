@@ -19,7 +19,8 @@
 - RDS 암호화 마이그레이션은 남은 dev 운영 기간에 강행하지 않는다.
 - 운영·재사용 환경으로 전환할 때는 암호화 신규 RDS로 복원·전환한다.
 - Backend·Worker Task Role 분리는 현재 dev 환경에서는 이월하고 운영 전 필수 항목으로 지정한다.
-- WAF, CloudFront, VPC Endpoint, ECS Auto Scaling은 MVP 종료 환경에 추가하지 않는다.
+- CloudFront, VPC **Interface** Endpoint(SQS/ECR), NAT Gateway는 MVP 종료 환경에 추가하지 않는다.
+- WAF·ECS Auto Scaling·GuardDuty/Security Hub·Worker Fargate Spot·S3 **Gateway** Endpoint는 이미 적용됨 → 종료 시 각 토글(`security_monitoring_enabled`, `backend/worker_autoscaling_enabled`, `worker_fargate_spot_enabled`, `s3_gateway_endpoint_enabled`, `s3_lifecycle_enabled`)을 false로 되돌려 정리한다.
 
 위 정책은 인프라 권고안이며, 데이터 보존·삭제와 snapshot 보존은 PM·팀의 최종 승인을 받아 실행한다.
 
