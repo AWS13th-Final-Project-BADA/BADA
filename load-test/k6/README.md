@@ -18,26 +18,25 @@ scale-out/scale-in 그래프를 캡처하기 위한 스크립트다.
 
 ## 1) Backend CPU 기반 스케일링 (주 시나리오)
 
-`bada-dev-backend-cpu-tt` 정책(평균 CPU 70% Target Tracking)을 유발한다.
-Backend Task가 0.25 vCPU라 수백 RPS면 CPU가 빠르게 70%를 넘어 1→2→3으로 확장된다.
+`bada-dev-backend-cpu-tt` 정책(평균 CPU 70% Target Tracking)을 유발한다. **폐쇄형(ramping-vus)** 부하로
+CPU를 70~100%에 꾸준히 유지해 스케일 알람(70% x 3분 연속)을 충족시킨다.
 
 ### 설치
 - k6: https://k6.io/docs/get-started/installation/ (Windows: `winget install k6` 또는 `choco install k6`)
 
 ### 실행
 ```bash
-# 기본 (peak 200 RPS, 총 약 16분)
+# 기본 (VUS=40, sustain 8m, 총 약 14분)
 k6 run load-test/k6/backend-autoscaling.js
 
-# 낮게 시험 실행
-k6 run -e PEAK_RATE=60 load-test/k6/backend-autoscaling.js
-
-# 대상/엔드포인트 변경
-k6 run -e TARGET_URL=https://api.badasoft.com -e ENDPOINT=/health -e PEAK_RATE=200 \
-  load-test/k6/backend-autoscaling.js
+# 부하 조절 (CPU가 75% 밑이면 VUS↑, 100% 붙어 타임아웃 많으면 VUS↓)
+k6 run -e VUS=50 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
 ```
 
-부하 단계(스크립트 내 stages): warm-up 2m → ramp-up 3m → **sustain 7m**(여기서 scale-out) → ramp-down 4m(scale-in 관찰). 총 약 16분.
+부하 단계: ramp-up 3m → **sustain 8m**(여기서 scale-out 1→2→3) → ramp-down 3m. 총 약 14분.
+
+> ⚠️ 개방형(`ramping-arrival-rate`)은 작은 백엔드를 순식간에 포화시켜 타임아웃 폭주 →
+> 완료 요청 급감 → CPU가 오히려 떨어져 스케일이 안 뜬다. 그래서 폐쇄형(`ramping-vus`)을 쓴다.
 
 ### 무엇을 캡처하나
 1. **Grafana** `BADA Infrastructure` 대시보드
