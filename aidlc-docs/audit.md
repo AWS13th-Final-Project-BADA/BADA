@@ -331,3 +331,12 @@
 **Context**: POST-MVP 프로덕션 고도화 - 남은 태스크 B-2 구현
 
 ---
+
+
+## POST-MVP - S3 Gateway VPC Endpoint 구현 (C-3 일부)
+**Timestamp**: 2026-07-02T17:25:52+09:00
+**User Input**: "ㅇㅇ 순서대로 했어. C-3 일부 먼저 하고, 그 다음에 B-1 하자"
+**AI Response**: 계층1 C-3 일부(무료 S3 Gateway Endpoint) 구현. `infra/network.tf`에 `aws_vpc_endpoint.s3`(Gateway, public/private route table 연결) 추가, `infra/variables.tf`에 `s3_gateway_endpoint_enabled` 종료 토글, `terraform.tfvars.example` 문서화. Interface Endpoint(SQS/ECR, ~$7)는 보류 유지. fmt/validate 통과. plan/apply는 PR에서 담당자.
+**Context**: POST-MVP 프로덕션 고도화 - C-3 일부(S3 Gateway) 구현
+
+---

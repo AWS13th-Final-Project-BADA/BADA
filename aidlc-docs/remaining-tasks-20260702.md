@@ -69,7 +69,7 @@
 |---|---|---|---|---|
 | 1 | S3 Evidence/Report Lifecycle (90d→IA, 1y→Glacier, incomplete MPU 정리) | B-5 | ~$0 | 쉬움(설정 제거) |
 | 2 | Dependency scan CI 워크플로 추가 | B-2 | $0 | 쉬움 |
-| 3 | VPC Endpoint **S3 Gateway만**(무료) | C-3 일부 | 무료 | 쉬움 |
+| 3 | VPC Endpoint **S3 Gateway만**(무료) ✅완료 | C-3 일부 | 무료 | 쉬움 |
 | 4 | RDS restore rehearsal 1회 + RTO/RPO 문서화 | B-1 | 스냅샷 소액 | 스냅샷 삭제 |
 | 5 | Cost allocation tag + Cost Explorer 캡처 | B-4 | $0 | 쉬움 |
 
