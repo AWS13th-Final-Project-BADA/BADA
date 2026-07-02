@@ -367,3 +367,12 @@
 **Context**: POST-MVP 프로덕션 고도화 - B-3 부분(저위험 범프)
 
 ---
+
+
+## POST-MVP - 문서 정리·통합 (링크 수정 + DR 단일출처 + 아카이브)
+**Timestamp**: 2026-07-02T18:00:26+09:00
+**User Input**: "기존 문서들 분석 다 해본거지? 혹시 필요없거나 합쳐도 될만한건 없었나" / "전부 다 해"
+**AI Response**: docs 전체 중복성 감사 후 3건 실행. (1) 서브폴더 재구성 전 옛 flat 경로 참조 12곳 수정(production-roadmap/decision-record/implementation-status/terraform-refactoring). (2) DR RTO/RPO 중복 제거 — rto-rpo-and-restore-rehearsal.md를 단일 출처로, high-availability-design.md/production-roadmap.md Phase5/rds-recovery.md §2는 cross-ref로 대체. high-availability-design.md 현행화(현황 배너, SPOF 표 Frontend 제거·RDS Multi-AZ·Auto Scaling 반영, Phase1 완료 표기). (3) verification-0625.md 히스토리 스냅샷 배너 추가. terraform-refactoring.md는 자체적으로 보류 명시돼 유지. 재grep으로 잔여 깨진 경로 0건 확인. 별도 브랜치 docs/cleanup-consolidation-20260702.
+**Context**: POST-MVP 프로덕션 고도화 - 문서 정리·통합
+
+---

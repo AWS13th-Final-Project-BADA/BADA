@@ -1,24 +1,27 @@
 # 고가용성 (High Availability) 설계
 
-## 현재 상태: MVP 단일 인스턴스 구조
+> 📌 **현황 업데이트 (2026-07-02)**: 아래 "Phase 1 최소 HA" 항목(Backend Auto Scaling·RDS Multi-AZ·Worker Auto Scaling)은 **이미 구현 완료**됐다(#4/#8, PR #203). 이 문서는 설계 근거·HCL 참조용으로 유지한다. 실제 적용 현황은 `docs/infra/implementation-status.md`, RTO/RPO 확정값과 복원 리허설은 `docs/operations/rto-rpo-and-restore-rehearsal.md`가 단일 출처다.
 
-비용 최소화를 위해 의도적으로 단일 인스턴스로 운영 중이다.
-단일 장애점(SPOF)이 존재하며, 프로덕션 전환 시 아래 계획을 적용한다.
+## 현재 상태: 최소 HA 적용 (Multi-AZ RDS + Auto Scaling)
 
-### 현재 아키텍처의 SPOF
+MVP 단계에서 비용을 우선했으나, 2026-07-02 기준 아래 최소 HA가 적용됐다.
+아래 SPOF 표는 현재(적용 후) 상태를 반영한다.
+
+### 현재 아키텍처의 SPOF (2026-07-02 기준)
 
 | 컴포넌트 | 현재 | SPOF 여부 | 장애 시 영향 |
 |----------|------|-----------|-------------|
-| Backend ECS | desired=1 | ⚠️ SPOF | API 전체 중단 |
-| Worker ECS | desired=1 | ⚠️ SPOF | 비동기 분석 중단 (동기 분석은 유지) |
-| Frontend ECS | desired=1 | ⚠️ SPOF | 웹 접속 불가 |
-| RDS PostgreSQL | Single-AZ | ⚠️ SPOF | 전체 서비스 중단 |
-| Prometheus | desired=1, 로컬 TSDB | ⚠️ SPOF | 메트릭 수집 중단 |
+| Backend ECS | Auto Scaling min=1/max=3 (CPU 70%) | △ 완화 | 부하 시 scale-out, 상시 최소 1 |
+| Worker ECS | Auto Scaling min=1/max=3 (SQS backlog) | △ 완화 | 적체 시 scale-out |
+| RDS PostgreSQL | **Multi-AZ (encrypted)** | ✅ HA | 자동 failover 30~60초 |
+| Prometheus | desired=1, 로컬 TSDB | ⚠️ SPOF | 메트릭 수집 중단 (서비스 무영향) |
 | Grafana | desired=1, EFS 영속화 | △ | 대시보드 접근 불가 (서비스 무영향) |
 | ALB | AWS 관리형, Multi-AZ | ✅ HA | - |
 | S3 | AWS 관리형, 11-9s 내구성 | ✅ HA | - |
 | SQS | AWS 관리형, Multi-AZ | ✅ HA | - |
-| Cognito | AWS 관리형 | ✅ HA | - |
+
+> Frontend ECS는 제거됨(`frontend_enabled=false`, 모바일 앱 전환). `badasoft.com`은 Backend 폴백.
+> 남은 SPOF는 Prometheus/Grafana(관측 계층)로, 서비스 트래픽에는 영향 없다.
 
 ### 현재도 갖춰진 요소
 
@@ -33,7 +36,7 @@
 
 ## 프로덕션 고가용성 계획
 
-### Phase 1: 최소 HA (비용 +$30~50/월)
+### Phase 1: 최소 HA (비용 +$30~50/월) — ✅ 적용 완료 (2026-07-02)
 
 | 변경 | 내용 | 효과 |
 |------|------|------|
@@ -109,13 +112,9 @@ resource "aws_appautoscaling_policy" "worker_sqs" {
 
 ### Phase 3: 재해 복구 (DR)
 
-| 수준 | RTO | RPO | 방법 |
-|------|-----|-----|------|
-| Backup & Restore | 수 시간 | 24시간 | RDS 스냅샷 + S3 Cross-Region Replication |
-| Pilot Light | 30분 | 5분 | 다른 리전에 인프라 코드만 준비, RDS 스냅샷 복원 |
-| Warm Standby | 5분 | 1분 | 다른 리전에 축소 인프라 상시 운영 |
-
-MVP에서는 Backup & Restore 수준이 현실적.
+> DR 수준(Backup&Restore / Pilot Light / Warm Standby)과 확정 RTO/RPO, 복원 리허설
+> 절차·워크시트는 **단일 출처** `docs/operations/rto-rpo-and-restore-rehearsal.md`를 참조한다.
+> MVP에서는 Backup & Restore 수준이 현실적(RDS 자동 백업 7일 활성).
 
 ---
 
