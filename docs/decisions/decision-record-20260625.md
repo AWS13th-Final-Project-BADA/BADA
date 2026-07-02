@@ -28,7 +28,8 @@
 
 > **실행 상태 (2026-07-02 갱신)**
 > - ✅ **완료**: 1(소셜 OAuth 직접구현)·2(RDS 암호화)·3(행수준 인가)·4(Auto Scaling, PR #203)·6(모델 비교)·7(WAF)·8(Multi-AZ)·9(k6 부하 검증 — Backend 1→2, Worker 1→3, PR #212/#213)·10(X-Ray)·11(GuardDuty/Security Hub + 종료 토글, PR #207)·13(Task Role 분리, PR #205)·14(구조화 로깅)·15(Worker Fargate Spot, PR #206)·16(TF Plan-in-PR)·17(CI 강화)·19(모바일 로그인 E2E — 코드 완비)·20(APK 파이프라인)
-> - 🔧 **보류**: 5(TF 분리)·12(ECS Private Subnet+NAT)·18(VPC Endpoint) — 종료 기간(7/10)·비용 대비 위험이 가치를 초과. To-Be 다이어그램으로 갈음.
+> - 🔧 **보류**: 5(TF 분리)·12(ECS Private Subnet+NAT) — 종료 기간(7/10)·비용 대비 위험이 가치를 초과. To-Be 다이어그램으로 갈음. 18(VPC Endpoint)은 **S3 Gateway(무료) 부분 완료(2026-07-02)**, Interface Endpoint(SQS/ECR, ~$7)는 보류.
+> - ✅ **추가 완료 (2026-07-02, 로드맵/WA 항목)**: S3 Evidence/Report Lifecycle(B-5), Dependency scan CI(B-2), S3 Gateway VPC Endpoint(C-3 일부), RTO/RPO 정의+복원 리허설 문서(B-1), 비용 할당 태그 default_tags(B-4), 의존성 취약점 저위험 범프(B-3 부분). 상세: `aidlc-docs/remaining-tasks-20260702.md`
 > - 🚧 **담당 진행**: (없음 — 20건 전부 완료 또는 보류로 종결)
 > - 참고(모바일): #20 APK 빌드는 EAS 무료 쿼터(월 15회) 절약을 위해 **수동 실행(`workflow_dispatch`) 전용**으로 전환(자동 push 빌드 제거). #1은 앱 계층 소셜 OAuth로 단일화 완료이며 **Cognito 미사용 협의**(리소스는 잔존, 종료 시 정리).
 > - 참고: 4·11·13·15는 원래 "TF 분리(5) 후" 조건이었으나, TF 분리 없이 단일 `infra/`에서 안전하게 적용함(#4는 `ignore_changes=[desired_count]`, #11은 `moved` 블록, #15는 `capacity_provider_strategy`).
@@ -53,7 +54,7 @@
 | 15 | Fargate Spot (Worker) | Spot capacity provider 전환 (SQS+DLQ 멱등성으로 안전) | -$3 | TF 분리 후 |
 | 16 | Terraform Plan in PR | GitHub Action으로 PR에 plan 결과 자동 코멘트 | $0 | 즉시 |
 | 17 | CI 강화 | pytest-cov + bandit (SAST) + ruff (lint) | $0 | 즉시 |
-| 18 | VPC Endpoint | S3 Gateway (무료) + SQS/ECR Interface Endpoint | ~$7 | 12번과 세트 |
+| 18 | VPC Endpoint | S3 Gateway (무료) + SQS/ECR Interface Endpoint | ~$7 | **S3 Gateway 완료(2026-07-02)**, Interface는 12번과 세트로 보류 |
 
 | 19 | 모바일 로그인 E2E | 소셜 OAuth(구글/카카오/네이버) → 토큰 수신 검증 | $0 | 즉시 |
 | 20 | APK 배포 파이프라인 | EAS Build + GH Action + Preview APK | $0 | 즉시 |
@@ -146,7 +147,9 @@
 > - Auto Scaling: `backend_autoscaling_enabled=false` / `worker_autoscaling_enabled=false`
 > - GuardDuty/Security Hub: `security_monitoring_enabled=false`
 > - Worker Fargate Spot: `worker_fargate_spot_enabled=false` (On-Demand 복귀)
-> - NAT Gateway / VPC Interface Endpoint: **보류로 생성 안 함** → 정리 대상 아님
+> - NAT Gateway / VPC **Interface** Endpoint: **보류로 생성 안 함** → 정리 대상 아님
+> - S3 **Gateway** Endpoint(무료, 2026-07-02 추가): 종료 시 `s3_gateway_endpoint_enabled=false`로 제거
+> - S3 Evidence/Report Lifecycle: `s3_lifecycle_enabled=false`로 룰 제거(객체 보존)
 
 - [ ] Auto Scaling policy 삭제, desired=0
 - [ ] NAT Gateway 삭제
