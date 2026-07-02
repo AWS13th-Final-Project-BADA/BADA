@@ -209,6 +209,14 @@ resource "aws_ecs_task_definition" "worker" {
       image     = local.worker_image
       essential = true
 
+      portMappings = [
+        {
+          containerPort = 9090
+          hostPort      = 9090
+          protocol      = "tcp"
+        }
+      ]
+
       environment = [
         { name = "AWS_REGION", value = var.aws_region },
         { name = "PROVIDER_MODE", value = var.worker_provider_mode },
@@ -378,6 +386,13 @@ resource "aws_ecs_service" "worker" {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.ecs.id]
     assign_public_ip = true
+  }
+
+  dynamic "service_registries" {
+    for_each = var.monitoring_enabled ? [1] : []
+    content {
+      registry_arn = aws_service_discovery_service.worker[0].arn
+    }
   }
 
   lifecycle {
