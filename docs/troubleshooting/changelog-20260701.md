@@ -135,15 +135,15 @@ Worker에 `prometheus_client` + `:9090/metrics` HTTP 서버 도입.
   - 대상: Cloud Map `worker.bada-dev.local:9090`
   - 방식: `dns_sd_configs` A 레코드 + port `9090`
 - Worker Task Definition에 9090 portMapping 추가 완료
-  - 적용 Task Definition: `bada-dev-worker:54`
-  - 운영 이미지 태그는 기존 서비스 이미지(`8f46afda7af0`)를 유지
+  - 적용 Task Definition: `bada-dev-worker:55`
+  - 인프라 수동 전환 기준 `:54`에서 기존 서비스 이미지(`8f46afda7af0`)를 유지했고, 이후 Worker CD가 새 이미지 `33ba8f1ff653` 기반 `:55`로 배포하면서 9090 portMapping을 유지
 - Monitoring SG → ECS SG 9090 ingress 허용 완료
 - Cloud Map Worker service discovery 생성 및 ECS Worker Service 연결 완료
 - 검증:
   - `terraform fmt`, `terraform validate` 통과
   - `terraform apply` 완료 후 후속 `terraform plan` = `No changes`
   - Worker 로그에서 `Prometheus 메트릭 서버 시작: port=9090` 확인
-  - Prometheus `bada-dev-prometheus:3`, Grafana `bada-dev-grafana:10`, Worker `bada-dev-worker:54` 안정화 확인
+  - Prometheus `bada-dev-prometheus:3`, Grafana `bada-dev-grafana:10`, Worker `bada-dev-worker:55` 안정화 확인
 
 ---
 
@@ -173,5 +173,5 @@ Worker에 `prometheus_client` + `:9090/metrics` HTTP 서버 도입.
 |------|------|
 | Grafana dashboard provisioning 반영 | 완료 (`bada-dev-grafana:10`) |
 | Prometheus에 Worker `:9090` 타겟 추가 | 완료 (`worker.bada-dev.local:9090`) |
-| Worker task definition portMappings 9090 | 완료 (`bada-dev-worker:54`) |
+| Worker task definition portMappings 9090 | 완료 (`bada-dev-worker:55`) |
 | Grafana UI 패널 쿼리 수동 수정 | 불필요: Terraform/dashboard JSON 경로로 영구 반영 |

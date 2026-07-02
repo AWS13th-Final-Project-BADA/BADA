@@ -42,7 +42,7 @@
 | --- | --- |
 | Backend ECS Service | `desired=1`, `running=1`, Task `bada-dev-backend:113` |
 | Frontend ECS Service | 제거됨 (`frontend_enabled=false`) |
-| Worker ECS Service | `desired=1`, `running=1`, Task `bada-dev-worker:54`, 9090 metrics port 노출 |
+| Worker ECS Service | `desired=1`, `running=1`, Task `bada-dev-worker:55`, 9090 metrics port 노출 |
 | Prometheus ECS Service | `desired=1`, `running=1`, Task `bada-dev-prometheus:3`, Backend/Worker scrape 설정 적용 |
 | Grafana ECS Service | `desired=1`, `running=1`, Task `bada-dev-grafana:10`, Target Group healthy |
 | Grafana URL | `https://monitor.badasoft.com`, `/api/health` 200 |
@@ -50,7 +50,7 @@
 | Frontend Target Group | 제거됨 |
 | Frontend URL | `https://badasoft.com` → Backend 폴백 |
 | Backend Task Definition | `bada-dev-backend:113`, `XRAY_ENABLED=true`, `xray-daemon` sidecar 실행 |
-| Worker Task Definition | `bada-dev-worker:54`, current Worker image 유지, `XRAY_ENABLED=true`, `xray-daemon` sidecar, `9090/metrics` portMapping 적용 |
+| Worker Task Definition | `bada-dev-worker:55`, 최신 Worker image 기준, `XRAY_ENABLED=true`, `xray-daemon` sidecar, `9090/metrics` portMapping 적용 |
 | Target Group | `healthy` |
 | ALB `/health` | `200 {"status":"ok"}` |
 | ALB `/version` | `200 {"name":"BADA","version":"0.1.0","auth_mode":"oauth","storage_mode":"s3"}` |

@@ -82,7 +82,7 @@ IAM 운영 기준:
 
 ```text
 Backend ECS Service: desired=1, running=1
-Worker ECS Service : desired=1, running=1, bada-dev-worker:54
+Worker ECS Service : desired=1, running=1, bada-dev-worker:55
 Prometheus Service : desired=1, running=1, bada-dev-prometheus:3
 Grafana Service    : desired=1, running=1, bada-dev-grafana:10
 ALB /health        : 200 {"status":"ok"}
