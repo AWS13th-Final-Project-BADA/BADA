@@ -362,7 +362,9 @@ resource "aws_ecs_service" "backend" {
   depends_on = [aws_lb_listener.http]
 
   lifecycle {
-    ignore_changes = [task_definition]
+    # desired_count: Application Auto Scaling(autoscaling.tf)이 관리하므로 무시.
+    # 없으면 apply가 AS 조정값을 되돌려 스케일이 원복된다.
+    ignore_changes = [task_definition, desired_count]
   }
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-backend-service" })
@@ -396,7 +398,9 @@ resource "aws_ecs_service" "worker" {
   }
 
   lifecycle {
-    ignore_changes = [task_definition]
+    # desired_count: Application Auto Scaling(autoscaling.tf)이 관리하므로 무시.
+    # 없으면 apply가 AS 조정값을 되돌려 스케일이 원복된다.
+    ignore_changes = [task_definition, desired_count]
   }
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-worker-service" })

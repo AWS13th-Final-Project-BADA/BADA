@@ -549,3 +549,92 @@ variable "grafana_admin_password" {
     error_message = "grafana_admin_password must contain at least 12 characters when provided."
   }
 }
+
+# ---- ECS Auto Scaling (#4) ----
+# Backend: 평균 CPU 기반 Target Tracking. Worker: 태스크당 SQS 적체 기반 Target Tracking.
+# 종료(7/10) 시 *_autoscaling_enabled=false 로 target/policy 제거 후 desired_count 고정.
+
+variable "backend_autoscaling_enabled" {
+  description = "Enable Application Auto Scaling for the Backend ECS service (CPU target tracking)."
+  type        = bool
+  default     = true
+}
+
+variable "backend_min_capacity" {
+  description = "Minimum backend task count under Auto Scaling."
+  type        = number
+  default     = 1
+}
+
+variable "backend_max_capacity" {
+  description = "Maximum backend task count under Auto Scaling."
+  type        = number
+  default     = 3
+
+  validation {
+    condition     = var.backend_max_capacity >= var.backend_min_capacity
+    error_message = "backend_max_capacity must be >= backend_min_capacity."
+  }
+}
+
+variable "backend_cpu_target" {
+  description = "Target average CPU utilization (%) for backend scaling."
+  type        = number
+  default     = 70
+
+  validation {
+    condition     = var.backend_cpu_target > 0 && var.backend_cpu_target <= 100
+    error_message = "backend_cpu_target must be between 1 and 100."
+  }
+}
+
+variable "worker_autoscaling_enabled" {
+  description = "Enable Application Auto Scaling for the Worker ECS service (SQS backlog target tracking)."
+  type        = bool
+  default     = true
+}
+
+variable "worker_min_capacity" {
+  description = "Minimum worker task count under Auto Scaling. Keep >=1 so backlog-per-task math never divides by zero."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.worker_min_capacity >= 1
+    error_message = "worker_min_capacity must be at least 1 to keep backlog-per-task metric math valid."
+  }
+}
+
+variable "worker_max_capacity" {
+  description = "Maximum worker task count under Auto Scaling."
+  type        = number
+  default     = 3
+
+  validation {
+    condition     = var.worker_max_capacity >= var.worker_min_capacity
+    error_message = "worker_max_capacity must be >= worker_min_capacity."
+  }
+}
+
+variable "worker_backlog_target_per_task" {
+  description = "Target number of visible SQS messages per running worker task. Above this, Auto Scaling adds workers."
+  type        = number
+  default     = 5
+
+  validation {
+    condition     = var.worker_backlog_target_per_task > 0
+    error_message = "worker_backlog_target_per_task must be greater than 0."
+  }
+}
+
+variable "autoscaling_scale_out_cooldown" {
+  description = "Seconds to wait after a scale-out before another scale-out."
+  type        = number
+  default     = 60
+}
+
+variable "autoscaling_scale_in_cooldown" {
+  description = "Seconds to wait after a scale-in before another scale-in. Longer than scale-out to avoid flapping."
+  type        = number
+  default     = 300
+}
