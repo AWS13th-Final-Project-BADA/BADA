@@ -660,3 +660,12 @@ variable "worker_fargate_ondemand_base" {
     error_message = "worker_fargate_ondemand_base must be 0 or greater."
   }
 }
+
+# ---- Security Monitoring 종료 토글 (#11) ----
+# GuardDuty + Security Hub를 한 번에 켜고 끈다. 프로젝트 종료(7/10) 시
+# false로 두면 detector/standards/이벤트 규칙이 제거되어 과금이 멈춘다.
+variable "security_monitoring_enabled" {
+  description = "Enable GuardDuty detector, Security Hub (FSBP), and the GuardDuty->SNS alert rule. Set false at project closure to stop charges."
+  type        = bool
+  default     = true
+}
