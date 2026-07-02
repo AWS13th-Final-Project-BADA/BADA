@@ -156,7 +156,7 @@ COGNITO_SCOPES=openid email profile
 | 대상 모델 | 완료 | `global.anthropic.claude-sonnet-4-6` |
 | Playground 호출 | 완료 | 서울 리전에서 정상 응답 확인 |
 | ECS Task Role 권한 | 완료 | `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream` |
-| 애플리케이션 호출 | 검증 대기 | Backend/Worker의 실제 Task Role 호출과 CloudWatch Logs 확인 필요 |
+| 애플리케이션 호출 | 코드 준비 완료 | 에이전트 업로드 후 `/extract`로 OCR 트리거 연결(`category=auto` + fire-and-forget). CloudWatch Logs `Bedrock 응답` 실증만 대기 |
 
 - Anthropic FTU는 IAM 권한과 별개인 AWS 계정 단위 최초 1회 등록 절차다.
 - FTU 제출은 콘솔 또는 AWS API로 가능하지만 현재 Terraform 리소스로 관리하지 않는다.
