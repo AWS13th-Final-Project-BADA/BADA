@@ -13,7 +13,7 @@ BADA의 CI/CD는 세 갈래로 나뉜다.
    - Terraform 변경 시 PR에서 `plan` 자동 실행
    - 실제 `apply`는 인프라 담당자가 수동 수행
 3. 모바일 앱 빌드 제출
-   - `mobile-native/` 변경 시 Expo EAS Build로 Android 빌드 제출
+   - `mobile-native/` 앱은 필요 시 **수동 실행(`workflow_dispatch`)**으로 Expo EAS Build에 Android 빌드 제출 (push 자동 빌드 없음)
 
 핵심 원칙은 이렇다.
 
@@ -39,7 +39,7 @@ develop merge 후
   -> deploy-dev-worker.yml
      - Worker 이미지 빌드 / ECR push / ECS 배포 / service stable 확인
   -> build-mobile.yml
-     - mobile-native 변경 시 Android EAS Build 제출
+     - 수동 실행(workflow_dispatch) 시에만 Android EAS Build 제출 (push/merge 자동 빌드 없음)
 
 문제 발생 시
   -> rollback-dev-backend.yml
@@ -55,7 +55,7 @@ develop merge 후
 | CI | `.github/workflows/ci.yml` | 코드 품질, 보안, 테스트 검증 | `main`, `develop` push / PR |
 | Backend CD | `.github/workflows/deploy-dev.yml` | Backend 이미지 빌드 후 ECS 배포 | `develop`에 Backend/Worker 관련 변경 merge |
 | Worker CD | `.github/workflows/deploy-dev-worker.yml` | Worker 이미지 빌드 후 ECS 배포 | `develop`에 Worker 변경 merge |
-| Mobile Build | `.github/workflows/build-mobile.yml` | Android EAS Build 제출 | `develop`에 `mobile-native/**` 변경 merge 또는 수동 실행 |
+| Mobile Build | `.github/workflows/build-mobile.yml` | Android EAS Build 제출 | **수동 실행 전용 (`workflow_dispatch`)** — push/merge 자동 빌드 제거됨 |
 | Terraform Plan | `.github/workflows/terraform-plan.yml` | Terraform 변경 PR에서 plan 결과 코멘트 | `infra/**` 변경 PR |
 | Backend Rollback | `.github/workflows/rollback-dev-backend.yml` | Backend ECS Task Definition 수동 롤백 | 수동 실행 |
 
@@ -280,4 +280,4 @@ Terraform Plan 실패:
 
 ## 12. 한 문장 요약
 
-BADA의 CI/CD는 PR에서 코드와 Terraform 변경을 검증하고, develop merge 후 Backend와 Worker는 ECS Fargate에 자동 배포하며, 모바일 앱은 Expo EAS Build로 자동 제출하되, 실제 Terraform apply는 인프라 담당자가 수동으로 통제하는 구조다.
+BADA의 CI/CD는 PR에서 코드와 Terraform 변경을 검증하고, develop merge 후 Backend와 Worker는 ECS Fargate에 자동 배포하며, 모바일 앱은 필요할 때만 수동으로 Expo EAS Build에 제출하고, 실제 Terraform apply는 인프라 담당자가 수동으로 통제하는 구조다.

@@ -4,15 +4,15 @@
 
 이 문서는 현재 `feature/mobile-e2e-polish` 코드 상태에서 모바일 프론트엔드가 사용자 관점의 핵심 흐름을 충족하는지 확인한 결과를 정리한다.
 
-범위는 Cognito 로그인, Bearer 토큰 기반 API 호출, 사건 생성, 사건 조회, 증거 업로드, AI 챗봇 호출, 모바일 번들 검증이다.
+범위는 소셜 OAuth 로그인(Google/Kakao/Naver 직접), Bearer 토큰 기반 API 호출, 사건 생성, 사건 조회, 증거 업로드, AI 챗봇 호출, 모바일 번들 검증이다.
 
 ## 사용자 관점 테스트 시나리오
 
 ### 1. 앱 진입 및 로그인
 
 - 앱 실행 시 로그인 화면 진입
-- Google 로그인 버튼을 통해 Cognito 로그인 시작
-- Cognito 콜백 이후 모바일 딥링크(`bada://auth` 또는 Expo 링크)로 앱 복귀
+- Google/Kakao/Naver 버튼을 통해 소셜 OAuth 로그인 시작 (`/auth/{provider}/login`)
+- OAuth 콜백 이후 모바일 딥링크(`bada://auth` 또는 Expo 링크)로 앱 복귀
 - 앱이 받은 토큰을 저장
 - 단순 토큰 존재 여부가 아니라 `GET /auth/me` 호출로 실제 인증 상태 확인
 
@@ -55,9 +55,9 @@
 
 ### 6. 로그아웃 및 세션 정리
 
-- 앱에서 로그아웃 시 저장 토큰 제거
-- Cognito 로그아웃 URL로 이동 가능
-- 다음 로그인 때 계정 선택 흐름을 다시 시작할 수 있음
+- 앱에서 로그아웃 시 저장 토큰 제거 (서버 세션 없는 stateless JWT)
+- API 401 응답 시에도 저장 토큰을 삭제해 자동 로그아웃
+- 다음 로그인 때 계정 선택 흐름을 다시 시작할 수 있음 (provider별 재인증 파라미터)
 
 상태: 구현 완료
 
@@ -65,7 +65,7 @@
 
 | 요구사항 | 충족 여부 | 구현 내용 |
 | --- | --- | --- |
-| Cognito 로그인 연동 | 완료 | `/auth/cognito/login` 시작, callback 후 모바일 딥링크로 토큰 반환 |
+| 소셜 OAuth 로그인 연동 | 완료 | `/auth/{provider}/login`(google/kakao/naver) 시작, callback 후 모바일 딥링크(`bada://auth`)로 토큰 반환 |
 | 토큰 저장 | 완료 | 모바일 SecureStore 기반 토큰 저장/조회/삭제 |
 | API Bearer 호출 | 완료 | 공통 API 클라이언트에서 `Authorization: Bearer` 자동 주입 |
 | `/auth/me` 인증 확인 | 완료 | 홈 진입 시 실제 인증 API로 로그인 상태 확인 |
@@ -157,8 +157,8 @@ npx expo start -c
 ### 3. 앱에서 확인할 것
 
 1. 앱 실행
-2. Google 로그인 시작
-3. Cognito 로그인 완료 후 앱으로 복귀
+2. 소셜 OAuth 로그인 시작 (Google/Kakao/Naver)
+3. 로그인 완료 후 앱으로 복귀
 4. 홈 화면에서 사용자 정보 확인
 5. 새 사건 생성
 6. 사건 목록에서 생성된 사건 확인
@@ -170,6 +170,6 @@ npx expo start -c
 ## 남은 확인 사항
 
 - 실제 운영 도메인 `badasoft.com` 기준 Google 로그인 E2E는 PR merge와 CD 배포 이후 재검증 필요
-- Cognito callback/logout URL은 인프라 환경값과 일치해야 함
+- 각 provider 콘솔의 redirect URI(`/auth/{provider}/callback`)와 앱 딥링크(`bada://auth`)가 환경값과 일치해야 함
 - 실제 Android 기기에서 파일 선택 권한, 카메라 권한, 업로드 UX 확인 필요
 - 인프라 `terraform apply`는 이 작업에서 실행하지 않았음
