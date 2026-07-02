@@ -362,7 +362,7 @@ aws ecs wait services-stable --region ap-northeast-2 --cluster bada-dev-cluster 
 | Worker 자동배포 실행 검증 | 완료 | 분석·STT·PDF 처리와 재시도·DLQ·재시작 멱등성 검증 |
 | Amazon Transcribe 독립 모드 | 완료 | Backend `:20`, Worker `:7`에 `TRANSCRIBE_MODE=aws` 배포 및 ALB health 검증 |
 | Anthropic Claude 계정 접근 | 완료 | FTU 제출 및 Global Claude Sonnet 4.6 Playground 호출 검증 |
-| ECS Bedrock 실제 호출 | 검증 대기 | Task Role 기반 호출과 CloudWatch Logs 확인 필요 |
+| ECS Bedrock 실제 호출 | 코드 준비 완료 | 업로드 후 `/extract` OCR 트리거 연결. CloudWatch Logs `Bedrock 응답` 실증만 대기 (상세: §4 AI / Bedrock) |
 | Cognito Hosted UI/OAuth 인프라 | 완료 | Hosted UI, Authorization Code Grant, callback/logout URL 적용 |
 | Cognito Google IdP | 완료 | PR #39 코드 반영 후 Terraform apply, App Client provider와 Google redirect 검증 |
 | Google IdP Terraform drift | 완료 | PR #45 merge, AWS 자동 보정값 명시 및 최종 plan `No changes` 검증 |
