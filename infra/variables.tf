@@ -204,6 +204,40 @@ variable "alb_log_retention_days" {
   }
 }
 
+variable "s3_lifecycle_enabled" {
+  description = "Evidence/Report 버킷 Lifecycle(IA/Glacier 전환) 활성화. 종료 시 false로 되돌리면 룰 제거."
+  type        = bool
+  default     = true
+}
+
+variable "s3_ia_transition_days" {
+  description = "Evidence/Report 객체를 STANDARD_IA로 전환하기까지의 일수."
+  type        = number
+  default     = 90
+
+  validation {
+    condition     = var.s3_ia_transition_days >= 30
+    error_message = "STANDARD_IA 전환은 최소 30일 이후여야 한다 (S3 최소 저장기간)."
+  }
+}
+
+variable "s3_glacier_transition_days" {
+  description = "Evidence/Report 객체를 GLACIER로 전환하기까지의 일수. IA 전환일보다 최소 30일 이후 권장."
+  type        = number
+  default     = 365
+
+  validation {
+    condition     = var.s3_glacier_transition_days >= 90
+    error_message = "GLACIER 전환은 최소 90일 이후여야 한다."
+  }
+}
+
+variable "s3_abort_incomplete_mpu_days" {
+  description = "미완료 멀티파트 업로드 정리까지의 일수."
+  type        = number
+  default     = 7
+}
+
 variable "sqs_visibility_timeout_seconds" {
   description = "Time an in-flight analysis message remains hidden. 15 minutes covers the worker transcription timeout with a buffer."
   type        = number

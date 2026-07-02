@@ -304,3 +304,21 @@
 **Context**: 커밋 252d7e4. Grafana terraform apply + Backend 재배포 시 적용.
 
 ---
+
+
+## POST-MVP - 남은 태스크 분석 및 문서화
+**Timestamp**: 2026-07-02T17:11:40+09:00
+**User Input**: "BADA 프로젝트를 전체 분석해줘. aidlc 기반으로 분석해서 앞으로 남은 태스크를 뽑아줘. 프로덕션 상태로 가기 위해 인프라적으로 적용, 개선하면 좋을만한게 있으면 제시해줘." / "알겠어 그럼 일단 정식 태스크 문서로 정리해줘"
+**AI Response**: aidlc-state.md·implementation-status.md·production-roadmap.md·decision-record·privacy-legal-requirements 및 infra/*.tf 교차 검증으로 전체 분석 수행. 남은 태스크를 카테고리 A(법적 필수 앱 계층 공백)/B(WA 잔여 리스크)/C(의도적 보류)로 분류하고 남은 1주·예산 기준 실행 계층(1/2/3) 권장. `aidlc-docs/remaining-tasks-20260702.md` 정식 태스크 문서 생성.
+**Context**: POST-MVP 프로덕션 고도화 - 남은 태스크 정리
+
+---
+
+
+## POST-MVP - S3 Evidence/Report Lifecycle 구현 (B-5)
+**Timestamp**: 2026-07-02T17:15:03+09:00
+**User Input**: "구현해"
+**AI Response**: 계층1 최우선 항목 중 S3 Evidence/Report Lifecycle을 Terraform으로 구현. `infra/variables.tf`에 s3_lifecycle_enabled/s3_ia_transition_days(90)/s3_glacier_transition_days(365)/s3_abort_incomplete_mpu_days(7) 변수 추가, `infra/data.tf`에 evidence/report 버킷 lifecycle(count 토글, IA→GLACIER 전환 + MPU 정리, 만료 미설정=법정보관 A-4는 앱 레벨), `terraform.tfvars.example` 문서화. `terraform fmt -check` 및 `terraform validate` 통과. plan/apply는 가드레일상 PR에서 담당자 수행(terraform-plan.yml).
+**Context**: POST-MVP 프로덕션 고도화 - 남은 태스크 B-5 구현
+
+---

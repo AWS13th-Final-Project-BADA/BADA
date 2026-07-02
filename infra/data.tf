@@ -63,6 +63,64 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "report" {
   }
 }
 
+# ─── S3 Lifecycle: Evidence / Report ────────────────────────────────────
+# 비용 최적화용 스토리지 계층 전환(STANDARD → IA → GLACIER)과 미완료 MPU 정리.
+# ⚠️ 만료(파기)는 두지 않는다. 법정 보관(사건 종료 후 3년) 후 파기는
+#    사건 단위 애플리케이션 로직(태스크 A-4)으로 처리하며, 버킷 전역 age 기반
+#    expiration과 의미가 다르므로 여기서 삭제하지 않는다.
+# 종료 시 되돌리기: var.s3_lifecycle_enabled = false → 룰 제거(객체는 보존).
+resource "aws_s3_bucket_lifecycle_configuration" "evidence" {
+  count  = var.s3_lifecycle_enabled ? 1 : 0
+  bucket = aws_s3_bucket.evidence.id
+
+  rule {
+    id     = "tiering-evidence"
+    status = "Enabled"
+
+    filter {} # 버킷 전체 객체
+
+    transition {
+      days          = var.s3_ia_transition_days
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = var.s3_glacier_transition_days
+      storage_class = "GLACIER"
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = var.s3_abort_incomplete_mpu_days
+    }
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "report" {
+  count  = var.s3_lifecycle_enabled ? 1 : 0
+  bucket = aws_s3_bucket.report.id
+
+  rule {
+    id     = "tiering-report"
+    status = "Enabled"
+
+    filter {} # 버킷 전체 객체
+
+    transition {
+      days          = var.s3_ia_transition_days
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = var.s3_glacier_transition_days
+      storage_class = "GLACIER"
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = var.s3_abort_incomplete_mpu_days
+    }
+  }
+}
+
 resource "aws_sqs_queue" "analysis_dlq" {
   name = "${local.name_prefix}-analysis-dlq"
 
