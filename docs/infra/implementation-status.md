@@ -21,7 +21,7 @@
 | 파일 저장소 | S3 Evidence / Report Bucket |
 | 비밀값 관리 | Secrets Manager |
 | 설정값 관리 | SSM Parameter Store |
-| 인증 인프라 | 소셜 OAuth(구글/카카오/네이버) 직접 구현 기준으로 전환 중. Cognito 리소스는 롤백 대비 정리 대기 |
+| 인증 인프라 | 소셜 OAuth(구글/카카오/네이버) 직접 구현으로 **전환 완료** (앱 계층 단일화 — `/auth/{provider}/login·callback` + `bada://` 딥링크 토큰, `AUTH_MODE=oauth`). Cognito는 **미사용 협의 완료**, 리소스는 종료 시 정리 |
 | HTTPS/도메인 | `badasoft.com` ACM 인증서(ISSUED), ALB 443 리스너(TLS1.3), HTTP→HTTPS 301, Route 53 적용 완료 |
 | Bedrock 모델 접근 | Anthropic FTU 제출 및 Claude Sonnet 4.6 Playground 호출 완료 |
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
@@ -287,23 +287,24 @@ Idempotency     : 동일 사건 재처리 후 분석 결과 1건 유지
 ### 모바일 앱 빌드 자동화
 
 ```text
-mobile-native/** develop push 또는 workflow_dispatch
+workflow_dispatch (수동 실행 전용)
   -> GitHub Actions checkout
   -> Node.js 20 + npm ci
+  -> i18n 번역 검증 (npm run check:i18n)
   -> Expo GitHub Action + EXPO_TOKEN 인증
-  -> EAS Build Android 제출
-  -> Expo 대시보드에서 결과 확인
+  -> EAS Build Android (빌드 완료까지 대기)
+  -> 설치/QR 링크를 Discord로 알림
 ```
 
 | 항목 | 상태 |
 | --- | --- |
 | Workflow | `.github/workflows/build-mobile.yml` |
-| Trigger | `mobile-native/**` 변경이 포함된 `develop` push 또는 수동 실행 |
+| Trigger | **수동 실행 전용 (`workflow_dispatch`)** — EAS 무료 빌드 월 15회 쿼터 절약 목적으로 자동 push 빌드 제거 |
 | 인증 방식 | `EXPO_TOKEN` GitHub Secret |
 | 빌드 방식 | Expo EAS Build (클라우드) |
-| 기본 프로필 | `preview` |
+| 기본 프로필 | `preview` (APK, 내부 배포) / `production` (AAB) |
 | 수동 실행 옵션 | `preview`, `production` |
-| 현재 동작 | GitHub Actions는 build 제출까지만 수행 (`--no-wait`) |
+| 현재 동작 | 빌드 완료까지 대기 후 설치/QR 링크를 Discord로 알림 (`EAS_DISCORD_WEBHOOK_URL` 설정 시) |
 
 이 workflow는 AWS 인프라를 변경하지 않는다. 모바일 앱 Android 빌드를 Expo 클라우드에 제출하는 자동화다. `preview`는 APK 테스트 배포용, `production`은 AAB 릴리스용으로 사용한다.
 
@@ -365,7 +366,7 @@ aws ecs wait services-stable --region ap-northeast-2 --cluster bada-dev-cluster 
 | Cognito Hosted UI/OAuth 인프라 | 완료 | Hosted UI, Authorization Code Grant, callback/logout URL 적용 |
 | Cognito Google IdP | 완료 | PR #39 코드 반영 후 Terraform apply, App Client provider와 Google redirect 검증 |
 | Google IdP Terraform drift | 완료 | PR #45 merge, AWS 자동 보정값 명시 및 최종 plan `No changes` 검증 |
-| 인증 방식 (로그인) | 전환 결정(6/25) | **현재 `AUTH_MODE=cognito`(배포 중). 팀 결정으로 소셜 OAuth(구글/카카오/네이버) 직접 구현 전환 예정** — `/auth/{provider}/login·callback`(이미 구현) + 콜백 앱 딥링크 분기 + `AUTH_MODE` 전환 + Cognito 리소스 제거 |
+| 인증 방식 (로그인) | 완료 | 소셜 OAuth(구글/카카오/네이버) 직접 구현으로 전환 완료 — `/auth/{provider}/login·callback` + `bada://` 딥링크 토큰, `AUTH_MODE=oauth`. Cognito 미사용 협의(리소스는 종료 시 정리). 모바일 로그인 E2E 코드 완비(#19), APK 파이프라인 수동 빌드(#20) |
 | Well-Architected 1차 답변 | 완료 | 57개 질문 답변 및 milestone #2 저장 |
 | SNS 기반 알림 전송 | 완료 | 구독 확인, 테스트 메시지, Alarm → SNS 및 OK 복구 알림 경로 검증 |
 | CloudWatch MCP | 완료 | `bada-mcp-readonly` 프로필로 Log Group/Alarm 실제 조회 및 S3 접근 거부 확인 |

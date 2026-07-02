@@ -69,8 +69,9 @@
   - [x] #13 Task Role 분리 (Backend/Worker 서비스별 최소권한 Role: producer vs consumer) — PR #205
   - [x] #15 Worker Fargate Spot (`FARGATE_SPOT` capacity provider, On-Demand base 토글, Backend는 On-Demand 유지) — PR #206
   - [x] #11 GuardDuty/Security Hub (본체 + `security_monitoring_enabled` 종료 토글 + PR 플랜 X-Ray drift 오탐 제거) — PR #207
-  - [ ] #19 모바일 로그인 E2E
-  - [ ] #20 APK 배포 파이프라인
+  - [x] #1 소셜 OAuth 직접 구현 (구글/카카오/네이버 `/auth/{provider}/login·callback` + `bada://` 딥링크 토큰, `AUTH_MODE=oauth`, Cognito 미사용 협의)
+  - [x] #19 모바일 로그인 E2E (앱 `WebBrowser.openAuthSessionAsync` → 딥링크 토큰 수신, 로그인 화면 3종 provider 코드 완비)
+  - [x] #20 APK 배포 파이프라인 (`build-mobile.yml` EAS Build + `eas.json` preview/production, **수동 `workflow_dispatch` 전용**)
   - [x] Grafana Infrastructure 대시보드 수정 (ECS/ContainerInsights 적용 완료)
   - [x] Prometheus Worker 타겟 추가 (9090 포트 + Cloud Map 적용 완료)
   - [~] Phase 2~4 인프라 고도화 — #4/#11/#13/#15 완료(2026-07-02, TF 분리 없이 적용). #5(TF 분리)/#12(Private Subnet+NAT)/#18(VPC Endpoint)은 종료 기간·비용 대비 보류
