@@ -62,6 +62,21 @@ resource "aws_ecs_cluster" "main" {
   tags = local.common_tags
 }
 
+# ─── Cluster Capacity Providers: FARGATE + FARGATE_SPOT (#15) ────────────────
+# capacity_provider_strategy를 쓰는 서비스(Worker)는 클러스터에 해당 provider가
+# 연결돼 있어야 한다. default 전략은 On-Demand FARGATE로 둬서, 전략/launch_type을
+# 명시하지 않는 서비스는 기존대로 On-Demand로 배치된다(Backend는 launch_type 명시).
+resource "aws_ecs_cluster_capacity_providers" "main" {
+  cluster_name       = aws_ecs_cluster.main.name
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+  default_capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    weight            = 1
+    base              = 0
+  }
+}
+
 resource "aws_ecr_repository" "frontend" {
   count = var.frontend_enabled ? 1 : 0
   name  = "${local.name_prefix}-frontend"
@@ -375,7 +390,31 @@ resource "aws_ecs_service" "worker" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker.arn
   desired_count   = var.worker_desired_count
-  launch_type     = "FARGATE"
+
+  # Spot 사용 시 launch_type 대신 capacity_provider_strategy 사용 (둘은 상호 배타).
+  launch_type = var.worker_fargate_spot_enabled ? null : "FARGATE"
+
+  # 기본: 순수 FARGATE_SPOT. worker_fargate_ondemand_base>0이면 그만큼 On-Demand로 고정.
+  dynamic "capacity_provider_strategy" {
+    for_each = var.worker_fargate_spot_enabled ? [1] : []
+    content {
+      capacity_provider = "FARGATE_SPOT"
+      weight            = 1
+      base              = 0
+    }
+  }
+
+  dynamic "capacity_provider_strategy" {
+    for_each = var.worker_fargate_spot_enabled && var.worker_fargate_ondemand_base > 0 ? [1] : []
+    content {
+      capacity_provider = "FARGATE"
+      weight            = 0
+      base              = var.worker_fargate_ondemand_base
+    }
+  }
+
+  # capacity provider 전략 전환/변경은 새 배포로만 반영되므로 강제 재배포한다.
+  force_new_deployment = var.worker_fargate_spot_enabled
 
   enable_execute_command = true
 
