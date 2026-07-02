@@ -358,3 +358,12 @@
 **Context**: POST-MVP 프로덕션 고도화 - B-4 구현 (계층1 완료)
 
 ---
+
+
+## POST-MVP - 의존성 취약점 저위험 범프 (B-3 부분)
+**Timestamp**: 2026-07-02T17:46:12+09:00
+**User Input**: "ㅇㅇ 1번만 일단 하자"
+**AI Response**: pip-audit CI 로그(develop run 28577032473) 직접 확인 — BE 18건/Worker 12건. 저위험 범프만 적용: backend(python-multipart 0.0.12→0.0.31, requests 2.32.3→2.33.0, pypdf 6.13.2→6.13.3, pytest 8.3.3→9.0.3), worker(requests→2.33.0, jinja2 3.1.4→3.1.6, pytest→9.0.3). `pip install --dry-run` 두 파일 모두 충돌 없음 확인(fastapi 0.115 ↔ multipart 0.0.31, pytest9 ↔ hypothesis OK). 전체 테스트는 CI가 검증. 까다로운 fastapi+starlette 메이저, weasyprint 68+pillow 12는 PDF E2E 필요해 별도 PR로 분리(보류).
+**Context**: POST-MVP 프로덕션 고도화 - B-3 부분(저위험 범프)
+
+---

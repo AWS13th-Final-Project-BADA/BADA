@@ -2,11 +2,11 @@
 # The packages below are for the full worker runtime.
 # NOTE: weasyprint needs GTK libs on Windows - install at W3, not required for tests.
 boto3==1.35.30          # Bedrock (Claude Vision/Text)
-requests==2.32.3        # Upstage Document Parse API
+requests==2.33.0        # Upstage Document Parse API
 pydantic==2.9.2         # OCR output schema validation
 pydantic-settings==2.5.2  # backend/app/config.py 의존성(Worker DB 직접 접근)
-jinja2==3.1.4
-pytest==8.3.3
+jinja2==3.1.6
+pytest==9.0.3
 hypothesis==6.115.0     # Property-Based Testing
 shapely==2.0.6          # local geofence (polygon). Prod uses PostGIS ST_Contains.
 weasyprint==63.0        # PDF render. Windows: needs GTK runtime (W3 only).
