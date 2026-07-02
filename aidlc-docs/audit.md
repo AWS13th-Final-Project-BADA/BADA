@@ -322,3 +322,39 @@
 **Context**: POST-MVP 프로덕션 고도화 - 남은 태스크 B-5 구현
 
 ---
+
+
+## POST-MVP - Dependency Scan CI 구현 (B-2)
+**Timestamp**: 2026-07-02T17:21:54+09:00
+**User Input**: "ㅇㅇ 다음 태스크"
+**AI Response**: 계층1 B-2(Dependency scan) 구현. `.github/workflows/ci.yml`에 `dependency-scan` 잡 추가 — pip-audit 2.7.3로 backend/worker requirements 스캔. 초기 도입은 가시성 우선(continue-on-error, non-blocking), ECR Critical/High 기존 상태 고려해 리포트 축적 후 하드 게이트 전환 예정. YAML safe_load 통과.
+**Context**: POST-MVP 프로덕션 고도화 - 남은 태스크 B-2 구현
+
+---
+
+
+## POST-MVP - S3 Gateway VPC Endpoint 구현 (C-3 일부)
+**Timestamp**: 2026-07-02T17:25:52+09:00
+**User Input**: "ㅇㅇ 순서대로 했어. C-3 일부 먼저 하고, 그 다음에 B-1 하자"
+**AI Response**: 계층1 C-3 일부(무료 S3 Gateway Endpoint) 구현. `infra/network.tf`에 `aws_vpc_endpoint.s3`(Gateway, public/private route table 연결) 추가, `infra/variables.tf`에 `s3_gateway_endpoint_enabled` 종료 토글, `terraform.tfvars.example` 문서화. Interface Endpoint(SQS/ECR, ~$7)는 보류 유지. fmt/validate 통과. plan/apply는 PR에서 담당자.
+**Context**: POST-MVP 프로덕션 고도화 - C-3 일부(S3 Gateway) 구현
+
+---
+
+
+## POST-MVP - RTO/RPO 정의 + 복원 리허설 문서화 (B-1)
+**Timestamp**: 2026-07-02T17:25:52+09:00
+**User Input**: "ㅇㅇ 순서대로 했어. C-3 일부 먼저 하고, 그 다음에 B-1 하자"
+**AI Response**: 계층1 B-1 문서화. `docs/operations/rto-rpo-and-restore-rehearsal.md` 생성 — 확정 RTO≤2h/RPO≤24h, 시나리오별 복구 경로(AZ장애/인스턴스손상/오삭제/리전), PITR 복원 실측 절차 + 측정 워크시트(T0~T3), 승인 조건, 종료 연동. 기존 rds-recovery.md(실행 런북)·sli-slo(가용성 99%)와 연계. 실제 타임드 리허설 실행은 인프라 담당자 몫(AWS 조작·점검 창구 필요). remaining-tasks B-1 반영.
+**Context**: POST-MVP 프로덕션 고도화 - B-1 문서화
+
+---
+
+
+## POST-MVP - 비용 할당 태그 + 비용 분석 (B-4)
+**Timestamp**: 2026-07-02T17:32:43+09:00
+**User Input**: "ㅇㅇ 다음거 하자"
+**AI Response**: 계층1 마지막 B-4 구현. `infra/providers.tf`에 aws provider `default_tags`(Project/Environment/ManagedBy) catch-all 추가 — 기존 merge(common_tags)와 동일 값이라 기존 리소스 plan 무변화, 누락 리소스만 보강(fmt/validate 통과). `docs/operations/cost-allocation-and-analysis.md` 생성 — 태그 체계, Billing 콘솔 활성화 절차(관리계정 수동), Cost Explorer 분석·캡처 체크리스트, Budgets 연계, 종료 연동. 태그 활성화·캡처는 담당자 몫. remaining-tasks B-4 반영. 이로써 계층1(B-5/B-2/C-3일부/B-1/B-4) 전부 처리.
+**Context**: POST-MVP 프로덕션 고도화 - B-4 구현 (계층1 완료)
+
+---

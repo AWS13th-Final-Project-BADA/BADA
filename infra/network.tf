@@ -78,6 +78,22 @@ resource "aws_db_subnet_group" "main" {
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-db-subnet-group" })
 }
 
+# ─── VPC Endpoint: S3 Gateway ───────────────────────────────────────────
+# S3 트래픽을 인터넷 게이트웨이를 거치지 않고 VPC 내부 경로로 처리한다.
+# Gateway 타입은 시간당/데이터 요금이 없어 무료이며, public/private route table에
+# prefix-list 라우트를 자동 추가한다(NAT 불필요).
+# 종료 시 되돌리기: var.s3_gateway_endpoint_enabled = false → 엔드포인트/라우트 제거.
+resource "aws_vpc_endpoint" "s3" {
+  count = var.s3_gateway_endpoint_enabled ? 1 : 0
+
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${var.aws_region}.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_route_table.public.id, aws_route_table.private.id]
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-s3-gateway-endpoint" })
+}
+
 resource "aws_security_group" "alb" {
   name        = "${local.name_prefix}-alb-sg"
   description = "ALB security group"

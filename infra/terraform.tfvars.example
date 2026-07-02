@@ -27,6 +27,9 @@ s3_ia_transition_days        = 90
 s3_glacier_transition_days   = 365
 s3_abort_incomplete_mpu_days = 7
 
+# S3 Gateway VPC Endpoint (무료). 종료 시 false 로 되돌리면 제거.
+s3_gateway_endpoint_enabled = true
+
 # Cognito Hosted UI / OAuth authorization code grant.
 cognito_domain_prefix = "bada-dev-165749212250"
 cognito_callback_urls = ["https://api.badasoft.com/auth/cognito/callback"]

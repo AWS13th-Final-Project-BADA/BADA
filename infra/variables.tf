@@ -204,6 +204,12 @@ variable "alb_log_retention_days" {
   }
 }
 
+variable "s3_gateway_endpoint_enabled" {
+  description = "S3 Gateway VPC Endpoint 활성화(무료). public/private route table에 S3 prefix-list 라우트 추가. 종료 시 false로 되돌리면 제거."
+  type        = bool
+  default     = true
+}
+
 variable "s3_lifecycle_enabled" {
   description = "Evidence/Report 버킷 Lifecycle(IA/Glacier 전환) 활성화. 종료 시 false로 되돌리면 룰 제거."
   type        = bool
