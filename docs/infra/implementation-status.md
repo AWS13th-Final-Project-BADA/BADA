@@ -436,6 +436,7 @@ Pillar별 리스크:
 | P1 | ECS Backend/Worker Auto Scaling과 부하 테스트 기준 수립 | Performance / Reliability | Auto Scaling 적용 완료 (#4, PR #203). 부하 테스트(k6, #9) **완료** — Backend 1→2, Worker 1→3 scale-out 실증, 읽기 여정은 I/O 바운드 확인 (PR #212/#213) |
 | P2 | Cost allocation tag, Cost Explorer/CUR 기반 비용 분석 강화 | Cost Optimization | 완료 (2026-07-02) — provider `default_tags`(Project/Environment/ManagedBy) catch-all + 분석/캡처 절차 `docs/operations/cost-allocation-and-analysis.md`. 결제 계정 태그 활성화·캡처는 담당자 |
 | P2 | S3 lifecycle/retention 정책과 데이터 분류 기준 구체화 | Security / Sustainability | 완료 (2026-07-02) — ALB 로그 30일 + Evidence/Report Lifecycle(IA 90d→Glacier 365d + MPU 정리, `s3_lifecycle_enabled` 토글). 법정 3년 파기는 사건 단위 앱 로직(별도) |
+| P2 | GPS 로그 보존기간 3년 분리 + S3 아카이브 lifecycle 선반영 | Security / Sustainability | 정책 반영 완료 (PR #226) — `gps_retention_days`(3년, 소멸시효 기준)를 일반 `retention_days`(90일)와 분리. `evidence` 버킷에 `gps-archive/` prefix용 GLACIER_IR 즉시전환 규칙 추가(선반영, 대상 코드 없음). 실제 export/아카이빙 로직과 삭제 배치는 architecture.md 6항에 설계만 기록, 미구현 |
 
 ## 8. 참고 문서
 
