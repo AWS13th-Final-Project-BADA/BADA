@@ -4,14 +4,7 @@
   "tags": ["bada", "infrastructure"],
   "timezone": "Asia/Seoul",
   "templating": {
-    "list": [
-      {
-        "name": "region",
-        "type": "constant",
-        "query": "${aws_region}",
-        "hide": 2
-      }
-    ]
+    "list": []
   },
   "panels": [
     {
@@ -28,7 +21,7 @@
         "period": "60",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
         "matchExact": true,
-        "region": "$region"
+        "region": "${aws_region}"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
     },
@@ -46,7 +39,7 @@
         "period": "60",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
         "matchExact": true,
-        "region": "$region"
+        "region": "${aws_region}"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
     },
@@ -64,7 +57,7 @@
         "period": "60",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
         "matchExact": true,
-        "region": "$region"
+        "region": "${aws_region}"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
     },
@@ -82,7 +75,7 @@
         "period": "60",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
         "matchExact": true,
-        "region": "$region"
+        "region": "${aws_region}"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
     },
@@ -100,7 +93,7 @@
         "period": "300",
         "dimensions": {"DBInstanceIdentifier": ["${rds_instance_id}"]},
         "matchExact": true,
-        "region": "$region"
+        "region": "${aws_region}"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
     },
@@ -118,7 +111,7 @@
         "period": "60",
         "dimensions": {"DBInstanceIdentifier": ["${rds_instance_id}"]},
         "matchExact": true,
-        "region": "$region"
+        "region": "${aws_region}"
       }],
       "fieldConfig": {"defaults": {"unit": "short"}}
     },
@@ -136,7 +129,7 @@
         "period": "300",
         "dimensions": {"DBInstanceIdentifier": ["${rds_instance_id}"]},
         "matchExact": true,
-        "region": "$region"
+        "region": "${aws_region}"
       }],
       "fieldConfig": {"defaults": {"unit": "bytes"}}
     },
@@ -155,7 +148,7 @@
           "period": "60",
           "dimensions": {"LoadBalancer": ["${alb_arn_suffix}"]},
           "matchExact": true,
-          "region": "$region",
+          "region": "${aws_region}",
           "alias": "5xx"
         },
         {
@@ -166,7 +159,7 @@
           "period": "60",
           "dimensions": {"LoadBalancer": ["${alb_arn_suffix}"]},
           "matchExact": true,
-          "region": "$region",
+          "region": "${aws_region}",
           "alias": "4xx"
         }
       ]
@@ -185,7 +178,7 @@
         "period": "60",
         "dimensions": {"LoadBalancer": ["${alb_arn_suffix}"]},
         "matchExact": true,
-        "region": "$region"
+        "region": "${aws_region}"
       }]
     },
     {
@@ -203,7 +196,7 @@
           "period": "60",
           "dimensions": {"QueueName": ["${sqs_queue_name}"]},
           "matchExact": true,
-          "region": "$region",
+          "region": "${aws_region}",
           "alias": "Main Queue"
         },
         {
@@ -214,7 +207,7 @@
           "period": "60",
           "dimensions": {"QueueName": ["${sqs_dlq_name}"]},
           "matchExact": true,
-          "region": "$region",
+          "region": "${aws_region}",
           "alias": "DLQ"
         }
       ]
@@ -233,7 +226,7 @@
         "period": "60",
         "dimensions": {"QueueName": ["${sqs_queue_name}"]},
         "matchExact": true,
-        "region": "$region"
+        "region": "${aws_region}"
       }],
       "fieldConfig": {"defaults": {"unit": "s"}}
     }

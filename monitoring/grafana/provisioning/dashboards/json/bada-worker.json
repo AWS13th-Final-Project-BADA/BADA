@@ -4,14 +4,7 @@
   "tags": ["bada", "worker"],
   "timezone": "Asia/Seoul",
   "templating": {
-    "list": [
-      {
-        "name": "region",
-        "type": "constant",
-        "query": "${aws_region}",
-        "hide": 2
-      }
-    ]
+    "list": []
   },
   "panels": [
     {
@@ -65,7 +58,7 @@
           "statistics": ["Average"],
           "period": "60",
           "dimensions": {"QueueName": ["${sqs_queue_name}"]},
-          "region": "$region",
+          "region": "${aws_region}",
           "alias": "Main"
         },
         {
@@ -74,7 +67,7 @@
           "statistics": ["Average"],
           "period": "60",
           "dimensions": {"QueueName": ["${sqs_dlq_name}"]},
-          "region": "$region",
+          "region": "${aws_region}",
           "alias": "DLQ"
         }
       ]
@@ -91,7 +84,7 @@
         "statistics": ["Average"],
         "period": "60",
         "dimensions": {"QueueName": ["${sqs_queue_name}"]},
-        "region": "$region"
+        "region": "${aws_region}"
       }]
     }
   ],
