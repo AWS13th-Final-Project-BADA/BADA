@@ -21,11 +21,13 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
+        "refId": "A",
         "namespace": "AWS/ECS",
         "metricName": "CPUUtilization",
         "statistics": ["Average"],
-        "period": "300",
+        "period": "60",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
+        "matchExact": true,
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -37,11 +39,13 @@
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
+        "refId": "A",
         "namespace": "AWS/ECS",
         "metricName": "MemoryUtilization",
         "statistics": ["Average"],
-        "period": "300",
+        "period": "60",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
+        "matchExact": true,
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -53,11 +57,13 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
+        "refId": "A",
         "namespace": "AWS/ECS",
         "metricName": "CPUUtilization",
         "statistics": ["Average"],
-        "period": "300",
+        "period": "60",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+        "matchExact": true,
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -69,11 +75,13 @@
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
+        "refId": "A",
         "namespace": "AWS/ECS",
         "metricName": "MemoryUtilization",
         "statistics": ["Average"],
-        "period": "300",
+        "period": "60",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+        "matchExact": true,
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -85,11 +93,13 @@
       "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
+        "refId": "A",
         "namespace": "AWS/RDS",
         "metricName": "CPUUtilization",
         "statistics": ["Average"],
         "period": "300",
         "dimensions": {"DBInstanceIdentifier": ["${rds_instance_id}"]},
+        "matchExact": true,
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
@@ -101,11 +111,13 @@
       "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
+        "refId": "A",
         "namespace": "AWS/RDS",
         "metricName": "DatabaseConnections",
         "statistics": ["Average"],
         "period": "60",
         "dimensions": {"DBInstanceIdentifier": ["${rds_instance_id}"]},
+        "matchExact": true,
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "short"}}
@@ -117,11 +129,13 @@
       "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
+        "refId": "A",
         "namespace": "AWS/RDS",
         "metricName": "FreeStorageSpace",
         "statistics": ["Average"],
         "period": "300",
         "dimensions": {"DBInstanceIdentifier": ["${rds_instance_id}"]},
+        "matchExact": true,
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "bytes"}}
@@ -134,20 +148,24 @@
       "datasource": {"uid": "cloudwatch"},
       "targets": [
         {
+          "refId": "A",
           "namespace": "AWS/ApplicationELB",
           "metricName": "HTTPCode_Target_5XX_Count",
           "statistics": ["Sum"],
           "period": "60",
           "dimensions": {"LoadBalancer": ["${alb_arn_suffix}"]},
+          "matchExact": true,
           "region": "$region",
           "alias": "5xx"
         },
         {
+          "refId": "B",
           "namespace": "AWS/ApplicationELB",
           "metricName": "HTTPCode_Target_4XX_Count",
           "statistics": ["Sum"],
           "period": "60",
           "dimensions": {"LoadBalancer": ["${alb_arn_suffix}"]},
+          "matchExact": true,
           "region": "$region",
           "alias": "4xx"
         }
@@ -160,11 +178,13 @@
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
+        "refId": "A",
         "namespace": "AWS/ApplicationELB",
         "metricName": "RequestCount",
         "statistics": ["Sum"],
         "period": "60",
         "dimensions": {"LoadBalancer": ["${alb_arn_suffix}"]},
+        "matchExact": true,
         "region": "$region"
       }]
     },
@@ -176,20 +196,24 @@
       "datasource": {"uid": "cloudwatch"},
       "targets": [
         {
+          "refId": "A",
           "namespace": "AWS/SQS",
           "metricName": "ApproximateNumberOfMessagesVisible",
           "statistics": ["Average"],
           "period": "60",
           "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+          "matchExact": true,
           "region": "$region",
           "alias": "Main Queue"
         },
         {
+          "refId": "B",
           "namespace": "AWS/SQS",
           "metricName": "ApproximateNumberOfMessagesVisible",
           "statistics": ["Average"],
           "period": "60",
           "dimensions": {"QueueName": ["${sqs_dlq_name}"]},
+          "matchExact": true,
           "region": "$region",
           "alias": "DLQ"
         }
@@ -202,11 +226,13 @@
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
+        "refId": "A",
         "namespace": "AWS/SQS",
         "metricName": "ApproximateAgeOfOldestMessage",
         "statistics": ["Maximum"],
         "period": "60",
         "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+        "matchExact": true,
         "region": "$region"
       }],
       "fieldConfig": {"defaults": {"unit": "s"}}
