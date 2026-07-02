@@ -638,3 +638,25 @@ variable "autoscaling_scale_in_cooldown" {
   type        = number
   default     = 300
 }
+
+# ---- Worker Fargate Spot (#15) ----
+# Worker는 SQS+DLQ 멱등성이 검증돼 있어 Spot 중단(2분 예고 후 종료)에 안전하다.
+# 중단된 메시지는 visibility timeout 후 재수신되어 다른 태스크가 재처리한다.
+# 사용자 대면 Backend는 On-Demand 유지하고, Worker만 Spot으로 비용 절감한다.
+
+variable "worker_fargate_spot_enabled" {
+  description = "Run the Worker service on FARGATE_SPOT capacity. Backend stays On-Demand. Set false to fall back to on-demand FARGATE."
+  type        = bool
+  default     = true
+}
+
+variable "worker_fargate_ondemand_base" {
+  description = "Number of worker tasks pinned to On-Demand FARGATE for stability; the rest run on FARGATE_SPOT. 0 = pure Spot (default, safe due to SQS/DLQ idempotency)."
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = var.worker_fargate_ondemand_base >= 0
+    error_message = "worker_fargate_ondemand_base must be 0 or greater."
+  }
+}
