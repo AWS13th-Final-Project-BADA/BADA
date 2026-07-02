@@ -105,6 +105,13 @@ Worker E2E 검증(SQS → Worker → Bedrock → RDS → S3 Report)에 필요:
 5. RDS 저장 결과 필드
 6. S3 Report PDF 생성 여부
 
+### 5.1 진행 상황 (에이전트 4단계 OCR 트리거 연결)
+
+- ✅ 네이티브 앱 에이전트 스캔 → 업로드 시 `category=auto`로 전송, 서버 classify가 형태 판별 후 적합한 프롬프트로 OCR
+- ✅ 업로드 완료 후 `/extract` fire-and-forget 호출 추가 → Bedrock OCR 즉시 트리거 (분석 시 Worker가 pending OCR 자동 처리하는 폴백도 유지)
+- ✅ 스캔 기간 필터 종료일을 `work_end_date` → **현재 시점**으로 수정 → 퇴직 후 캡처한 카톡·명세서도 수집됨 (0개 수집 버그 해결)
+- ⏳ 배포 후 CloudWatch Worker 로그에서 `Bedrock 응답` / `extract_ocr` 키워드로 실호출 최종 확인
+
 ---
 
 ## 6. 모니터링 담당 요청사항
