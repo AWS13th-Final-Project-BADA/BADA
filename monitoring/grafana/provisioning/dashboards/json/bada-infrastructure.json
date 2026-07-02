@@ -21,8 +21,8 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
-        "namespace": "ECS/ContainerInsights",
-        "metricName": "CpuUtilized",
+        "namespace": "AWS/ECS",
+        "metricName": "CPUUtilization",
         "statistics": ["Average"],
         "period": "300",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
@@ -37,8 +37,8 @@
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
-        "namespace": "ECS/ContainerInsights",
-        "metricName": "MemoryUtilized",
+        "namespace": "AWS/ECS",
+        "metricName": "MemoryUtilization",
         "statistics": ["Average"],
         "period": "300",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
@@ -53,8 +53,8 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
-        "namespace": "ECS/ContainerInsights",
-        "metricName": "CpuUtilized",
+        "namespace": "AWS/ECS",
+        "metricName": "CPUUtilization",
         "statistics": ["Average"],
         "period": "300",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
@@ -69,8 +69,8 @@
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "datasource": {"uid": "cloudwatch"},
       "targets": [{
-        "namespace": "ECS/ContainerInsights",
-        "metricName": "MemoryUtilized",
+        "namespace": "AWS/ECS",
+        "metricName": "MemoryUtilization",
         "statistics": ["Average"],
         "period": "300",
         "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
