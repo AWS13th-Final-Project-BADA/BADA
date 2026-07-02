@@ -56,6 +56,7 @@ MVP 원칙:
 - CloudWatch MCP는 Terraform 관리 최소권한 AssumeRole을 통해서만 AWS에 접근한다.
 - Prometheus는 Fargate 로컬 볼륨에 3일간 저장하고, Grafana 데이터만 EFS에 영속화한다.
 - Grafana는 Cloud Map의 `prometheus.bada-dev.local`을 통해 Prometheus에 접근한다.
+- Prometheus는 Backend `/metrics`와 Worker `worker.bada-dev.local:9090/metrics`를 수집한다. Worker 대상은 Cloud Map service discovery와 ECS SG 9090 ingress로 연결한다.
 - Grafana 관리자 비밀번호는 Terraform이 생성해 Secrets Manager `bada-dev/grafana-admin-password`에 저장한다.
 - Cognito App Client는 Authorization Code Grant와 `openid email profile` scope를 사용한다.
 - Google 로그인을 사용할 때는 Cognito Federated Identity Provider와 App Client provider를 Terraform으로 함께 관리한다.
@@ -81,13 +82,16 @@ IAM 운영 기준:
 
 ```text
 Backend ECS Service: desired=1, running=1
-Worker ECS Service : desired=1, running=1
+Worker ECS Service : desired=1, running=1, bada-dev-worker:54
+Prometheus Service : desired=1, running=1, bada-dev-prometheus:3
+Grafana Service    : desired=1, running=1, bada-dev-grafana:10
 ALB /health        : 200 {"status":"ok"}
 ALB /version       : 200 {"name":"BADA","version":"0.1.0","auth_mode":"oauth","storage_mode":"s3"}
 S3 Evidence object : SSE-KMS 저장 확인
 RDS schema         : alembic_version=20260616_0004, community tables/provider columns/timeline confidence 확인
 Worker X-Ray       : XRAY_ENABLED=true, xray-daemon RUNNING
 Backend X-Ray      : XRAY_ENABLED=true, xray-daemon RUNNING
+Worker metrics     : 9090/metrics portMapping + Cloud Map worker.bada-dev.local 적용
 ```
 
 Cognito Hosted UI / OAuth:
