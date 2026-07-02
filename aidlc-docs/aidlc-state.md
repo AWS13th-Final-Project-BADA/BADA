@@ -75,10 +75,11 @@
   - [x] Grafana Infrastructure 대시보드 수정 (ECS/ContainerInsights 적용 완료)
   - [x] Prometheus Worker 타겟 추가 (9090 포트 + Cloud Map 적용 완료)
   - [~] Phase 2~4 인프라 고도화 — #4/#11/#13/#15 완료(2026-07-02, TF 분리 없이 적용). #5(TF 분리)/#12(Private Subnet+NAT)/#18(VPC Endpoint)은 종료 기간·비용 대비 보류
+  - [x] #9 k6 부하 검증 (Backend CPU 1→2, Worker SQS 적체 1→3 scale-out, 읽기 여정 I/O 바운드) — PR #212/#213, load-test/
 
 ## Post-MVP 의사결정 (2026-06-25 확정)
 - 상세: `docs/decision-record-20260625.md`
 - 웹 프론트엔드 제거 → mobile-native 전환 (deploy-dev-frontend.yml 삭제, frontend_enabled=false 예정)
 - 즉시 실행: 19(모바일 로그인 E2E), 20(APK 배포), 3(행 수준 인가), 6(모델 비교), 10(X-Ray), 14(구조화 로깅), 16(TF Plan PR), 17(CI 강화)
 - TF 분리 후 후보: 2·7·8(완료), **4·11·13·15(완료 — 2026-07-02, TF 분리 없이 적용)**, 5·12·18(보류 — 종료 기간·비용 대비 위험 초과)
-- 최종 검증: 9(k6 부하 테스트) — 담당 진행 (Auto Scaling 머지로 발동 가능)
+- 최종 검증: 9(k6 부하 테스트) **완료(2026-07-02)** — Backend CPU 1→2 + Worker SQS 적체(Visible 44k) 1→3 scale-out 실증, 읽기 여정 I/O 바운드 확인 (PR #212/#213)
