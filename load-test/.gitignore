@@ -1,3 +1,4 @@
 # k6 실행 산출물 (리포트 첨부용, 추적 안 함)
 k6/last-run-summary.json
+k6/last-journey-summary.json
 *.summary.json
