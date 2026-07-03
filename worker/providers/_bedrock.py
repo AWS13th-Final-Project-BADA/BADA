@@ -50,9 +50,46 @@ def media_type_of(data: bytes) -> str:
     return "image/jpeg"
 
 
+# Claude Vision은 긴 변 ~1568px를 넘는 해상도에서 정확도 이득이 거의 없고 입력 토큰·지연만
+# 늘어난다. 큰 사진을 이 상한으로 축소하면 vision 호출 지연/비용이 줄어든다(모델·프롬프트 불변).
+_VISION_MAX_SIDE = 1568
+_VISION_JPEG_QUALITY = 85
+
+
+def downscale_image(data: bytes, max_side: int = _VISION_MAX_SIDE, quality: int = _VISION_JPEG_QUALITY) -> bytes:
+    """이미지가 max_side보다 크면 종횡비 유지로 축소 후 JPEG 재인코딩. 불필요/실패 시 원본 반환.
+
+    안전 원칙: PIL 미설치·디코드 실패·기타 예외에서는 원본 바이트를 그대로 반환하여
+    OCR 자체가 절대 깨지지 않도록 한다(다운스케일은 최적화이지 필수 경로가 아니다).
+    """
+    try:
+        from io import BytesIO
+
+        from PIL import Image
+
+        with Image.open(BytesIO(data)) as img:
+            w, h = img.size
+            if max(w, h) <= max_side:
+                return data  # 이미 충분히 작음 → 원본 유지(재인코딩 안 함)
+            if img.mode not in ("RGB", "L"):
+                img = img.convert("RGB")
+            scale = max_side / float(max(w, h))
+            img = img.resize((max(1, int(w * scale)), max(1, int(h * scale))))
+            buf = BytesIO()
+            img.save(buf, format="JPEG", quality=quality, optimize=True)
+            return buf.getvalue()
+    except Exception:
+        return data
+
+
 def file_block(data: bytes, title: str = "document") -> dict:
-    """파일 바이트 → PDF면 document, 아니면 image 블록 자동 선택."""
-    return document_block(data, title) if is_pdf(data) else image_block(data, media_type_of(data))
+    """파일 바이트 → PDF면 document, 아니면 (필요 시 축소된) image 블록 자동 선택."""
+    if is_pdf(data):
+        return document_block(data, title)
+    reduced = downscale_image(data)
+    # 축소·재인코딩됐으면 JPEG, 원본 유지면 원본 media type 감지.
+    media = "image/jpeg" if reduced is not data else media_type_of(data)
+    return image_block(reduced, media)
 
 
 def invoke(system: str, content_blocks: list[dict], max_tokens: int = 2000) -> str:
