@@ -209,6 +209,16 @@
       "fileBody": "PDF/書類を選択",
       "audio": "音声ファイル",
       "audioBody": "録音ファイルを選択"
+    },
+    "agent": {
+      "title": "AI証拠スキャン",
+      "body": "ギャラリーから証拠を自動で探します",
+      "doneTitle": "証拠スキャン完了",
+      "doneWithCandidates": "{{scanned}}枚スキャン → {{candidates}}枚候補 → {{uploaded}}枚登録完了。\nサーバーで自動分類後、無関係な資料は除外されます。",
+      "doneNoMatch": "{{scanned}}枚スキャンしましたが、関連ファイルは見つかりませんでした。",
+      "autoRegistered": "AI自動登録",
+      "uploaded": "エージェントのアップロード完了",
+      "permissionError": "ギャラリーへのアクセス権限を確認してください。"
     }
   },
   "analysis": {

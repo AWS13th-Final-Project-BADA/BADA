@@ -185,18 +185,22 @@ export default function UploadScreen() {
       if (result.candidates.length > 0) {
         const { uploaded } = await uploadApprovedCandidates(activeCaseId, result.candidates);
         setFiles(prev => [
-          ...result.candidates.slice(0, uploaded).map(c => ({ name: c.asset.filename || "image", status: "AI 자동 등록" })),
+          ...result.candidates.slice(0, uploaded).map(c => ({ name: c.asset.filename || "image", status: t("upload.agent.autoRegistered") })),
           ...prev,
         ]);
         Alert.alert(
-          "증거 탐색 완료",
-          `${result.totalScanned}장 스캔 → ${result.candidates.length}장 후보 → ${uploaded}장 등록 완료.\n서버에서 자동 분류 후 무관 자료는 제외됩니다.`
+          t("upload.agent.doneTitle"),
+          t("upload.agent.doneWithCandidates", {
+            scanned: result.totalScanned,
+            candidates: result.candidates.length,
+            uploaded,
+          })
         );
       } else {
-        Alert.alert("증거 탐색 완료", `${result.totalScanned}장을 스캔했지만 관련 파일을 찾지 못했습니다.`);
+        Alert.alert(t("upload.agent.doneTitle"), t("upload.agent.doneNoMatch", { scanned: result.totalScanned }));
       }
     } catch (e: any) {
-      Alert.alert(t("upload.uploadError"), e?.message || "갤러리 접근 권한을 확인해주세요.");
+      Alert.alert(t("upload.uploadError"), e?.message || t("upload.agent.permissionError"));
     } finally {
       setAgentScanning(false);
     }
@@ -220,7 +224,7 @@ export default function UploadScreen() {
     try {
       const { uploaded } = await uploadApprovedCandidates(activeCaseId, selected);
       setFiles(prev => [
-        ...selected.map(c => ({ name: c.asset.filename || "image", status: "에이전트 업로드 완료" })),
+        ...selected.map(c => ({ name: c.asset.filename || "image", status: t("upload.agent.uploaded") })),
         ...prev,
       ]);
       setAgentResult(null);
@@ -323,8 +327,8 @@ export default function UploadScreen() {
           <View style={styles.agentCardInner}>
             <MaterialIcons name="auto-awesome" size={26} color="#7c3aed" />
             <View style={{ flex: 1 }}>
-              <Text style={styles.agentTitle}>AI 증거 탐색</Text>
-              <Text style={styles.agentBody}>갤러리에서 증거를 자동으로 찾아드려요</Text>
+              <Text style={styles.agentTitle}>{t("upload.agent.title")}</Text>
+              <Text style={styles.agentBody}>{t("upload.agent.body")}</Text>
             </View>
             {agentScanning && <ActivityIndicator size="small" color="#7c3aed" />}
           </View>
