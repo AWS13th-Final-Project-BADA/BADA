@@ -255,8 +255,80 @@
         "region": "${aws_region}"
       }],
       "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "id": 12,
+      "title": "Backend Task Count (scale-out)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40},
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
+      "targets": [
+        {
+          "refId": "A",
+          "namespace": "ECS/ContainerInsights",
+          "metricName": "RunningTaskCount",
+          "statistic": "Maximum",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "60",
+          "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
+          "matchExact": true,
+          "region": "${aws_region}",
+          "label": "Running"
+        },
+        {
+          "refId": "B",
+          "namespace": "ECS/ContainerInsights",
+          "metricName": "DesiredTaskCount",
+          "statistic": "Maximum",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "60",
+          "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${backend_service}"]},
+          "matchExact": true,
+          "region": "${aws_region}",
+          "label": "Desired"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "min": 0, "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 10}}}
+    },
+    {
+      "id": 13,
+      "title": "Worker Task Count (scale-out)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40},
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
+      "targets": [
+        {
+          "refId": "A",
+          "namespace": "ECS/ContainerInsights",
+          "metricName": "RunningTaskCount",
+          "statistic": "Maximum",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "60",
+          "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+          "matchExact": true,
+          "region": "${aws_region}",
+          "label": "Running"
+        },
+        {
+          "refId": "B",
+          "namespace": "ECS/ContainerInsights",
+          "metricName": "DesiredTaskCount",
+          "statistic": "Maximum",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "60",
+          "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+          "matchExact": true,
+          "region": "${aws_region}",
+          "label": "Desired"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "min": 0, "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 10}}}
     }
   ],
   "schemaVersion": 39,
-  "version": 3
+  "version": 4
 }

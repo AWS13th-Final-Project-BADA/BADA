@@ -31,6 +31,11 @@ k6 run load-test/k6/backend-autoscaling.js
 
 # 부하 조절 (CPU가 75% 밑이면 VUS↑, 100% 붙어 타임아웃 많으면 VUS↓)
 k6 run -e VUS=50 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
+
+# MODE=latency: 개방형(constant-arrival-rate) + 실제 읽기 엔드포인트(/community/boards)로
+#   scale-out 지연 구간의 p95 저하→회복을 측정 (메커니즘 증명이 아니라 "지연 특성")
+k6 run -e MODE=latency -e RATE=100 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
+#   RATE 튜닝: CPU 70%를 3분 못 넘기면 RATE↑, 타임아웃 폭주면 RATE↓
 ```
 
 부하 단계: ramp-up 3m → **sustain 8m**(여기서 scale-out 1→2→3) → ramp-down 3m. 총 약 14분.

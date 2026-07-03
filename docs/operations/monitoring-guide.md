@@ -1,181 +1,115 @@
-# 모니터링 팀원 인계
+# BADA 모니터링 운영 가이드
 
-## 공유 메시지
+> 최종 갱신: 2026-07-03. 현재 배포된 관측성 스택 기준(초기 인계 문서에서 현행화).
+> 관련: `docs/operations/sli-slo-definition.md`(SLI/SLO), `load-test/`(부하·오토스케일 검증), `docs/infra/implementation-status.md`(인프라 현황).
 
-모니터링 인프라 기본 구성을 완료했습니다.
+## 1. 관측성 스택 (현재)
 
-- Prometheus/Grafana를 ECS Fargate에 배포했습니다.
-- `https://monitor.badasoft.com` 접속과 Grafana health 200을 확인했습니다.
-- Prometheus와 CloudWatch 데이터소스가 모두 정상 연결됐습니다.
-- Prometheus 자체 및 Backend `/metrics` target이 모두 UP 상태입니다.
-- BADA Overview 대시보드가 자동 생성되도록 구성했습니다.
-- Grafana 비밀번호는 Secrets Manager `bada-dev/grafana-admin-password`에서 확인할 수 있습니다.
-- Grafana ECS Task Role에는 `bada-dev-alarm-notifications` SNS Topic에만 메시지를 발행할 수 있는 `sns:Publish` 최소권한이 적용됐습니다.
-- Grafana Alert `BADA-SNS` Contact Point, G1~G8 Rule 8개, 기본 Notification Policy receiver `BADA-SNS`를 provisioning으로 적용했습니다.
+| 계층 | 구성 | 상태 |
+|------|------|------|
+| 메트릭 수집 | Prometheus (ECS Fargate) — Backend `/metrics`, Worker `:9090/metrics` scrape | ✅ 두 타겟 UP |
+| 시각화 | Grafana (ECS Fargate) — 대시보드 4개 | ✅ |
+| 클라우드 지표 | CloudWatch — ECS/RDS/ALB/SQS + Container Insights, Alarm 14개 | ✅ |
+| 분산 추적 | AWS X-Ray — Backend + Worker (사이드카) | ✅ |
+| 알림 | Grafana Alerting → SNS → Email + CloudWatch Alarm → SNS | ✅ |
 
-이제 모니터링 담당자는 다음 작업을 진행하면 됩니다.
+> Prometheus·Grafana는 관측 계층이라 `desired=1`(단일)로 둔다 — 서비스 트래픽 경로 밖이라 SPOF지만 사용자 영향 없음.
 
-1. Overview, Backend, Worker, Infrastructure 대시보드 패널을 실제 지표에 맞게 완성
-2. ECS CPU·Memory, RDS, ALB 5xx, SQS 깊이 등 CloudWatch 패널 구성
-3. Grafana Alert 이메일 실수신·OK 복구 검증
-4. Worker exporter 구현 후 Prometheus target과 Worker 처리량 패널 추가
-5. 음성 전사 E2E 실행 중 로그·지연·실패 지표를 대시보드에서 확인
-
-### Worker Prometheus 메트릭 (2026-07-01 구현 완료)
-
-Worker에 `prometheus_client` + `:9090/metrics` HTTP 서버가 추가됨. 계측 항목:
-- `worker_sqs_messages_total{task_type, status}`: SQS 메시지 처리
-- `worker_bedrock_calls_total{purpose, status}`: Bedrock 호출 횟수/레이턴시
-- `worker_ocr_processed_total`: OCR 처리 건수
-- `worker_stt_processed_total`: STT 전사 건수
-- `worker_pdf_generated_total`: PDF 생성 건수
-- `worker_analysis_duration_seconds`: 분석 전체 소요시간
-
-**잔여 인프라 작업**: Prometheus scrape config에 Worker 타겟(`bada-dev-worker:9090`) 추가 필요.
-
-완료 기준은 주요 대시보드가 실제 데이터를 표시하고, 테스트 장애나 임계치 초과 시 SNS 이메일과 OK 복구 알림이 정상 수신되는 것입니다.
-
-## Grafana Alert 남은 작업
-
-인프라 담당이 완료한 범위:
-
-```text
-Monitoring Task Role : bada-dev-monitoring-task-role
-허용 작업            : sns:Publish
-허용 대상            : bada-dev-alarm-notifications Topic 한정
-Contact Point        : BADA-SNS
-Alert Rules          : G1~G8 8개
-Notification Policy  : receiver BADA-SNS
-Terraform            : No changes
-```
-
-모니터링 담당이 진행할 범위:
-
-1. Alert 이메일 수신과 정상화 후 OK 복구 알림 확인
-2. 실제 운영 임계치가 과하거나 부족하면 G1~G8 Rule 튜닝 요청
-3. Worker exporter 구현 후 G4/G5 Worker 처리량·지연 Rule이 실제 데이터를 보는지 확인
-4. Grafana Editor 계정이 필요하면 인프라 담당에게 사용자명·이메일 전달
-
-Dashboard JSON은 Alert 수신 검증의 필수 선행조건이 아니므로 이메일 수신 검증을 별도로 진행할 수 있습니다.
-
-## 접속 정보
+## 2. 접속 정보
 
 ```text
 Grafana URL : https://monitor.badasoft.com
 Username    : admin
-Secret      : bada-dev/grafana-admin-password
+Secret      : bada-dev/grafana-admin-password  (Secrets Manager)
 ```
 
 ```bash
 aws secretsmanager get-secret-value \
   --secret-id bada-dev/grafana-admin-password \
-  --query SecretString \
-  --output text
-```
-# Grafana Alert 테스트 시나리오
-
-> terraform apply 후 `monitor.badasoft.com` 에서 검증.
-
----
-
-## 사전 조건
-
-1. Grafana ECS 새 Task revision 배포 완료
-2. `monitor.badasoft.com/api/health` → 200
-3. Grafana 로그인 (admin / Secrets Manager `bada-dev/grafana-admin-password`)
-
----
-
-## 1. Contact Point 검증
-
-**경로**: Alerting → Contact points
-
-| 확인 항목 | 기대 결과 |
-|-----------|-----------|
-| `BADA-SNS` Contact Point 존재 | ✅ |
-| Type = AWS SNS | ✅ |
-| Topic ARN = `bada-dev-alarm-notifications` | ✅ |
-
-**테스트 발송**:
-1. `BADA-SNS` 우측 ⋮ → "Test"
-2. `badajoa0710@gmail.com`에 테스트 이메일 도착 확인
-3. 제목: `[BADA Alert] ...` 형식
-
----
-
-## 2. Alert Rule 검증
-
-**경로**: Alerting → Alert rules → BADA 폴더
-
-| 그룹 | Rule | 상태 (트래픽 없을 때) |
-|------|------|-----------------------|
-| Service Health | G1 에러율 급증 | OK 또는 No Data (OK) |
-| Service Health | G2 응답 지연 | OK 또는 No Data (OK) |
-| Service Health | G3 트래픽 제로 | **Alerting** (정상 — 데모 환경은 트래픽 없음) |
-| Worker | G4 Worker 실패율 | OK 또는 No Data (OK) |
-| Worker | G5 Worker 처리 지연 | OK 또는 No Data (OK) |
-| Database | G6 RDS 커넥션 포화 | OK |
-| Business | G7 분석 실패 연속 | OK 또는 No Data (OK) |
-| Business | G8 OCR 실패율 | OK 또는 No Data (OK) |
-
-> **참고**: G3 "트래픽 제로"는 `noDataState: Alerting`이라 트래픽이 없으면 알림 발생함. 데모 환경에서는 이게 정상. 운영 시 트래픽이 있으면 OK로 전환됨.
-
----
-
-## 3. 알림 발생 테스트 (수동)
-
-### 방법 A: G3 트래픽 제로 (자연 발생)
-- 10분간 `api.badasoft.com`에 요청 없으면 자동 Alerting
-- SNS → 이메일 도착 확인
-
-### 방법 B: G1 에러율 인위 발생
-```bash
-# 존재하지 않는 경로로 반복 요청 → 404 (5xx 아님, 이건 안 됨)
-# 실제 5xx를 발생시키려면 백엔드에 버그를 주입해야 하므로 비추천
+  --query SecretString --output text
 ```
 
-### 방법 C: Contact Point "Test" 버튼 (가장 안전)
-1. Alerting → Contact points → BADA-SNS → Test
-2. 이메일 도착 확인
-3. 이것으로 SNS 연동 검증 충분
+## 3. 대시보드 (4개)
 
----
+Grafana `Dashboards → BADA` 폴더. 프로비저닝 소스: `monitoring/grafana/provisioning/dashboards/json/*.json`
+(Grafana UI 수동 수정이 아니라 JSON 변경 후 Terraform apply로 영구 반영).
 
-## 4. 알림 복구 테스트
+| 대시보드 | 데이터소스 | 내용 |
+|----------|-----------|------|
+| BADA Overview | Prometheus | 비즈니스 KPI(사건/분석/PDF), 요청량·에러율 |
+| BADA Backend | Prometheus | HTTP 요청/지연/에러, 미들웨어 메트릭 |
+| BADA Worker | Prometheus + CloudWatch | Worker 처리량·실패·지연, SQS 깊이 |
+| BADA Infrastructure | CloudWatch | ECS CPU/Mem, RDS, ALB 4xx/5xx·요청량, SQS Visible·Oldest Age, **ECS Task Count(scale-out)** |
 
-### G3 복구 시나리오
-1. 현재 Alerting 상태 확인 (트래픽 없어서 G3 firing)
-2. `api.badasoft.com/health`에 요청 발생시킴:
+> **Infrastructure 대시보드 패널**은 `AWS/ECS`·`AWS/RDS`·`AWS/ApplicationELB`·`AWS/SQS`와
+> `ECS/ContainerInsights`(Task Count) namespace를 사용한다. Container Insights가 켜져 있어야 한다(클러스터 설정 적용됨).
+> Task Count 패널(RunningTaskCount/DesiredTaskCount)로 **오토스케일링 scale-out(1→2→3)** 을 시각적으로 확인한다.
+
+## 4. Prometheus 타겟 & 메트릭
+
+- 스크랩 대상: Prometheus 자기 자신, `bada-backend`(HTTPS `api.${domain}/metrics`), `bada-worker`(Cloud Map DNS `worker.${namespace}:9090`).
+- Backend: `http_requests_total`, `http_request_duration_seconds_bucket` 등(미들웨어 계측).
+- Worker(`prometheus_client`, `:9090`): 메시지 처리/실패, 처리 지연, Bedrock 호출, OCR/STT/PDF 건수, 분석 소요시간.
+
+> 알림 규칙(§5)이 참조하는 정확한 지표명은 `monitoring/grafana/provisioning/alerting/rules.yml`과 worker 계측 코드가 단일 출처다.
+
+## 5. Grafana Alerting
+
+프로비저닝: `monitoring/grafana/provisioning/alerting/`(`contactpoints.yml`, `policies.yml`, `rules.yml`).
+
+- **Contact Point**: `BADA-SNS` (Type=AWS SNS, Topic `bada-dev-alarm-notifications`) → 이메일
+- **Notification Policy**: 기본 receiver `BADA-SNS`
+- **Alert Rules: 10개 (G1~G10, 4개 그룹)**
+
+| 그룹 | Rule | 조건 | 심각도 |
+|------|------|------|--------|
+| Service Health | G1 에러율 급증 | 5xx > 5% (5m) | critical |
+| Service Health | G2 응답 지연 | p95 > 3s (5m) | warning |
+| Service Health | G3 트래픽 제로 | 10분간 요청 0 (`noData=Alerting`) | critical |
+| Worker | G4 Worker 실패율 | > 10% (5m) | warning |
+| Worker | G5 Worker 처리 지연 | p95 > 60s (5m) | warning |
+| Database | G6 RDS 커넥션 포화 | ≥ 80 (5m) | critical |
+| Business | G7 분석 실패 연속 | 15분간 성공 0·실패 발생 | critical |
+| Business | G8 OCR 실패율 | > 30% (5m) | warning |
+| Business | G9 가용성 SLO 위반 | 가용성 < 99% (1h) | critical |
+| Business | G10 분석 성공률 저하 | < 90% (30m) | critical |
+
+> IAM: Grafana ECS Task Role(`bada-dev-monitoring-task-role`)은 `bada-dev-alarm-notifications` Topic에 `sns:Publish`만 허용(최소권한).
+
+## 6. 알림 검증 절차
+
+**Contact Point 테스트(가장 안전)**
+1. Alerting → Contact points → `BADA-SNS` → ⋮ → Test
+2. 수신 이메일에 `[BADA Alert] ...` 도착 확인
+
+**G3 트래픽 제로 → 복구(자연 발생)**
+1. 데모 환경은 트래픽이 없어 G3가 firing되는 게 정상
+2. 요청 발생 후 10분 내 OK 전환 + "Resolved" 이메일 확인
    ```bash
    for i in $(seq 1 5); do curl -s https://api.badasoft.com/health; sleep 10; done
    ```
-3. 10분 이내 G3 상태 → OK 전환
-4. SNS로 "Resolved" 이메일 도착 확인
 
----
+> 5xx 인위 발생(G1)은 백엔드 버그 주입이 필요해 비추천. Contact Point Test + G3 복구로 SNS 연동 검증은 충분.
 
-## 5. Dashboard 검증
+## 7. 부하 테스트 & Auto Scaling 검증 (연계)
 
-**경로**: Dashboards → BADA 폴더
+Auto Scaling(#4, Backend CPU 70% / Worker SQS backlog-per-task, min=1/max=3)의 실증은 `load-test/` 스크립트로 수행한다. 상세 설계·실행: `load-test/README.md`, `load-test/k6/README.md`.
 
-| 대시보드 | 패널 데이터 | 기대 |
-|----------|------------|------|
-| Overview | Prometheus 메트릭 | `/metrics` 엔드포인트 있으면 데이터 표시 |
-| Infrastructure | CloudWatch | ECS Container Insights CPU/Mem, RDS, ALB 데이터 표시 |
-| Backend | Prometheus | `/metrics` 의존, 없으면 No data |
-| Worker | Prometheus + CW | Worker 메트릭 없으면 Prometheus 패널 No data, SQS 패널은 표시 |
+| 시나리오 | 스크립트 | 관측 포인트(대시보드) |
+|---------|---------|----------------------|
+| Backend 스케일 메커니즘(CPU) | `k6/backend-autoscaling.js` (`MODE=cpu`, 기본) | Infra: Backend CPU% 70%↑ + **Task Count 1→2→3** |
+| Backend 스케일아웃 **지연** | `k6/backend-autoscaling.js` (`MODE=latency`, 개방형) | Backend p95 지연 상승→**회복** + Task Count를 같은 타임라인에 겹쳐 캡처 |
+| 현실적 읽기 부하 | `k6/backend-journey.js` | p95·처리량·에러율 (I/O 바운드라 CPU 낮게 유지 = 정상) |
+| Worker 큐 적체 | `sqs/fill_backlog.py --watch` | Infra: SQS **Oldest Message Age** 상승→회복 + Worker **Task Count 1→3** + drain time |
 
-> **Infrastructure 대시보드의 ECS CPU/Memory 패널은 `ECS/ContainerInsights` namespace의 `CpuUtilized`/`MemoryUtilized`를 사용한다.** ECS Cluster Container Insights가 켜져 있어야 하며, Grafana UI 수동 수정이 아니라 `monitoring/grafana/provisioning/dashboards/json/bada-infrastructure.json` 변경 후 Terraform apply로 영구 반영한다.
+> 검증의 핵심은 "scale-out이 발동했다"만이 아니라, **리액티브 오토스케일링의 지연(감지 3분 + Fargate 워밍업)** 구간에서
+> 지연/큐 age가 어떻게 저하됐다가 증설 후 **회복**되는지다. 무중단 저지연을 원하면 min capacity 상향/예열이 필요하다는 한계까지 함께 서술한다.
 
----
+## 8. 체크리스트
 
-## 6. 체크리스트
-
-- [ ] Grafana 로그인 성공
-- [ ] Contact Point `BADA-SNS` 존재 확인
-- [ ] Contact Point Test 이메일 수신
-- [ ] Alert Rules BADA 폴더에 8개 규칙 존재
-- [ ] Notification Policy 기본 수신자 = BADA-SNS
-- [ ] Infrastructure 대시보드 CloudWatch 데이터 표시
-- [ ] G3 Alerting → 요청 후 OK 전환 (복구 테스트)
-- [ ] Resolved 이메일 수신
+- [ ] Grafana 로그인 + 4개 대시보드 데이터 표시
+- [ ] Prometheus 타겟(backend/worker) UP
+- [ ] Contact Point `BADA-SNS` Test 이메일 수신
+- [ ] Alert Rules 10개(G1~G10) BADA 폴더 존재
+- [ ] Infra 대시보드 Task Count 패널로 scale-out 확인(부하 테스트 시)
+- [ ] G3 Alerting → 요청 후 OK 전환 + Resolved 이메일
