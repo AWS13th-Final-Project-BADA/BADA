@@ -1,7 +1,7 @@
 {
   "common": {
     "user": "ユーザー",
-    "won": "{{amount}}ウォン",
+    "won": "₩{{amount}}",
     "appName": "BADA",
     "tagline": "散らばった資料を相談用の事件ファイルに整理します。",
     "login": "ログイン",

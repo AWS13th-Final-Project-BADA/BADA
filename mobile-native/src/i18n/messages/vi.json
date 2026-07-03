@@ -1,7 +1,7 @@
 {
   "common": {
     "user": "Người dùng",
-    "won": "{{amount}} ₩",
+    "won": "₩{{amount}}",
     "appName": "BADA",
     "tagline": "Sắp xếp tài liệu rời rạc thành hồ sơ sẵn sàng tư vấn.",
     "login": "Đăng nhập",
