@@ -156,7 +156,7 @@ flowchart TB
     end
 ```
 
-> 상세 설계: `docs/infra/production-roadmap.md` · 의사결정: `docs/decisions/decision-record-20260625.md`
+> 상세 설계·잔여 로드맵: `docs/infra/implementation-status.md` · 의사결정: `docs/decisions/decision-record-20260625.md`
 
 ## 스택
 
@@ -195,8 +195,7 @@ flowchart TB
 
 `docs/README.md` 참조. 주요 문서:
 
-- [인프라 현황](docs/infra/implementation-status.md)
-- [프로덕션 로드맵](docs/infra/production-roadmap.md)
+- [인프라 현황 · 프로덕션 로드맵](docs/infra/implementation-status.md)
 - [의사결정 기록](docs/decisions/decision-record-20260625.md)
 - [장애 대응 런북](docs/runbooks/)
 - [남은 태스크](aidlc-docs/remaining-tasks-20260702.md)

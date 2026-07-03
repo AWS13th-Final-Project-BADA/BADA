@@ -14,13 +14,9 @@
 
 | 문서 | 내용 |
 |------|------|
-| [implementation-status.md](infra/implementation-status.md) | 현재 배포된 인프라 전체 현황 (마스터 문서) |
+| [implementation-status.md](infra/implementation-status.md) | 현재 배포된 인프라 전체 현황 (마스터 문서 — HA·보안운영·Terraform 구조·잔여 로드맵 통합) |
 | [cicd-pipeline-guide.md](infra/cicd-pipeline-guide.md) | GitHub Actions CI/CD 파이프라인 설명 |
-| [production-roadmap.md](infra/production-roadmap.md) | MVP → 프로덕션 전환 5단계 로드맵 |
-| [high-availability-design.md](infra/high-availability-design.md) | HA 설계 (Auto Scaling, Multi-AZ, DR) |
-| [terraform-refactoring.md](infra/terraform-refactoring.md) | Terraform 서비스별 state 분리 설계 |
-| [security-operations-plan.md](infra/security-operations-plan.md) | ECR 스캔, Task Role 분리, 비용 현황 |
-| [verification-0625.md](infra/verification-0625.md) | 6/25 인프라 검증 + 팀별 요청사항 |
+| [worker-sizing.md](infra/worker-sizing.md) | Worker ECS Task 스펙 + OCR 병렬 동시성 산정 근거 |
 | [enable-aws.md](infra/enable-aws.md) | 로컬→AWS 모드 전환 가이드 |
 | [iam-bedrock-policy.json](infra/iam-bedrock-policy.json) | Bedrock/Translate IAM 정책 참조 |
 | [architecture.drawio](infra/architecture.drawio) | 인프라 아키텍처 다이어그램 (draw.io) |

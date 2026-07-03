@@ -1,7 +1,7 @@
 # BADA 남은 태스크 정리 (2026-07-02)
 
 > AIDLC 기반 전체 분석 결과, 프로덕션 전환을 위해 남은 태스크를 정리한 문서.
-> 근거: `aidlc-state.md`, `docs/infra/implementation-status.md`, `docs/infra/production-roadmap.md`,
+> 근거: `aidlc-state.md`, `docs/infra/implementation-status.md`,
 > `docs/decisions/decision-record-20260625.md`, `docs/decisions/privacy-legal-requirements.md`,
 > 그리고 실제 `infra/*.tf` 코드 교차 검증.
 

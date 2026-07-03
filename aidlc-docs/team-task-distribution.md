@@ -134,7 +134,7 @@ Phase 4 (Phase 3 apply 완료 후)
 | 문서 | 위치 |
 |------|------|
 | 의사결정 전체 | `docs/decision-record-20260625.md` |
-| 인프라 현황 | `docs/infra-implementation-status.md` |
-| TF 분리 설계 | `docs/infra-terraform-refactoring.md` |
+| 인프라 현황 | `docs/infra/implementation-status.md` |
+| TF 구조 결정 (단일 state + 파일 분리 채택) | `docs/infra/implementation-status.md` |
 | 모바일 설계 | `aidlc-docs/construction/mobile/mobile-setup.md` |
 | 모니터링 설계 | `aidlc-docs/construction/monitoring/monitoring-design.md` |
