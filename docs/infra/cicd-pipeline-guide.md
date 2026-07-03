@@ -189,7 +189,7 @@ GitHub → Actions → "Build Mobile (EAS Preview)" → Run workflow (수동)
 infra/** 변경 PR
   -> OIDC로 읽기 전용 plan Role Assume
   -> terraform fmt -check
-  -> terraform init
+  -> terraform init -backend-config=backends/dev.hcl
   -> terraform validate
   -> terraform plan -lock=false
   -> PR 코멘트에 결과 게시
@@ -205,6 +205,11 @@ infra/** 변경 PR
 
 - 현재 Terraform 버전은 `1.10.0`
 - `TF_VAR_db_password`는 GitHub Secret `TF_DB_PASSWORD`에서 주입한다
+- 2026-07-03 Dev/Prod 환경 분리 이후 Terraform backend는 partial backend config를 사용한다.
+  `providers.tf`의 S3 backend에는 `key`가 없으므로 `terraform init` 시 반드시 환경별 backend 파일을 넘겨야 한다.
+- PR plan은 dev state 기준으로 검증하므로 `.github/workflows/terraform-plan.yml`에서는 `backends/dev.hcl`을 사용한다.
+- 로컬에서 prod를 볼 때는 `terraform init -reconfigure -backend-config=backends/prod.hcl` 후 `terraform plan -var-file=env/prod.tfvars`를 사용한다.
+- backend 파일 인자를 빠뜨리면 S3 backend의 `key`가 없어 init 단계에서 실패한다.
 
 ## 9. Backend 수동 롤백
 
