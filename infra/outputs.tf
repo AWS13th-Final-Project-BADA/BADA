@@ -137,3 +137,18 @@ output "monitoring_url" {
 output "prometheus_private_dns_name" {
   value = var.monitoring_enabled ? "prometheus.${local.monitoring_service_discovery_namespace}" : null
 }
+
+output "nat_gateway_id" {
+  description = "NAT Gateway ID (nat_gateway_enabled=true일 때). private subnet egress 경로."
+  value       = try(aws_nat_gateway.main[0].id, null)
+}
+
+output "nat_gateway_public_ip" {
+  description = "NAT Gateway의 고정 public IP(EIP). private subnet에서 나가는 egress의 출발지 IP."
+  value       = try(aws_eip.nat[0].public_ip, null)
+}
+
+output "ecs_service_subnet_tier" {
+  description = "현재 ECS 서비스가 배치된 subnet tier (private/public)."
+  value       = var.ecs_in_private_subnets ? "private" : "public"
+}

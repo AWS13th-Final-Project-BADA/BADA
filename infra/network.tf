@@ -71,6 +71,39 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
+# ─── NAT Gateway: private subnet egress ─────────────────────────────────────
+# ECS를 private subnet으로 이전하면 인터넷 아웃바운드(ECR pull, Bedrock/Transcribe/
+# Translate, Secrets Manager, CloudWatch Logs, SQS)가 이 NAT를 통해서만 나간다.
+# 단일 private route table 구조라 NAT 1개(첫 public subnet에 배치)로 구성한다.
+# S3 트래픽은 이미 S3 Gateway Endpoint로 처리되므로 NAT를 타지 않는다.
+# 종료 시 nat_gateway_enabled=false → NAT/EIP/route 제거로 과금 정지.
+resource "aws_eip" "nat" {
+  count = var.nat_gateway_enabled ? 1 : 0
+
+  domain = "vpc"
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-nat-eip" })
+}
+
+resource "aws_nat_gateway" "main" {
+  count = var.nat_gateway_enabled ? 1 : 0
+
+  allocation_id = aws_eip.nat[0].id
+  subnet_id     = aws_subnet.public[0].id
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-nat" })
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+resource "aws_route" "private_nat" {
+  count = var.nat_gateway_enabled ? 1 : 0
+
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.main[0].id
+}
+
 resource "aws_db_subnet_group" "main" {
   name       = "${local.name_prefix}-db-subnet-group"
   subnet_ids = aws_subnet.private[*].id

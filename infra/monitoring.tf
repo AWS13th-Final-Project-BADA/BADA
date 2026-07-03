@@ -471,9 +471,9 @@ resource "aws_ecs_service" "prometheus" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.public[*].id
+    subnets          = local.ecs_service_subnets
     security_groups  = [aws_security_group.monitoring[0].id]
-    assign_public_ip = true
+    assign_public_ip = local.ecs_assign_public_ip
   }
 
   service_registries {
@@ -498,9 +498,9 @@ resource "aws_ecs_service" "grafana" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.public[*].id
+    subnets          = local.ecs_service_subnets
     security_groups  = [aws_security_group.monitoring[0].id]
-    assign_public_ip = true
+    assign_public_ip = local.ecs_assign_public_ip
   }
 
   load_balancer {
