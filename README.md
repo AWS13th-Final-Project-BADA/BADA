@@ -68,7 +68,7 @@ cd mobile-native && npm install && npx expo start
 ### 현재 (As-Is)
 
 > 인증은 **소셜 OAuth(구글/카카오/네이버) 직접 구현 + 자체 HS256 JWT**. (Cognito는 미사용 레거시)
-> NAT Gateway 없이 **S3 Gateway Endpoint(무료)** + public subnet 배치로 운영한다.
+> 네트워크는 **3-tier 격리(ALB=public / ECS·RDS=private) + 단일 NAT Gateway egress + S3 Gateway Endpoint(무료)** 로 운영한다. (2026-07-03 적용, 종료 토글 有)
 
 ```mermaid
 flowchart TB
@@ -137,14 +137,12 @@ flowchart TB
 
 ### 남은 목표 (To-Be)
 
-> WAF·X-Ray·GuardDuty·Security Hub·Auto Scaling·RDS Multi-AZ·Fargate Spot은 **이미 As-Is에 반영됨**.
+> WAF·X-Ray·GuardDuty·Security Hub·Auto Scaling·RDS Multi-AZ·Fargate Spot·**ECS Private Subnet+NAT(2026-07-03)** 은 **이미 As-Is에 반영됨**. (#18 Interface VPC Endpoint은 NAT egress로 갈음)
 > 아래는 종료 일정·비용 대비 의도적으로 **보류**한 항목이다. 상세: `aidlc-docs/remaining-tasks-20260702.md`.
 
 ```mermaid
 flowchart TB
     subgraph Deferred["인프라 보류 (실서비스 전환 시)"]
-        NAT["NAT Gateway\n+ ECS Private Subnet 이전 (#12)"]
-        VPCE["Interface VPC Endpoints\nSQS · ECR (#18)"]
         TFSplit["Terraform state 분리\nnetwork / data / compute (#5)"]
         CF["CloudFront\n(웹 프론트 재도입 시)"]
     end

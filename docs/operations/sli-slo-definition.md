@@ -64,6 +64,6 @@ Grafana에 다음 패널 추가 예정:
 
 ## 참고
 
-- 현재 Auto Scaling 미적용 → 가용성 SLO는 단일 태스크 기준
-- Phase 3 (Auto Scaling + Multi-AZ) 적용 후 SLO 상향 검토: 99% → 99.9%
+- Auto Scaling 적용됨(Backend CPU + Worker SQS backlog, min=1/max=3) → 가용성 SLO는 스케일아웃 반영 기준으로 재검토
+- Auto Scaling + RDS Multi-AZ(encrypted, cutover 완료) 적용됨 → SLO 상향(99% → 99.9%) 검토 가능
 - Bedrock 쓰로틀은 외부 의존성이므로 분석 SLO에서 감안

@@ -2,7 +2,8 @@
 
 > 대상 환경: `ap-northeast-2`, ECS Cluster `bada-dev-cluster`
 > 이 문서는 컨테이너 Task Definition 롤백 절차를 다룬다. DB migration, 데이터, Secret, Terraform 변경은 별도 복구가 필요하다.
-> 기준일: 2026-06-25
+> 기준일: 2026-06-25 (2026-07-03 갱신: 웹 프론트엔드 배포 제외 반영)
+> 참고: 웹 프론트엔드(Next.js)는 `frontend_enabled=false`로 배포 제외되어 `bada-dev-frontend` 서비스가 없다. badasoft.com은 Backend static 폴백.
 
 ## 1. 현재 실행 상태와 롤백 후보
 
@@ -10,7 +11,6 @@
 | --- | --- | --- | --- | --- |
 | Backend | `bada-dev-backend:49` | `:48` | 활성 | GitHub Actions workflow |
 | Worker | `bada-dev-worker:19` | `:18` | 활성 | ECS CLI |
-| Frontend | `bada-dev-frontend:3` | `:2` | 활성 | ECS CLI |
 | Prometheus | `bada-dev-prometheus:2` | `:1` | 미활성 | ECS CLI |
 | Grafana | `bada-dev-grafana:6` | `:5` 또는 기본형 `:1` | 미활성 | ECS CLI |
 
@@ -22,7 +22,7 @@
 REGION=ap-northeast-2
 CLUSTER=bada-dev-cluster
 
-for family in bada-dev-backend bada-dev-worker bada-dev-frontend; do
+for family in bada-dev-backend bada-dev-worker; do
   aws ecs list-task-definitions \
     --region "$REGION" \
     --family-prefix "$family" \
@@ -36,7 +36,7 @@ done
 aws ecs describe-services \
   --region "$REGION" \
   --cluster "$CLUSTER" \
-  --services bada-dev-backend bada-dev-worker bada-dev-frontend \
+  --services bada-dev-backend bada-dev-worker \
   --query 'services[].{service:serviceName,taskDefinition:taskDefinition,rollout:deployments[0].rolloutState}' \
   --output table
 ```
@@ -69,7 +69,7 @@ Workflow: `.github/workflows/rollback-dev-backend.yml`
 curl -fsS https://api.badasoft.com/health
 ```
 
-## 4. Frontend·Worker·Prometheus·Grafana ECS CLI 롤백
+## 4. Worker·Prometheus·Grafana ECS CLI 롤백
 
 ```bash
 REGION=ap-northeast-2
@@ -99,7 +99,6 @@ aws ecs describe-services \
 
 | 서비스 | 검증 |
 | --- | --- |
-| Frontend | `https://badasoft.com/api/health` 200 |
 | Worker | consumer 시작 로그, 테스트 메시지 처리, SQS/DLQ 정상 |
 | Prometheus | Grafana에서 Prometheus와 Backend target `UP` |
 | Grafana | `https://monitor.badasoft.com/api/health` 200, Contact Point·Rule·Policy 확인 |

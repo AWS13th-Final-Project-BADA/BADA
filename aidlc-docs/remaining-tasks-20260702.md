@@ -5,10 +5,14 @@
 > `docs/decisions/decision-record-20260625.md`, `docs/decisions/privacy-legal-requirements.md`,
 > 그리고 실제 `infra/*.tf` 코드 교차 검증.
 
+> **2026-07-03 업데이트**: 보류 3건 중 #12(ECS Private Subnet + NAT Gateway)는 토글 기반으로 **완료·apply**되었고,
+> #18(Interface VPC Endpoint)은 **NAT egress로 갈음**(Interface 엔드포인트 미도입)했다. 이제 **#5(Terraform state 분리)만 의도적 보류**다.
+> 아래 카테고리 C 표와 종료 체크리스트는 이 변경 이후 기준으로 읽을 것. (canonical 상태: `aidlc-state.md`)
+
 ## 0. 현재 성숙도 요약
 
 - AIDLC 전 단계 완료: Inception(역공학→요구사항→설계→유닛) → Construction(6유닛+빌드/테스트) → Post-MVP 고도화
-- 확정 의사결정 20건 중 **17건 완료 / 3건 의도적 보류(#5·#12·#18)**
+- 확정 의사결정 20건 중 **대부분 완료 / #5(TF 분리)만 의도적 보류** (#12 Private Subnet+NAT는 2026-07-03 완료, #18은 NAT로 갈음)
 - Well-Architected Tool 1차 리뷰(57문항) 등록, High 30 / Medium 24 (대부분 dev 환경 의도적 미뤄둠)
 - **핵심 발견**: 유일한 애플리케이션 계층 공백은 "법적 필수(개인정보) 기능"이며, 인프라는 이미 dev/포트폴리오 수준을 초과함
 
@@ -55,9 +59,9 @@
 
 | ID | 태스크 | 보류 사유 | 개략 비용(2주) |
 |---|---|---|---|
-| C-1 (#5) | Terraform 3분할 (network/data/compute) | state mv 위험, 종료 임박 | $0 |
-| C-2 (#12) | ECS → Private Subnet + NAT Gateway | NAT 고정비 + reversible 비용 | ~$65 |
-| C-3 (#18) | VPC Endpoint (Interface: SQS/ECR) | #12와 세트, 단독 실익 낮음 | ~$7 |
+| C-1 (#5) | Terraform 3분할 (network/data/compute) | state mv 위험, 종료 임박 — **보류 유지** | $0 |
+| ~~C-2 (#12)~~ | ECS → Private Subnet + NAT Gateway | **2026-07-03 완료** (토글 기반 3-tier, apply됨) — 보류 해제 | ~$65 |
+| ~~C-3 (#18)~~ | VPC Endpoint (Interface: SQS/ECR) | **NAT egress로 갈음** (Interface 엔드포인트 미도입) | ~$7 |
 
 ---
 

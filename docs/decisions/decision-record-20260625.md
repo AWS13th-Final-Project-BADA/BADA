@@ -27,8 +27,9 @@
 ## 확정 의사결정 (18건)
 
 > **실행 상태 (2026-07-02 갱신)**
-> - ✅ **완료**: 1(소셜 OAuth 직접구현)·2(RDS 암호화)·3(행수준 인가)·4(Auto Scaling, PR #203)·6(모델 비교)·7(WAF)·8(Multi-AZ)·9(k6 부하 검증 — Backend 1→2, Worker 1→3, PR #212/#213)·10(X-Ray)·11(GuardDuty/Security Hub + 종료 토글, PR #207)·13(Task Role 분리, PR #205)·14(구조화 로깅)·15(Worker Fargate Spot, PR #206)·16(TF Plan-in-PR)·17(CI 강화)·19(모바일 로그인 E2E — 코드 완비)·20(APK 파이프라인)
-> - 🔧 **보류**: 5(TF 분리)·12(ECS Private Subnet+NAT) — 종료 기간(7/10)·비용 대비 위험이 가치를 초과. To-Be 다이어그램으로 갈음. 18(VPC Endpoint)은 **S3 Gateway(무료) 부분 완료(2026-07-02)**, Interface Endpoint(SQS/ECR, ~$7)는 보류.
+> - ✅ **완료**: 1(소셜 OAuth 직접구현)·2(RDS 암호화)·3(행수준 인가)·4(Auto Scaling, PR #203)·6(모델 비교)·7(WAF)·8(Multi-AZ)·9(k6 부하 검증 — Backend 1→2, Worker 1→3, PR #212/#213)·10(X-Ray)·11(GuardDuty/Security Hub + 종료 토글, PR #207)·12(ECS Private Subnet+NAT, PR #231, 2026-07-03)·13(Task Role 분리, PR #205)·14(구조화 로깅)·15(Worker Fargate Spot, PR #206)·16(TF Plan-in-PR)·17(CI 강화)·19(모바일 로그인 E2E — 코드 완비)·20(APK 파이프라인)
+> - ✅ **RDS 상세**: 2(RDS 암호화)·8(Multi-AZ)는 운영 App DB를 `bada-dev-postgres-multiaz`(Multi-AZ, encrypted)로 **cutover 완료**(원본 Single-AZ·비암호화 인스턴스는 rollback용 보존). Terraform은 `enable_rehearsal_multiaz_db`+`use_rehearsal_multiaz_db_as_app_db` 토글로 모델링. 상세: `docs/infra/implementation-status.md`.
+> - 🔧 **보류**: 5(TF 분리)만 — 종료 기간(7/10)·state mv 리스크 대비 위험이 가치를 초과. To-Be 다이어그램으로 갈음. 18(VPC Endpoint)은 S3 Gateway(무료) 완료 + Interface Endpoint(SQS/ECR)는 **NAT egress로 갈음**(미도입).
 > - ✅ **추가 완료 (2026-07-02, 로드맵/WA 항목)**: S3 Evidence/Report Lifecycle(B-5), Dependency scan CI(B-2), S3 Gateway VPC Endpoint(C-3 일부), RTO/RPO 정의+복원 리허설 문서(B-1), 비용 할당 태그 default_tags(B-4), 의존성 취약점 저위험 범프(B-3 부분). 상세: `aidlc-docs/remaining-tasks-20260702.md`
 > - 🚧 **담당 진행**: (없음 — 20건 전부 완료 또는 보류로 종결)
 > - 참고(모바일): #20 APK 빌드는 EAS 무료 쿼터(월 15회) 절약을 위해 **수동 실행(`workflow_dispatch`) 전용**으로 전환(자동 push 빌드 제거). #1은 앱 계층 소셜 OAuth로 단일화 완료이며 **Cognito 미사용 협의**(리소스는 잔존, 종료 시 정리).
@@ -120,7 +121,8 @@
 
 ### 3번: 행 수준 인가 — Cases + Evidences만
 - 사유: 핵심 민감 데이터(급여, GPS) 보호, 나머지는 공개(Community) 또는 종속(GPS→Cases)
-- 구현: `deps.py`에 소유자 검증 의존성 추가
+- 구현: `deps.py`에 소유자 검증 의존성(`verify_case_owner`) 추가
+- ⚠️ 현황: Cases는 전 엔드포인트 소유자 검증 적용. Evidences는 일부(업로드/목록/삭제/복원/agent-upload)에 아직 미적용 → 잔여 과제.
 
 ### 4번: Auto Scaling — min=1/max=3
 - 사유: 상시 2대(비용)보다 탄력적 대응(기술 깊이) = 포트폴리오 임팩트 우위
@@ -147,13 +149,13 @@
 > - Auto Scaling: `backend_autoscaling_enabled=false` / `worker_autoscaling_enabled=false`
 > - GuardDuty/Security Hub: `security_monitoring_enabled=false`
 > - Worker Fargate Spot: `worker_fargate_spot_enabled=false` (On-Demand 복귀)
-> - NAT Gateway / VPC **Interface** Endpoint: **보류로 생성 안 함** → 정리 대상 아님
+> - NAT Gateway: **2026-07-03 생성됨** → 종료 시 `nat_gateway_enabled=false` + `ecs_in_private_subnets=false`로 정리(과금 정지). VPC **Interface** Endpoint: 미생성(NAT egress로 갈음)
 > - S3 **Gateway** Endpoint(무료, 2026-07-02 추가): 종료 시 `s3_gateway_endpoint_enabled=false`로 제거
 > - S3 Evidence/Report Lifecycle: `s3_lifecycle_enabled=false`로 룰 제거(객체 보존)
 
 - [ ] Auto Scaling policy 삭제, desired=0
-- [ ] NAT Gateway 삭제
-- [ ] VPC Interface Endpoint 삭제
+- [ ] NAT Gateway 삭제 (`nat_gateway_enabled=false` + `ecs_in_private_subnets=false`)
+- [ ] (VPC Interface Endpoint: 미생성 — 삭제 불필요)
 - [ ] WAF Web ACL 삭제
 - [ ] RDS final snapshot → 인스턴스 삭제
 - [ ] GuardDuty / Security Hub 비활성화

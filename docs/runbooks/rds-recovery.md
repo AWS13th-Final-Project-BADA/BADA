@@ -4,7 +4,10 @@
 > 기준일: 2026-06-28
 > 이 문서는 실행 계획이다. 실제 복원·전환은 팀 승인과 점검 시간 확보 후 수행한다.
 
-## 1. 현재 상태
+> **2026-07-03 업데이트**: §5의 Multi-AZ cutover가 완료되어 **운영 App DB는 `bada-dev-postgres-multiaz`(Multi-AZ, `StorageEncrypted=true`)** 다.
+> 아래 §1 표는 rollback용으로 **보존 중인 원본 인스턴스 `bada-dev-postgres`(Single-AZ, 비암호화)** 상태다. (master 현황: `docs/infra/implementation-status.md`)
+
+## 1. 현재 상태 (원본 인스턴스 — rollback 보존)
 
 | 항목 | 값 |
 | --- | --- |
