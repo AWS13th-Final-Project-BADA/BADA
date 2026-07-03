@@ -10,7 +10,7 @@ import { t } from "@/i18n";
 import { useLocale } from "@/i18n/LocaleContext";
 
 const won = (n?: number | null) =>
-  n == null ? t("analysis.suspected") : `${Math.round(n).toLocaleString("ko-KR")}원`;
+  n == null ? t("analysis.suspected") : t("common.won", { amount: Math.round(n).toLocaleString() });
 
 export default function AnalysisScreen() {
   const { caseId = "demo-case-1" } = useLocalSearchParams<{ caseId?: string }>();
@@ -167,7 +167,7 @@ export default function AnalysisScreen() {
                   <View key={item.id || index} style={[styles.evidenceRow, index < evidences.length - 1 && styles.evidenceDivider]}>
                     <MaterialIcons name="description" size={20} color={stitch.blue} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.evidenceName} numberOfLines={1}>{item.file_name || item.original_filename || `파일 ${index + 1}`}</Text>
+                      <Text style={styles.evidenceName} numberOfLines={1}>{item.file_name || item.original_filename || t("analysis.fileIndex", { index: index + 1 })}</Text>
                       <Text style={styles.evidenceCategory}>{item.category ? t("upload.categories." + item.category) : ""}</Text>
                     </View>
                     <MaterialIcons name="check-circle" size={18} color={stitch.green} />

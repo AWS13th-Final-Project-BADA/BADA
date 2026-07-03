@@ -1,5 +1,7 @@
 {
   "common": {
+    "user": "Người dùng",
+    "won": "{{amount}} ₩",
     "appName": "BADA",
     "tagline": "Sắp xếp tài liệu rời rạc thành hồ sơ sẵn sàng tư vấn.",
     "login": "Đăng nhập",
@@ -33,6 +35,7 @@
     "noNotifications": "Không có thông báo"
   },
   "home": {
+    "greetingName": "{{name}}",
     "badge": "Chuẩn bị tư vấn",
     "title": "Gom tài liệu để chuẩn bị tư vấn dễ hơn",
     "subtitle": "Hợp đồng, bảng lương, lịch sử chuyển khoản và ảnh chụp tin nhắn được sắp xếp thành Evidence Pack.",
@@ -86,6 +89,10 @@
     }
   },
   "login": {
+    "failed": "Đăng nhập thất bại",
+    "tokenError": "Không nhận được token. Vui lòng chọn lại tài khoản.",
+    "terms": "Điều khoản dịch vụ",
+    "privacy": "Chính sách bảo mật",
     "title": "Đăng nhập để quản lý hồ sơ an toàn",
     "subtitle": "Tài liệu tải lên và kết quả phân tích được lưu trong tài khoản của bạn.",
     "google": "Tiếp tục với Google",
@@ -97,6 +104,15 @@
     "trustNoJudge": "Không phán đoán pháp lý"
   },
   "cases": {
+    "noPeriod": "Chưa nhập thời gian",
+    "noWage": "Chưa nhập lương",
+    "saveError": "Lưu thất bại",
+    "wagePlaceholder": "VD: 10030",
+    "shortLabel": "Vụ {{id}}",
+    "deleteTitle": "Xóa vụ việc",
+    "deleteBody": "Xóa vụ việc này?",
+    "deleteEvidenceTitle": "Xóa tài liệu",
+    "deleteEvidenceBody": "Xóa \"{{name}}\"?",
     "title": "Hồ sơ của tôi",
     "create": "Tạo hồ sơ",
     "newTitle": "Thông tin hồ sơ",
@@ -169,6 +185,8 @@
     }
   },
   "upload": {
+    "showMore": "Xem thêm {{count}}",
+    "showLess": "Thu gọn",
     "title": "Tải tài liệu",
     "subtitle": "Thêm ảnh, PDF và ghi âm vào hồ sơ này.",
     "dropzone": "Chọn tệp",
@@ -222,6 +240,7 @@
     }
   },
   "analysis": {
+    "fileIndex": "Tệp {{index}}",
     "title": "Phân tích",
     "preAnalysis": "Phân tích sơ bộ",
     "expected": "Dự kiến",
@@ -247,6 +266,11 @@
     "runError": "Không thể chạy phân tích."
   },
   "gps": {
+    "checkArea": "Kiểm tra khu vực",
+    "dailySummary": "Tóm tắt chấm công hằng ngày",
+    "dayStat": "IN {{in}} · OUT {{out}} · {{hours}} giờ",
+    "dayInOut": "Vào {{first}} → Ra {{last}}",
+    "recentLogs": "Nhật ký gần đây ({{count}})",
     "title": "Ghi GPS",
     "subtitle": "Lưu bối cảnh đi làm tại nơi làm việc cùng hồ sơ.",
     "start": "Bắt đầu ghi",

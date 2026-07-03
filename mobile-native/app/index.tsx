@@ -77,7 +77,7 @@ export default function Home() {
 
   if (!user) return null;
 
-  const displayName = user.name || user.email?.split("@")[0] || "사용자";
+  const displayName = user.name || user.email?.split("@")[0] || t("common.user");
 
   async function signOut() {
     await logout();
@@ -90,7 +90,7 @@ export default function Home() {
       <View style={styles.content}>
         <View style={styles.greetingRow}>
           <View style={styles.greeting}>
-            <Text style={styles.greetingTitle}>{displayName} 님</Text>
+            <Text style={styles.greetingTitle}>{t("home.greetingName", { name: displayName })}</Text>
             <Text style={styles.greetingBody}>{t("home.dashboardSubtitle")}</Text>
           </View>
           <Pressable style={styles.logoutButton} onPress={signOut}>

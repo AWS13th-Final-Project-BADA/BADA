@@ -1,5 +1,7 @@
 {
   "common": {
+    "user": "ユーザー",
+    "won": "{{amount}}ウォン",
     "appName": "BADA",
     "tagline": "散らばった資料を相談用の事件ファイルに整理します。",
     "login": "ログイン",
@@ -33,6 +35,7 @@
     "noNotifications": "通知はありません"
   },
   "home": {
+    "greetingName": "{{name}} さん",
     "badge": "相談準備",
     "title": "資料を集めれば相談準備が楽になります",
     "subtitle": "契約書、給与明細、入金履歴、チャットキャプチャを事件ごとにEvidence Packとして整理します。",
@@ -86,6 +89,10 @@
     }
   },
   "login": {
+    "failed": "ログイン失敗",
+    "tokenError": "トークンを取得できませんでした。アカウントを選び直してください。",
+    "terms": "利用規約",
+    "privacy": "プライバシーポリシー",
     "title": "ログインして事件を安全に管理しましょう",
     "subtitle": "アップロードした資料と分析結果をアカウントに保管します。",
     "google": "Googleで始める",
@@ -97,6 +104,15 @@
     "trustNoJudge": "法的判断なし"
   },
   "cases": {
+    "noPeriod": "期間未入力",
+    "noWage": "賃金未入力",
+    "saveError": "保存失敗",
+    "wagePlaceholder": "例: 10030",
+    "shortLabel": "事件 {{id}}",
+    "deleteTitle": "事件を削除します。",
+    "deleteBody": "この事件を削除しますか？",
+    "deleteEvidenceTitle": "資料を削除します。",
+    "deleteEvidenceBody": "「{{name}}」を削除しますか？",
     "title": "マイ事件",
     "create": "事件を作成",
     "newTitle": "事件情報",
@@ -169,6 +185,8 @@
     }
   },
   "upload": {
+    "showMore": "他 {{count}} 件を表示",
+    "showLess": "折りたたむ",
     "title": "資料アップロード",
     "subtitle": "写真、PDF、録音まで事件ごとに集められます。",
     "dropzone": "ファイルを選択",
@@ -222,6 +240,7 @@
     }
   },
   "analysis": {
+    "fileIndex": "ファイル {{index}}",
     "title": "分析結果",
     "preAnalysis": "事前分析結果",
     "expected": "予想金額",
@@ -247,6 +266,11 @@
     "runError": "分析を実行できませんでした。"
   },
   "gps": {
+    "checkArea": "エリア確認",
+    "dailySummary": "日別出勤サマリー",
+    "dayStat": "IN {{in}}回 · OUT {{out}}回 · {{hours}}時間",
+    "dayInOut": "出勤 {{first}} → 退勤 {{last}}",
+    "recentLogs": "最近のログ ({{count}}件)",
     "title": "GPS記録",
     "subtitle": "職場周辺の出勤状況を事件資料と一緒に整理します。",
     "start": "記録開始",

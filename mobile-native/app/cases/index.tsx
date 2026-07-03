@@ -100,8 +100,8 @@ function CaseCard({
       </View>
 
       <View style={styles.metaRow}>
-        <Meta icon="event" text={item.work_start_date || "기간 미입력"} />
-        <Meta icon="payments" text={item.agreed_hourly_wage ? `${item.agreed_hourly_wage.toLocaleString()}원` : "임금 미입력"} />
+        <Meta icon="event" text={item.work_start_date || t("cases.noPeriod")} />
+        <Meta icon="payments" text={item.agreed_hourly_wage ? t("common.won", { amount: item.agreed_hourly_wage.toLocaleString() }) : t("cases.noWage")} />
       </View>
     </Pressable>
   );

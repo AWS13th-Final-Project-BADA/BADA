@@ -25,9 +25,9 @@ export default function Login() {
     try {
       const ok = await login(provider);
       if (ok) router.replace("/");
-      else Alert.alert("로그인 실패", "토큰을 받지 못했어요. 계정을 다시 선택해 주세요.");
+      else Alert.alert(t("login.failed"), t("login.tokenError"));
     } catch (e: any) {
-      Alert.alert("로그인 실패", String(e?.message ?? e));
+      Alert.alert(t("login.failed"), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -90,9 +90,9 @@ export default function Login() {
         </Card>
 
         <View style={styles.terms}>
-          <Text style={styles.termText}>이용약관</Text>
+          <Text style={styles.termText}>{t("login.terms")}</Text>
           <Text style={styles.dot}>·</Text>
-          <Text style={styles.termText}>개인정보처리방침</Text>
+          <Text style={styles.termText}>{t("login.privacy")}</Text>
         </View>
 
       </View>
