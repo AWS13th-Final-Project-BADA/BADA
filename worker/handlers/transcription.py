@@ -79,6 +79,18 @@ def _save_result(session, evidence_id: str, result: dict) -> None:
     if result["status"] == "done":
         ev.ocr_text = result["text"]
         ev.ocr_status = "done"
+        # STT 직후 곧바로 entity 구조화 → analyze_case(분석 실행) 스피너에서 이 Bedrock
+        # 텍스트 호출(~13s)을 제거한다. 실패해도 전사 자체는 성공 처리하고,
+        # analyze_case의 audio_need_entities 폴백 경로가 나중에 재시도한다.
+        if result.get("text"):
+            try:
+                from providers.ocr import _structure_text
+                structured = _structure_text(result["text"], ev.category or "audio")
+                ev.extracted_entities = structured.get("entities", {})
+            except Exception:
+                logger.warning(
+                    "음성 entity 구조화 실패(분석 시 재시도): evidence_id=%s", evidence_id, exc_info=True
+                )
     else:
         ev.ocr_status = "failed"
 
