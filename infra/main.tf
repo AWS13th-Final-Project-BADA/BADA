@@ -103,7 +103,8 @@ data "aws_ami" "amazon_linux_2023" {
 
 data "aws_route53_zone" "main" {
   count = var.domain_name != "" ? 1 : 0
-  name  = var.domain_name
+  # route53_zone_name이 있으면 그 존(부모 도메인)에 레코드를 만든다. 없으면 domain_name.
+  name = var.route53_zone_name != "" ? var.route53_zone_name : var.domain_name
 }
 
 

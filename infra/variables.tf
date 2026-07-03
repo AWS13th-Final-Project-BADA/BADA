@@ -630,6 +630,17 @@ variable "domain_name" {
   default     = ""
 }
 
+# Route53 호스팅 존 이름. domain_name과 분리해 서브도메인 환경(prod.badasoft.com)이
+# 부모 존(badasoft.com)에 레코드를 생성할 수 있게 한다.
+# 빈값이면 domain_name을 존 이름으로 사용(기존 dev 동작 유지).
+# 예) prod: domain_name="prod.badasoft.com", route53_zone_name="badasoft.com"
+#     → ACM/레코드는 prod.badasoft.com·api.prod.badasoft.com이되, badasoft.com 존에 생성.
+variable "route53_zone_name" {
+  description = "Route53 hosted zone name for record creation. Empty = use domain_name (dev 기본)."
+  type        = string
+  default     = ""
+}
+
 variable "frontend_enabled" {
   description = "Enable frontend ECR, target group, and ALB routing. Set true when frontend is ready to deploy."
   type        = bool

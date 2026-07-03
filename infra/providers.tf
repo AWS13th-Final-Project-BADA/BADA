@@ -1,9 +1,12 @@
 terraform {
   required_version = ">= 1.6.0"
 
+  # Partial backend config: 환경별 state 분리를 위해 key를 하드코딩하지 않는다.
+  # 초기화 시 env별 backend 파일을 넘긴다:
+  #   dev  : terraform init -backend-config=backends/dev.hcl
+  #   prod : terraform init -reconfigure -backend-config=backends/prod.hcl
   backend "s3" {
     bucket       = "bada-tfstate-165749212250-ap-northeast-2"
-    key          = "bada/dev/terraform.tfstate"
     region       = "ap-northeast-2"
     use_lockfile = true
     encrypt      = true
