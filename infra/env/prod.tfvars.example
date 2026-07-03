@@ -1,0 +1,50 @@
+# ─── BADA prod 환경 tfvars (예시/템플릿) ────────────────────────────────────
+# 실제 값이 담긴 infra/env/prod.tfvars 는 gitignore 대상(시크릿 포함).
+# 사용:
+#   terraform init -reconfigure -backend-config=backends/prod.hcl
+#   terraform plan  -var-file=env/prod.tfvars
+#   terraform apply -var-file=env/prod.tfvars
+
+environment = "prod"
+
+# 도메인: prod 전용 서브도메인. route53_zone_name으로 부모 존(badasoft.com)에 레코드 생성.
+domain_name       = "prod.badasoft.com"
+route53_zone_name = "badasoft.com"
+
+# 네트워크: dev(10.0.0.0/16)와 분리
+vpc_cidr             = "10.10.0.0/16"
+public_subnet_cidrs  = ["10.10.1.0/24", "10.10.2.0/24"]
+private_subnet_cidrs = ["10.10.11.0/24", "10.10.12.0/24"]
+
+# dev 하드코딩 default override (충돌 방지)
+db_final_snapshot_identifier           = "bada-prod-postgres-final-snapshot"
+rehearsal_db_identifier                = "bada-prod-postgres-multiaz"
+rehearsal_db_final_snapshot_identifier = "bada-prod-postgres-multiaz-final-snapshot"
+use_rehearsal_multiaz_db_as_app_db     = true
+cognito_domain_prefix                  = "bada-prod-165749212250"
+
+# 3-tier + 고도화 토글 (prod는 전부 on)
+nat_gateway_enabled    = true
+ecs_in_private_subnets = true
+monitoring_enabled     = true
+frontend_enabled       = false
+# GuardDuty/Security Hub는 계정+리전 싱글톤(dev state 소유, 계정 전체 커버) → prod는 false
+security_monitoring_enabled = false
+
+# 컨테이너 이미지: prod ECR은 초기 비어있으므로 기존 dev ECR latest를 참조
+# (prod 전용 CD 파이프라인 구성 전까지 임시. 별도 push 시 prod ECR URI로 교체)
+api_container_image    = "165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-backend:latest"
+worker_container_image = "165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-worker:latest"
+
+# ── 시크릿 (실제 prod.tfvars에만, git 커밋 금지) ──
+# db_password          = "..."
+# google_client_id     = "..."
+# google_client_secret = "..."
+# kakao_rest_api_key   = "..."
+# kakao_client_secret  = "..."
+# naver_client_id      = "..."
+# naver_client_secret  = "..."
+# jwt_secret           = "..."
+#
+# ⚠️ prod OAuth 콜백(https://api.prod.badasoft.com/auth/{google|kakao|naver}/callback)은
+#    구글/카카오/네이버 콘솔에 별도 등록 필요(외부 의존, 모바일/인증 담당).

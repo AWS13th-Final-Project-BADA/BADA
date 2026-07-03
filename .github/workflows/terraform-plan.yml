@@ -100,7 +100,9 @@ jobs:
       - name: Terraform init
         id: init
         working-directory: ${{ env.WORKDIR }}
-        run: terraform init -input=false
+        # Partial backend config: backend "s3"에 key가 없으므로 env별 backend 파일을 넘긴다.
+        # PR plan은 dev state 기준으로 검증한다.
+        run: terraform init -input=false -backend-config=backends/dev.hcl
 
       - name: Terraform validate
         id: validate
