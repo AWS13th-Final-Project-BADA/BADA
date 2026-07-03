@@ -2,6 +2,7 @@
 # The packages below are for the full worker runtime.
 # NOTE: weasyprint needs GTK libs on Windows - install at W3, not required for tests.
 boto3==1.35.30          # Bedrock (Claude Vision/Text)
+pillow>=10.1.0          # Vision 이미지 다운스케일(전송 전 축소). weasyprint도 의존(>=9.1)
 requests==2.33.0        # Upstage Document Parse API
 pydantic==2.9.2         # OCR output schema validation
 pydantic-settings==2.5.2  # backend/app/config.py 의존성(Worker DB 직접 접근)
