@@ -1,175 +1,203 @@
-# BADA Mobile Frontend E2E Test Report
+# BADA 모바일 E2E 테스트 가이드
 
-## 목적
+> 최종 갱신: 2026-07-01
+> 대상: `mobile-native/` React Native(Expo) 앱과 `backend/` FastAPI API
 
-이 문서는 현재 `feature/mobile-e2e-polish` 코드 상태에서 모바일 프론트엔드가 사용자 관점의 핵심 흐름을 충족하는지 확인한 결과를 정리한다.
+## 1. 목적과 범위
 
-범위는 소셜 OAuth 로그인(Google/Kakao/Naver 직접), Bearer 토큰 기반 API 호출, 사건 생성, 사건 조회, 증거 업로드, AI 챗봇 호출, 모바일 번들 검증이다.
+이 문서는 모바일 사용자가 로그인한 뒤 사건을 만들고, 증거를 업로드하고, 분석 결과·AI 챗봇·커뮤니티를 사용하는 핵심 흐름을 검증한다.
 
-## 사용자 관점 테스트 시나리오
+검증 범위는 다음과 같다.
 
-### 1. 앱 진입 및 로그인
+- Google·Kakao·Naver 소셜 OAuth와 앱 딥링크 복귀
+- 자체 JWT의 SecureStore 저장 및 Bearer 헤더 주입
+- `GET /auth/me` 기반 로그인 상태 확인
+- 사건 생성·목록·상세 조회
+- 증거 업로드와 사건 분석 흐름
+- 사건 UUID 기반 AI 챗봇, RAG 출처, 다국어 Guardrails
+- 커뮤니티 CRUD, 반응, 신고, 안전검사, 제목·본문·댓글 번역
+- 한국어·영어·베트남어·일본어·크메르어 UI 리소스
+- TypeScript, i18n 인코딩, Expo Android 번들 검증
 
-- 앱 실행 시 로그인 화면 진입
-- Google/Kakao/Naver 버튼을 통해 소셜 OAuth 로그인 시작 (`/auth/{provider}/login`)
-- OAuth 콜백 이후 모바일 딥링크(`bada://auth` 또는 Expo 링크)로 앱 복귀
-- 앱이 받은 토큰을 저장
-- 단순 토큰 존재 여부가 아니라 `GET /auth/me` 호출로 실제 인증 상태 확인
+## 2. 실행 환경
 
-상태: 구현 완료, 자동 테스트로 콜백 계약 검증 완료
+### 운영 API를 사용하는 앱
 
-주의: 실제 `badasoft.com` 배포 환경에서의 Google 로그인 최종 E2E는 PR merge와 CD 배포 이후 확인해야 한다.
+`mobile-native/app.json`의 기본 API는 다음과 같다.
 
-### 2. Bearer Token API 호출
-
-- 로그인 후 모바일 API 클라이언트가 저장된 토큰을 읽음
-- API 요청 시 `Authorization: Bearer <token>` 헤더 자동 주입
-- 인증이 필요한 API에서 401이 아닌 정상 응답을 기대
-
-상태: 구현 완료, 백엔드 테스트 통과
-
-### 3. 사건 생성 및 목록 확인
-
-- 사용자가 새 사건을 생성
-- 사건 목록 화면에서 생성된 사건 확인
-- 사건 상세 화면으로 이동
-
-상태: 구현 완료
-
-### 4. 증거 업로드
-
-- 사건 상세 또는 업로드 화면에서 파일 선택
-- 모바일 앱은 `POST /cases/{case_id}/evidences/upload` multipart API로 업로드
-- 업로드 후 사건 상세 또는 목록에서 자료 흐름을 이어갈 수 있음
-
-상태: 구현 완료, 업로드 API 계약 반영 완료
-
-### 5. AI 챗봇 호출
-
-- 사건에 연결된 챗봇 화면 진입
-- 사용자가 상담 준비 질문 입력
-- UUID `case_id`를 임의 숫자 `1`로 바꾸지 않고 그대로 전달
-- 백엔드 챗봇 API와 연결되는 흐름 유지
-
-상태: 구현 완료
-
-### 6. 로그아웃 및 세션 정리
-
-- 앱에서 로그아웃 시 저장 토큰 제거 (서버 세션 없는 stateless JWT)
-- API 401 응답 시에도 저장 토큰을 삭제해 자동 로그아웃
-- 다음 로그인 때 계정 선택 흐름을 다시 시작할 수 있음 (provider별 재인증 파라미터)
-
-상태: 구현 완료
-
-## 프론트엔드 요구사항 충족 체크리스트
-
-| 요구사항 | 충족 여부 | 구현 내용 |
-| --- | --- | --- |
-| 소셜 OAuth 로그인 연동 | 완료 | `/auth/{provider}/login`(google/kakao/naver) 시작, callback 후 모바일 딥링크(`bada://auth`)로 토큰 반환 |
-| 토큰 저장 | 완료 | 모바일 SecureStore 기반 토큰 저장/조회/삭제 |
-| API Bearer 호출 | 완료 | 공통 API 클라이언트에서 `Authorization: Bearer` 자동 주입 |
-| `/auth/me` 인증 확인 | 완료 | 홈 진입 시 실제 인증 API로 로그인 상태 확인 |
-| 사건 생성 E2E | 완료 | 사건 생성 화면과 API 연결 |
-| 사건 목록/상세 | 완료 | 목록, 상세 화면 흐름 구성 |
-| 증거 업로드 E2E | 완료 | multipart 업로드 API 경로로 통일 |
-| AI 챗봇 화면 | 완료 | 채팅 UI와 백엔드 챗봇 API 연결 |
-| UUID case_id 처리 | 완료 | 챗봇 호출에서 UUID를 숫자 샘플 ID로 바꾸던 문제 제거 |
-| 모바일 앱 번들 검증 | 완료 | Expo Android export smoke 통과 |
-| TypeScript 정합성 | 완료 | `tsc --noEmit` 통과 |
-| 백엔드 회귀 테스트 | 완료 | `pytest -q` 전체 통과 |
-| 충돌 마커 제거 | 완료 | `<<<<<<<`, `=======`, `>>>>>>>` 실제 충돌 마커 없음 |
-| 배포 환경 실로그인 검증 | 대기 | PR merge 및 CD 배포 후 `badasoft.com` 기준 최종 확인 필요 |
-
-## 검증 명령 및 결과
-
-### Git 상태 확인
-
-```bash
-git status --short
+```json
+{
+  "expo": {
+    "extra": {
+      "apiBase": "https://api.badasoft.com"
+    }
+  }
+}
 ```
 
-결과: 모바일 E2E, Cognito, 업로드, 챗봇 관련 변경 파일이 작업트리에 남아 있음.
+운영 API 검증에는 로컬 FastAPI 서버나 SSM 포트포워딩이 필요하지 않다.
 
-### Whitespace 검사
+### 로컬 API를 사용하는 Android 에뮬레이터
 
-```bash
-git diff --check
+Android 에뮬레이터에서 PC의 FastAPI 서버를 호출할 때는 `127.0.0.1` 대신 `http://10.0.2.2:8000`을 사용한다. 이 변경은 로컬 테스트 전용이며 커밋 전에 운영 URL로 복구해야 한다.
+
+## 3. 사용자 관점 E2E 시나리오
+
+### 3.1 소셜 OAuth 로그인
+
+1. 로그인 화면에서 Google, Kakao 또는 Naver를 선택한다.
+2. 앱이 `GET /auth/{provider}/login?redirect_uri=<app-link>`를 호출한다.
+3. 백엔드는 안전한 복귀 주소만 OAuth state에 보존한다.
+4. provider 인증 후 백엔드가 자체 JWT를 발급한다.
+5. `bada://auth?token=...` 또는 Expo 딥링크로 앱에 복귀한다.
+6. 앱은 JWT를 SecureStore에 저장한다.
+7. 앱 진입 시 `GET /auth/me`로 실제 인증 상태를 확인한다.
+
+기대 결과:
+
+- 앱으로 정상 복귀한다.
+- 사용자 이름·이메일·provider가 표시된다.
+- 이후 인증 API에 `Authorization: Bearer <token>`이 자동 첨부된다.
+
+> 현재 인증은 Cognito Hosted UI가 아니라 백엔드 직접 소셜 OAuth + 자체 JWT 방식이다.
+
+### 3.2 로그아웃
+
+1. 설정 화면에서 로그아웃한다.
+2. 앱의 SecureStore 토큰이 제거된다.
+3. 보호된 화면 재진입 시 로그인 화면으로 이동한다.
+
+현재 `POST /auth/logout`은 성공 응답만 반환하며 서버 측 토큰 폐기 목록은 운영하지 않는다. 따라서 로그아웃의 실제 효력은 클라이언트 토큰 삭제와 JWT 만료에 기반한다.
+
+### 3.3 사건 생성·조회
+
+1. 새 사건을 만든다.
+2. 사건 제목, 사업장, 근무기간 등 기본 정보를 입력한다.
+3. 사건 목록에서 새 사건을 확인한다.
+4. 사건 상세 화면으로 이동한다.
+
+기대 결과:
+
+- 생성된 UUID 사건 ID가 목록과 상세 화면에서 동일하다.
+- 로그인 사용자는 자신의 사건만 조회·수정할 수 있다.
+
+### 3.4 증거 업로드·분석
+
+1. 사건 상세에서 업로드 화면으로 이동한다.
+2. 근로계약서, 급여명세서, 입금내역, 대화 캡처 등의 카테고리를 선택한다.
+3. 카메라·갤러리·문서 선택기로 파일을 고른다.
+4. 앱이 `POST /cases/{case_id}/evidences/upload` multipart API를 호출한다.
+5. 업로드된 증거를 확인하고 분석을 실행한다.
+
+기대 결과:
+
+- Bearer 토큰과 사건 UUID가 함께 전달된다.
+- 업로드 성공 후 증거 목록에 파일이 표시된다.
+- 분석 화면에서 상태와 결과를 다시 조회할 수 있다.
+- 배포 환경의 presigned S3 업로드 경로를 사용하는 경우 MIME type이 서명 요청과 PUT 요청에서 일치한다.
+
+### 3.5 AI 챗봇·RAG·Guardrails
+
+1. 사건 상세 또는 하단 탭에서 AI 챗봇으로 이동한다.
+2. 사건을 선택한 뒤 질문을 전송한다.
+3. 앱은 UUID `case_id`, `message`, `language: "auto"`를 `POST /chat/messages`로 보낸다.
+4. 답변, 다음 행동, 면책문구와 RAG 출처를 확인한다.
+5. 출처 칩을 눌러 기관, 문서명, 섹션, 관련 발췌문을 확인한다.
+
+대표 질문:
+
+```text
+이 패키지에서 중요한 내용이 뭐예요?
+상담할 때 무엇부터 말하면 좋을까요?
+사장이 돈을 떼어갔는데 이거 불법이죠?
+What should I prepare before visiting the labor office?
+Tôi cần chuẩn bị gì trước khi đến Bộ Lao động?
 ```
 
-결과: 통과
+기대 결과:
 
-### 충돌 마커 검사
+- 사건 선택 시 `used_case_context=true`가 반환된다.
+- 공식 문서가 검색되면 `used_rag=true`이고 `sources`가 표시된다.
+- 법률 판단 요구는 `risk_level=blocked` 또는 안전한 표현으로 전환된다.
+- 출력 금지 표현이 감지되면 `fallback_used=true`로 안전 답변을 반환한다.
+- 답변·다음 행동·면책문구는 감지된 사용자 언어와 일치한다.
+
+### 3.6 커뮤니티
+
+1. 게시글 목록에서 인기·최신·내 글 탭과 카테고리 필터를 확인한다.
+2. 검색어로 비슷한 상황을 찾는다.
+3. 게시글과 댓글을 작성·수정·삭제한다.
+4. 좋아요·저장·신고를 실행한다.
+5. 다른 언어의 게시글에서 번역 보기를 누른다.
+6. 게시 전 안전검사를 실행한다.
+
+기대 결과:
+
+- 작성자 본인만 글과 댓글을 수정·삭제할 수 있다.
+- 번역 결과에 게시글 제목과 본문이 함께 포함되고 댓글도 번역된다.
+- 개인정보 또는 법률 판단 요구는 차단·수정 안내가 반환된다.
+- 단순 욕설이나 불만만으로 일괄 차단하지 않는다.
+- 반응 상태와 카운트가 새로고침 후에도 서버 값과 일치한다.
+
+## 4. 자동 검증 명령
+
+### 백엔드
 
 ```bash
-rg -n '^(<<<<<<<|=======|>>>>>>>)' backend mobile-native docs
+cd backend
+source .venv/Scripts/activate
+python -m pytest -q
 ```
 
-결과: 충돌 마커 없음
-
-### 모바일 TypeScript 검사
+### 모바일 TypeScript
 
 ```bash
 cd mobile-native
 npm exec tsc -- --noEmit
 ```
 
-결과: 통과
+### 다국어 인코딩·키 정합성
 
-### Expo Android Export Smoke
+```bash
+cd mobile-native
+npm run check:i18n
+```
+
+### Expo Android 번들 Smoke Test
 
 ```bash
 cd mobile-native
 npm exec expo -- export --platform android --no-bytecode --output-dir .expo-export-check
 ```
 
-결과: 통과
-
-### 백엔드 전체 테스트
+### 충돌 마커와 whitespace
 
 ```bash
-cd backend
-python -m pytest -q
+git diff --check
+git grep -n -E '^(<<<<<<<|=======|>>>>>>>)' -- backend mobile-native docs aidlc-docs
 ```
 
-결과:
+## 5. APK 수동 QA
 
-```text
-53 passed, 3 warnings in 28.63s
-```
+1. 기존 앱과 새 APK의 서명이 다르면 기존 앱을 삭제한다.
+2. APK를 설치하고 앱을 완전히 종료한 뒤 다시 실행한다.
+3. 소셜 로그인과 앱 딥링크 복귀를 확인한다.
+4. 사건 생성 → 업로드 → 분석 → 챗봇 순서로 검증한다.
+5. 한국어·영어·베트남어로 챗봇을 테스트한다.
+6. 커뮤니티 제목·본문·댓글 번역과 안전검사를 확인한다.
+7. 로그아웃 후 보호 화면 접근과 재로그인을 확인한다.
 
-## PR 전 수동 QA 순서
+## 6. PR 전 확인 사항
 
-### 1. 백엔드 실행
+- `app.json`의 `apiBase`, Expo `owner`, `projectId`가 공식 값인지 확인한다.
+- 임시 EAS 계정이나 로컬 `10.0.2.2` 설정을 커밋하지 않는다.
+- 실제 OAuth Client의 callback URL과 백엔드 환경변수가 일치해야 한다.
+- 테스트용 JWT, AWS 키, OAuth Client Secret을 문서나 Git에 남기지 않는다.
+- Terraform 변경은 코드 리뷰 후 인프라 담당자가 plan/apply한다.
 
-```bash
-cd ~/BADA/BADA-mobile-native/backend
-source .venv/Scripts/activate
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+## 7. 알려진 한계
 
-### 2. Expo 실행
-
-```bash
-cd ~/BADA/BADA-mobile-native/mobile-native
-npx expo start -c
-```
-
-### 3. 앱에서 확인할 것
-
-1. 앱 실행
-2. 소셜 OAuth 로그인 시작 (Google/Kakao/Naver)
-3. 로그인 완료 후 앱으로 복귀
-4. 홈 화면에서 사용자 정보 확인
-5. 새 사건 생성
-6. 사건 목록에서 생성된 사건 확인
-7. 사건 상세 진입
-8. 증거 파일 업로드
-9. 챗봇에서 사건 관련 질문 전송
-10. 로그아웃 후 재로그인 흐름 확인
-
-## 남은 확인 사항
-
-- 실제 운영 도메인 `badasoft.com` 기준 Google 로그인 E2E는 PR merge와 CD 배포 이후 재검증 필요
-- 각 provider 콘솔의 redirect URI(`/auth/{provider}/callback`)와 앱 딥링크(`bada://auth`)가 환경값과 일치해야 함
-- 실제 Android 기기에서 파일 선택 권한, 카메라 권한, 업로드 UX 확인 필요
-- 인프라 `terraform apply`는 이 작업에서 실행하지 않았음
+- 로그아웃 시 서버 측 JWT revocation은 아직 없다.
+- OAuth provider의 계정 세션이 남으면 계정 선택 화면이 생략될 수 있다.
+- Expo Go와 APK는 권한·딥링크·네이티브 모듈 동작이 다를 수 있으므로 최종 검증은 APK에서 수행한다.
+- Bedrock, RAG, 번역은 운영 환경의 IAM·모델 접근·DB seed 상태에 영향을 받는다.

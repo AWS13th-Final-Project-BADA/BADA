@@ -1,92 +1,136 @@
-# 모바일 앱 — React Native (Expo) 설계·설정
+# 모바일 앱 - React Native (Expo) 설계 및 설정
 
-> 모바일의 **단일 설계 문서(source of truth)**. 기존 Capacitor(웹뷰) 방식에서 **진짜 네이티브 앱(React Native + Expo)** 으로 전환했다.
-> 원칙: develop·backend·기존 `frontend`·기존 `mobile`(Capacitor) **무수정.** 새 브랜치 `feature/mobile-native` + 새 폴더 `mobile-native/`에서만 작업한다.
-> (구버전 Capacitor 안내는 `docs/mobile-app.md` 참고 — 이력 보존용.)
+> 모바일 앱의 단일 설계 문서(source of truth).
+> 기존 Capacitor(WebView) 방식은 사용하지 않으며, 현재 앱 화면과 로직의 기준 소스는 `mobile-native/`이다.
+> 최종 갱신: 2026-07-03
 
 ---
 
 ## 0. 전환 배경
 
-- 요구: "웹뷰가 아닌 진짜 네이티브 앱."
-- 기존 `mobile/`(Capacitor)은 화면을 WebView로 렌더하며, 문서가 둘로 갈라져 상충했다(원격 로드 vs `next export` 번들).
-- 결론: 웹뷰가 아닌 앱은 Capacitor로 불가 → **네이티브 재작성(React Native/Expo).** 이로 인해 "Capacitor 전제 문서와의 일치"는 성립하지 않으므로, 본 문서를 네이티브 기준으로 갱신한다.
+- GPS, 촬영, 파일 선택, 딥링크 로그인을 실제 모바일 경험으로 제공하기 위해 React Native(Expo)로 전환했다.
+- `frontend/`를 WebView로 띄우지 않고 React Native 컴포넌트가 네이티브 UI를 렌더링한다.
+- 웹의 문구와 API 계약은 재사용하되 화면과 앱 상태 관리는 모바일 전용으로 구현한다.
 
-## 1. 불변식
+## 1. 구현 원칙
 
-1. **격리**: 모든 네이티브 코드는 `mobile-native/`에만. 본체(develop·backend·frontend·mobile) 무수정.
-2. **백엔드 재사용**: API는 `https://api.badasoft.com` 그대로 호출. 백엔드 변경은 최소화하며, 불가피한 3건(§6)은 담당자와 협의.
-3. **steering 준수**: `product.md` 표현 정책(면책고지·금지표현)을 화면·문구에 적용. `git.md` 브랜치/커밋 컨벤션 준수.
-4. **자산 재사용**: 다국어 문구(`frontend/src/messages/*.json`), API 경로, 화면 흐름을 미러링.
-5. **되돌릴 수 있음**: 막히면 `mobile-native/` 폴더·브랜치만 폐기 → 본체 영향 0.
+1. 앱 화면과 앱 전용 로직은 `mobile-native/`에 둔다.
+2. 기본 API는 `https://api.badasoft.com`이며 Android 에뮬레이터 로컬 테스트에서만 `http://10.0.2.2:8000`을 임시 사용한다.
+3. 자체 JWT는 SecureStore에 저장하고 Bearer 헤더로 전송한다.
+4. 한국어, 영어, 베트남어, 일본어, 크메르어 번역 키를 동일하게 유지한다.
+5. 법률 판단을 단정하지 않고 자료 정리와 상담 준비 중심으로 안내한다.
+6. PR 전 `app.json`의 운영 API와 공식 EAS owner/projectId를 확인한다. 임시 계정·토큰·로컬 설정은 커밋하지 않는다.
 
 ## 2. 기술 선택
 
-| 항목 | 선택 | 근거 |
+| 항목 | 선택 | 적용 방식 |
 | --- | --- | --- |
-| 프레임워크 | **React Native + Expo (SDK 51)** | 팀이 React 사용 → 학습곡선·자산 재사용 유리 |
-| 라우팅 | **expo-router** (파일기반) | Next.js App Router와 동일 멘탈모델 |
-| 보안 저장소 | **expo-secure-store** | 토큰을 OS 보안 저장소에 |
-| 위치/백그라운드 | **expo-location + expo-task-manager** | 무료(유료 `@transistorsoft` 대체) |
-| 카메라/파일 | **expo-image-picker / expo-document-picker** | 증거 업로드 |
-| 인증 | **expo-web-browser (+ 딥링크)** | **소셜 OAuth(구글/카카오/네이버)** — 팀 결정(6/25, Cognito 제거). 앱이 `/auth/{provider}/login?redirect_uri=bada://auth` 호출 → 백엔드 콜백이 자체 JWT 발급 → `bada://auth#token=`로 앱 전달 |
-| 다국어 | **i18n-js + expo-localization** | 기존 ko/vi/en JSON 그대로 |
+| 프레임워크 | React Native + Expo SDK 51 | 네이티브 UI와 Expo 빌드 |
+| 라우팅 | expo-router | `app/` 파일 기반 화면 이동 |
+| 토큰 저장 | expo-secure-store | 자체 JWT를 OS 보안 저장소에 저장 |
+| OAuth | expo-web-browser + Linking | Google/Kakao/Naver OAuth 후 `bada://auth` 복귀 |
+| 위치 | expo-location + expo-task-manager | GPS 기록과 백그라운드 확장 |
+| 파일 | expo-image-picker / expo-document-picker | 이미지와 PDF 증거 선택 |
+| 다국어 | i18n-js + expo-localization | ko/en/vi/ja/km 메시지 |
+| API | 공통 fetch 클라이언트 | Bearer 토큰, 오류 정규화, 운영/로컬 API 전환 |
 
-## 3. 설정 & 실행
+## 3. 설정 및 실행
 
 ```bash
 cd mobile-native
 npm install
-npx expo start          # QR → 폰 Expo Go 스캔, 또는 a(안드로이드)/i(iOS)
+npx expo start -c
 ```
 
-백그라운드 위치 등 네이티브 모듈 실검증은 개발 빌드가 필요(Expo Go 불가):
+Android 에뮬레이터가 실행 중이면 Metro 화면에서 `a`를 누른다.
+
 ```bash
-npx expo prebuild        # ios/ android/ 생성(.gitignore 처리됨)
-npx expo run:android     # 실기기/에뮬에 개발 빌드 설치
+adb devices
+npm exec tsc -- --noEmit
+npm run check:i18n
 ```
-- API 주소: `app.json` → `expo.extra.apiBase`(기본 `https://api.badasoft.com`)
-- 앱 스킴: `bada://`, package: `com.bada.app`
+
+백그라운드 위치 등 Expo Go에서 지원하지 않는 기능은 개발 빌드나 APK에서 검증한다.
+
+```bash
+npx expo run:android
+# 또는
+npx eas build -p android --profile preview
+```
+
+운영 설정은 `app.json`의 `expo.extra.apiBase`, 앱 스킴 `bada://`, Android package `com.bada.app`을 기준으로 한다.
 
 ## 4. 구조
 
-```
+```text
 mobile-native/
-├─ app.json / package.json / tsconfig.json / babel.config.js
-├─ app/                     # expo-router 화면(파일기반)
-│  ├─ _layout.tsx · index.tsx · login.tsx · gps.tsx
-│  └─ cases/(index·[id]·new·upload·analysis) · community/(index·new·[id]) · chat.tsx
+├─ app/
+│  ├─ _layout.tsx
+│  ├─ index.tsx / login.tsx / settings.tsx / notifications.tsx
+│  ├─ cases/                         # 사건 생성, 목록, 상세, 업로드, 분석
+│  ├─ community/                     # 목록, 작성, 상세, 댓글
+│  ├─ chat.tsx                       # AI 챗봇
+│  └─ gps.tsx
 ├─ src/
-│  ├─ shared/(api · theme · types)            # 공유 transport·테마·primitives 타입
-│  ├─ features/                               # 기능별 모듈(2026-06-24 재배치)
-│  │   ├─ auth/api · evidence/(api·types) · gps/api
-│  │   └─ cases/types · analysis/types · community/types · chat/types
-│  ├─ lib/(api·auth·gps·evidence·types) · theme.ts   # 기존 import 호환 배럴(재export)
-│  └─ i18n/(index + messages/ko·vi·en.json)   # frontend에서 복사(중앙 집중)
-├─ CONTRIBUTING.md          # 충돌 없는 협업 규약(기능 모듈 경계·핫스팟·브랜치)
-└─ BACKEND-INTEGRATION.md   # 백엔드 연계 3건(§6)
+│  ├─ components/                    # 공통 TopBar, BottomNav, UI
+│  ├─ features/
+│  │  ├─ auth/                       # OAuth, JWT 저장, /auth/me
+│  │  ├─ cases/ / evidence/ / analysis/
+│  │  ├─ chat/                       # 챗봇 API 타입
+│  │  ├─ community/                  # CRUD, 번역, 반응, 신고, 안전검사
+│  │  └─ gps/
+│  ├─ shared/                        # API client, theme, 공통 타입
+│  └─ i18n/messages/                 # ko/en/vi/ja/km
+├─ assets/
+├─ app.json / eas.json
+└─ BACKEND-INTEGRATION.md
 ```
 
-## 5. 화면 목록 & 로드맵 (현재 상태)
+## 5. 현재 구현 범위
 
-| 단계 | 범위 | 상태 |
+| 기능 | 구현 내용 | 상태 |
 | --- | --- | --- |
-| **M1** | 뼈대 + 홈/로그인/사건 목록·상세/GPS 데모 + API·i18n·토큰 | ✅ 완료 |
-| **M2** | 새 사건 생성 · 증거 업로드(카메라/갤러리/PDF) · 분석 결과(+report.html) | ✅ 완료 |
-| **M3** | 커뮤니티(피드/작성/상세·댓글·공감) · AI 챗봇 · Evidence Pack 리포트 | ✅ 완료 |
-| **검증** | 에뮬레이터 실행 성공(홈 렌더, AI 챗봇 백엔드 실연결 확인) | ✅ 2026-06-24 |
-| **GPS 수정** | 사건 종속 전환 + 근무지 등록 + 포그라운드 추적(Expo Go 동작) · 챗봇 언어 `auto` | ✅ 2026-06-24 |
-| **남음** | 백그라운드 GPS(개발빌드) · 디자인 마감 · 법무(동의·삭제) · 인계물·출시빌드 | ⏳ |
+| 앱 시작 | BADA 스플래시, 로그인 상태 복원, 홈 진입 | 완료 |
+| 인증 | Google/Kakao/Naver OAuth, 딥링크 복귀, JWT SecureStore 저장, `/auth/me` 확인 | 완료 |
+| 사건·증거 | 사건 생성/목록/상세, 카메라·갤러리·PDF 업로드, 분석 상태 확인 | 완료 |
+| 분석 | 분석 결과, 타임라인, Evidence Pack/report 연결 | 완료 |
+| AI 챗봇 | UUID `case_id`, 자동 언어 감지, RAG 출처, next actions, Guardrails 표시 | 완료 |
+| 커뮤니티 | 검색·정렬·내 글, CRUD, 좋아요·저장·신고, 제목·본문·댓글 번역, 안전검사 | 완료 |
+| 다국어 | ko/en/vi/ja/km 화면 문구와 챗봇 언어 전달 | 완료 |
+| GPS | 사건 선택, 근무지 등록, 포그라운드 핑 | 완료 |
+| 검증 | TypeScript, i18n, Expo Android export, preview APK QA | 반복 수행 |
 
-> 화면은 백엔드 계약(`schemas.py`·`schemas_report.py`·`schemas_community.py`·`schemas_ai_chat.py`)에 맞춰 구현. 모든 사용자 대면 문구에 면책고지 적용.
+## 6. 백엔드 연동 계약
 
-## 6. 백엔드 연계 필요 3건 (담당자 협의)
+### 6.1 소셜 OAuth 및 자체 JWT
 
-> 셋 다 "추가·게이트" 방식 — 기존 웹 동작 무영향. 상세·검증법은 `mobile-native/BACKEND-INTEGRATION.md`.
+1. 앱이 `/auth/{provider}/login?redirect_uri=bada://auth`를 연다.
+2. 백엔드는 OAuth state에 허용된 복귀 주소를 저장한다.
+3. callback에서 provider 사용자를 내부 `users`와 연결하고 자체 JWT를 발급한다.
+4. `bada://auth?token=...`으로 복귀하면 앱이 SecureStore에 저장한다.
+5. 앱은 `GET /auth/me`로 인증을 확인한 뒤 보호 API에 Bearer 토큰을 보낸다.
 
-1. **소셜 OAuth 딥링크 (최우선)** — 팀 결정(6/25): **Cognito 제거 → 구글/카카오/네이버 소셜 OAuth.** 백엔드 OAuth(`/auth/{provider}/login`·`/callback`, `auth_service.py`)는 이미 구현됐고 자체 JWT를 발급하나, 콜백이 토큰을 웹(`#token=`)으로만 반환 → 앱이 못 받음. **`/auth/{provider}/callback`에 `redirect_uri=bada://auth`면 앱 스킴(`bada://auth#token=`)으로 분기** 추가 필요. (백엔드/인증 담당) — 앱 측 딥링크 수신은 구현돼 있고, `features/auth/api.ts`가 `/auth/cognito/login` → `/auth/{provider}/login` 호출로 전환 필요(모바일). + `AUTH_MODE`를 cognito→jwt/oauth로(인프라). **← ⏳ 진행**
-2. **챗봇 `case_id` 정합** — `schemas_ai_chat.py` `case_id: int` ↔ 사건 UUID 불일치. `str` 수용으로 변경. (GPS+Agent+OCR 담당) **← ✅ 완료 (6/24, `a67fa14`)**
-3. **`report.pdf` 다운로드** — 워커가 PDF를 S3(`pdf_ko_s3_key`)에 저장하나 노출 엔드포인트 없음. `presign_get` 302 엔드포인트 1개 추가. (백엔드/분석 담당) **← ✅ 완료 (6/24, `3640e2c`)**
+현재 Cognito Hosted UI는 사용하지 않는다. 로그아웃은 앱 토큰 삭제가 중심이며 서버 측 refresh/revocation은 후속 보안 과제다.
+
+### 6.2 사건·업로드·분석
+
+- 사건 식별자는 UUID 문자열을 그대로 사용한다.
+- 업로드는 백엔드 계약에 따라 multipart 또는 presigned S3 흐름을 사용한다.
+- MIME과 카테고리를 전달하고 업로드 후 분석 상태와 결과를 갱신한다.
+- 사건, 증거, 분석 결과와 report는 사용자 소유권 검사를 거친다.
+
+### 6.3 AI 챗봇
+
+- `POST /chat/messages`에 메시지, UUID `case_id`, `language: auto`를 전달한다.
+- `answer`, `next_actions`, `sources`, `ai_provider`, `risk_level`, `used_rag`, `fallback_used`를 화면에 반영한다.
+- 출처 칩을 누르면 기관, 문서명, 섹션, 관련 발췌문을 표시한다.
+- 법률 판단 위험 질문은 다국어 Guardrails와 상담 준비 행동으로 안내한다.
+
+### 6.4 커뮤니티
+
+- 게시글과 댓글은 작성자만 수정·삭제할 수 있다.
+- 번역은 제목과 본문을 함께 처리하고 구버전 캐시에 제목이 없으면 재번역한다.
+- 개인정보와 법률 판단 요청은 작성 전 안전검사 대상이며 단순 욕설은 일괄 차단하지 않는다.
 
 ## 7. GPS — 사건 종속 + 포그라운드 (구현 완료)
 
@@ -102,12 +146,26 @@ mobile-native/
 - 가입·위치·국외이전 **동의 화면**(위치정보법: 위치는 별도 동의 필수).
 - **회원 탈퇴·사건 삭제** 버튼 → RDS + **S3 원본까지 삭제**.
 
-## 9. 리스크
+## 9. 테스트 및 운영 리스크
+
+```bash
+cd backend
+python -m pytest -q
+
+cd ../mobile-native
+npm exec tsc -- --noEmit
+npm run check:i18n
+npx expo export --platform android
+```
+
+사용자 E2E는 로그인 → `/auth/me` → 사건 생성 → 업로드 → 분석 → 챗봇 RAG/Guardrails → 커뮤니티 CRUD/번역 → 로그아웃 순서로 확인한다. 상세 절차는 `docs/mobile/e2e-test.md`를 따른다.
 
 | 리스크 | 대응 |
 | --- | --- |
-| 인증 딥링크 백엔드 미지원 | §6-1 분기 추가 + 데모용 토큰 주입 폴백 |
-| 백그라운드 위치 권한(Expo Go 불가) | 개발 빌드 + "항상 허용" 안내 |
-| 출시 빌드 환경 | EAS Build(클라우드)로 로컬 부담 최소화 |
-| 두 코드베이스(web+app) 유지 | 문구/타입/규칙 공유, UI만 분리(RN 단일 유지) |
-| 팀 문서 불일치 | 팀 상태표·OWNERSHIP의 "모바일=Capacitor" 갱신 필요(팀 합의) |
+| OAuth provider 세션으로 계정 자동 선택 | 계정 선택 옵션과 다른 계정 로그인 QA |
+| 자체 JWT 폐기/갱신 미구현 | 짧은 만료 시간, refresh/revocation 후속 설계 |
+| Expo Go와 APK 동작 차이 | PR 전 Expo 검사, merge 후 APK 실기기 QA |
+| 임시 EAS 설정 커밋 | 빌드 후 `git checkout -- app.json`, `git status` 확인 |
+| RAG/Bedrock/AWS 의존성 | 응답 metadata와 로그로 provider/fallback 확인 |
+| 번역 캐시 구버전 데이터 | 제목 누락 시 재번역, 언어별 실제 게시글 QA |
+| 백그라운드 GPS 권한 | 개발 빌드와 실제 Android 권한 시나리오 검증 |

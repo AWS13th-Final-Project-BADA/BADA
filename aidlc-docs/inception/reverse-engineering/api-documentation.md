@@ -50,18 +50,27 @@ All endpoints are prefixed based on their router registration in `main.py`.
 ### AI Chat (`/chat`)
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/chat/messages` | 챗봇 메시지 전송 및 응답 수신 (case_id는 body, UUID 문자열; 미지정 시 일반 상담) |
+| POST | `/chat/messages` | 사건 UUID 기반 상담 준비 답변. JSON·form·query 입력을 지원하며 `case_id` 미지정 시 일반 상담으로 동작 |
+
+요청 핵심 필드:
+
+- `case_id: string | null`: 사건 UUID. 모바일은 숫자 샘플 ID로 변환하지 않는다.
+- `message: string`: 사용자 질문. `text`, `question` 별칭도 허용한다.
+- `language: string`: 기본값 `auto`; 질문 언어를 감지해 같은 언어로 답변한다.
+- `session_id: int | null`: 선택 입력.
+
+응답은 `answer`, `intent`, `risk_level`, `ai_provider`, `used_case_context`, `used_rag`, `guardrail_result`, `fallback_used`, `sources`, `next_actions`, `disclaimer`를 포함한다. RAG 출처에는 기관·문서명·섹션·발췌문·검색 방식이 포함되며 모바일에서 상세 모달로 확인한다.
 
 ### Auth (`/auth`)
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/auth/{provider}/login` | 소셜 로그인 시작 (kakao, google, naver) |
-| GET | `/auth/{provider}/callback` | 소셜 로그인 콜백 (code 교환 → JWT 발급) |
-| POST | `/auth/kakao/link-code` | 카카오톡 연동 코드 발급 |
-| GET | `/auth/me` | 현재 로그인 사용자 정보 |
-| POST | `/auth/logout` | 로그아웃 (클라이언트 토큰 삭제) |
+| GET | `/auth/{provider}/login` | 소셜 OAuth 시작(`kakao`, `google`, `naver`). 선택적인 `redirect_uri`를 검증 후 state에 보존 |
+| GET | `/auth/{provider}/callback` | provider code 교환 → 사용자 upsert → 자체 JWT 발급 → 웹 또는 앱 딥링크 복귀 |
+| POST | `/auth/kakao/link-code` | 로그인 사용자의 카카오톡 채널 연동 코드 발급 |
+| GET | `/auth/me` | Bearer JWT로 현재 사용자 정보 조회 |
+| POST | `/auth/logout` | 성공 응답 반환. 실제 로그아웃은 클라이언트 SecureStore 토큰 삭제에 기반 |
 
-> 인증 토큰은 외부 IdP 없이 백엔드가 자체 발급하는 **HS256 JWT**(기본 7일 만료)다. 모바일 클라이언트는 API가 401을 반환하면 저장 토큰을 삭제하고 로그인 화면으로 이동한다(자동 로그아웃). Cognito는 앱 인증 경로에서 제거되어 소셜 OAuth(Google/Kakao/Naver) 직접 구현으로 단일화됨.
+현재 운영 인증은 직접 소셜 OAuth + 백엔드 자체 HS256 JWT(기본 7일 만료) 방식이다. 앱은 `redirect_uri=bada://auth` 또는 Expo 링크를 전달하고, 백엔드는 허용된 scheme·host만 복귀 주소로 사용한다. 모바일 API 클라이언트는 401 응답 시 저장 토큰을 삭제하고 로그인 화면으로 이동한다. 서버 측 refresh token과 JWT revocation은 아직 구현되지 않았다.
 
 ### Kakao Skill (`/kakao`)
 | Method | Path | Purpose |
@@ -71,23 +80,25 @@ All endpoints are prefixed based on their router registration in `main.py`.
 ### Community (`/community`)
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/community/posts` | 게시글 피드 (카테고리/언어 필터) |
-| POST | `/community/posts` | 게시글 작성 |
+| GET | `/community/posts` | 게시글 피드. category, sort, 검색어, 내 글 필터 지원 |
+| POST | `/community/posts` | 게시글 작성. 제목·본문 안전검사 적용 |
 | GET | `/community/posts/{post_id}` | 게시글 상세 |
-| PATCH | `/community/posts/{post_id}` | 게시글 수정 |
-| DELETE | `/community/posts/{post_id}` | 게시글 삭제 |
+| PATCH | `/community/posts/{post_id}` | 작성자 게시글 수정 |
+| DELETE | `/community/posts/{post_id}` | 작성자 게시글 soft delete |
 | GET | `/community/posts/{post_id}/comments` | 댓글 목록 |
-| POST | `/community/posts/{post_id}/comments` | 댓글 작성 |
+| POST | `/community/posts/{post_id}/comments` | 댓글·답글 작성 및 안전검사 |
 | GET | `/community/comments/{comment_id}` | 댓글 상세 |
-| PATCH | `/community/comments/{comment_id}` | 댓글 수정 |
-| DELETE | `/community/comments/{comment_id}` | 댓글 삭제 |
-| POST | `/community/reactions` | 좋아요/저장 토글 |
-| POST | `/community/translate` | 게시글/댓글 번역 요청 |
+| PATCH | `/community/comments/{comment_id}` | 작성자 댓글 수정 |
+| DELETE | `/community/comments/{comment_id}` | 작성자 댓글 soft delete |
+| POST | `/community/reactions` | 게시글·댓글 좋아요, 게시글 저장 토글 |
+| POST | `/community/translate` | 게시글 제목·본문 또는 댓글 번역. 캐시된 구형 게시글 번역도 제목을 보정 |
 | POST | `/community/reports` | 신고 접수 |
-| GET | `/community/reports` | 신고 목록 (관리자) |
-| PATCH | `/community/reports/{report_id}` | 신고 처리 |
-| POST | `/community/safety-check` | 게시글 안전성 사전 검사 |
-| GET | `/community/boards` | 게시판 카테고리 목록 |
+| GET | `/community/reports` | 신고 목록 |
+| PATCH | `/community/reports/{report_id}` | 신고 상태 변경 |
+| POST | `/community/safety-check` | 개인정보와 법률 판단 요구를 게시 전에 검사 |
+| GET | `/community/boards` | 카테고리별 게시판 요약 |
+
+커뮤니티는 사용자 ID로 소유권을 확인한다. 일반 욕설·불만을 일괄 차단하지 않고 개인정보 노출과 법률 단정 요청을 중심으로 차단 또는 수정 안내한다.
 
 ### Health/System (루트)
 | Method | Path | Purpose |
@@ -114,7 +125,7 @@ All endpoints are prefixed based on their router registration in `main.py`.
 ## Data Models
 
 ### User
-- id(UUID), cognito_sub, email, phone_number, name, preferred_lang, nationality, provider, provider_id, status
+- id(UUID), email, phone_number, name, preferred_lang, nationality, provider, provider_id, status (cognito_sub는 Cognito 제거 이전의 nullable legacy column)
 
 ### Case
 - id(UUID), user_id(FK), title, issue_type, status(draft/analyzing/completed), workplace_name, employer_name, work_start_date, work_end_date, agreed_hourly_wage(원), agreed_weekly_hours, issue_types(JSON), primary_language
