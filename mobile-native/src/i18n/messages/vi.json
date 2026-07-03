@@ -209,6 +209,16 @@
       "fileBody": "Chọn PDF/tài liệu",
       "audio": "Âm thanh",
       "audioBody": "Chọn file ghi âm"
+    },
+    "agent": {
+      "title": "Tìm bằng chứng bằng AI",
+      "body": "Tự động tìm bằng chứng trong thư viện ảnh của bạn",
+      "doneTitle": "Đã quét xong bằng chứng",
+      "doneWithCandidates": "Đã quét {{scanned}} ảnh → {{candidates}} ứng viên → đã thêm {{uploaded}} ảnh.\nMáy chủ tự động phân loại và loại bỏ tài liệu không liên quan.",
+      "doneNoMatch": "Đã quét {{scanned}} ảnh nhưng không tìm thấy tệp liên quan.",
+      "autoRegistered": "AI tự động thêm",
+      "uploaded": "Đã tải lên qua trợ lý",
+      "permissionError": "Vui lòng kiểm tra quyền truy cập thư viện ảnh."
     }
   },
   "analysis": {

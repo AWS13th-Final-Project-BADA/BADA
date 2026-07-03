@@ -209,6 +209,16 @@
       "fileBody": "Select PDF/document",
       "audio": "Audio",
       "audioBody": "Select recording"
+    },
+    "agent": {
+      "title": "AI evidence finder",
+      "body": "We automatically find evidence in your gallery",
+      "doneTitle": "Scan complete",
+      "doneWithCandidates": "Scanned {{scanned}} → {{candidates}} candidates → {{uploaded}} added.\nThe server auto-classifies and excludes unrelated files.",
+      "doneNoMatch": "Scanned {{scanned}} images but found no relevant files.",
+      "autoRegistered": "Auto-added by AI",
+      "uploaded": "Agent upload complete",
+      "permissionError": "Please check gallery access permission."
     }
   },
   "analysis": {

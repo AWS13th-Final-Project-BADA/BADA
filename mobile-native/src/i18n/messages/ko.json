@@ -209,6 +209,16 @@
       "fileBody": "PDF/문서 선택",
       "audio": "음성 파일",
       "audioBody": "녹음 파일 선택"
+    },
+    "agent": {
+      "title": "AI 증거 탐색",
+      "body": "갤러리에서 증거를 자동으로 찾아드려요",
+      "doneTitle": "증거 탐색 완료",
+      "doneWithCandidates": "{{scanned}}장 스캔 → {{candidates}}장 후보 → {{uploaded}}장 등록 완료.\n서버에서 자동 분류 후 무관 자료는 제외됩니다.",
+      "doneNoMatch": "{{scanned}}장을 스캔했지만 관련 파일을 찾지 못했습니다.",
+      "autoRegistered": "AI 자동 등록",
+      "uploaded": "에이전트 업로드 완료",
+      "permissionError": "갤러리 접근 권한을 확인해주세요."
     }
   },
   "analysis": {
