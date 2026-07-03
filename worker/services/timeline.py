@@ -66,11 +66,18 @@ def build_timeline(ctx: dict, result: dict, llm, translator, target_lang: str = 
 
     from rules import guardrails  # worker
 
-    # LLM 문장화 + 숫자 환각 가드(없는 금액 생성 시 결정론적 원문 복귀)
-    descriptions: list[str] = []
-    for e in raw:
-        desc = _ss(llm, e["fact"], target_lang)
-        descriptions.append(guardrails.keep_grounded(desc, e["fact"]))
+    # LLM 문장화 — 이벤트별 호출을 병렬 처리(순차 시 이벤트 수만큼 Bedrock 지연 누적).
+    # ThreadPoolExecutor.map은 입력 순서를 보존하므로 raw 순서와 1:1 정렬이 유지된다.
+    # 이후 숫자 환각 가드(없는 금액 생성 시 결정론적 원문 복귀)를 순서대로 적용.
+    if raw:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=min(len(raw), 8), thread_name_prefix="tl-llm") as _ex:
+            summarized = list(_ex.map(lambda e: _ss(llm, e["fact"], target_lang), raw))
+    else:
+        summarized = []
+    descriptions: list[str] = [
+        guardrails.keep_grounded(summarized[i], raw[i]["fact"]) for i in range(len(raw))
+    ]
 
     # 배치 번역(효율적, 순서·길이 보존, ko면 원문 그대로). 실패 시 원문 폴백.
     try:

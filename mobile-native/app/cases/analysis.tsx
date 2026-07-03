@@ -72,7 +72,7 @@ export default function AnalysisScreen() {
           } catch {
             // 아직 완료 안 됨 — 계속 폴링
           }
-        }, 5000);
+        }, 2000);
 
         // 최대 3분 후 타임아웃
         setTimeout(() => {
