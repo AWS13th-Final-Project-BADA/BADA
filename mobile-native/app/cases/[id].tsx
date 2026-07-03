@@ -34,8 +34,8 @@ export default function CaseDetailScreen() {
 
   async function handleDelete() {
     Alert.alert(
-      "사건을 삭제합니다.",
-      "이 사건을 삭제할까요?",
+      t("cases.deleteTitle"),
+      t("cases.deleteBody"),
       [
         { text: t("common.cancel"), style: "cancel" },
         {
@@ -56,8 +56,8 @@ export default function CaseDetailScreen() {
 
   async function handleDeleteEvidence(eid: string, name: string) {
     Alert.alert(
-      "자료를 삭제합니다.",
-      `"${name}"을(를) 삭제할까요?`,
+      t("cases.deleteEvidenceTitle"),
+      t("cases.deleteEvidenceBody", { name }),
       [
         { text: t("common.cancel"), style: "cancel" },
         {

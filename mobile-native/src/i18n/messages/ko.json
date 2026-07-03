@@ -1,5 +1,7 @@
 {
   "common": {
+    "user": "사용자",
+    "won": "{{amount}}원",
     "appName": "BADA",
     "tagline": "흩어진 자료를 상담 가능한 사건 파일로 정리합니다.",
     "login": "로그인",
@@ -33,6 +35,7 @@
     "noNotifications": "알림이 없습니다"
   },
   "home": {
+    "greetingName": "{{name}} 님",
     "badge": "상담 준비",
     "title": "자료를 모으면 상담 준비가 쉬워집니다",
     "subtitle": "계약서, 급여명세서, 입금내역, 대화 캡처를 사건별로 묶어 Evidence Pack으로 정리합니다.",
@@ -86,6 +89,10 @@
     }
   },
   "login": {
+    "failed": "로그인 실패",
+    "tokenError": "토큰을 받지 못했어요. 계정을 다시 선택해 주세요.",
+    "terms": "이용약관",
+    "privacy": "개인정보처리방침",
     "title": "로그인하고 내 사건을 안전하게 관리하세요",
     "subtitle": "업로드한 자료와 분석 결과를 내 계정에 보관합니다.",
     "google": "구글로 시작하기",
@@ -97,6 +104,15 @@
     "trustNoJudge": "법률 판단 없음"
   },
   "cases": {
+    "noPeriod": "기간 미입력",
+    "noWage": "임금 미입력",
+    "saveError": "저장 실패",
+    "wagePlaceholder": "예: 10030",
+    "shortLabel": "사건 {{id}}",
+    "deleteTitle": "사건을 삭제합니다.",
+    "deleteBody": "이 사건을 삭제할까요?",
+    "deleteEvidenceTitle": "자료를 삭제합니다.",
+    "deleteEvidenceBody": "\"{{name}}\"을(를) 삭제할까요?",
     "title": "내 사건",
     "create": "사건 만들기",
     "newTitle": "사건 정보",
@@ -169,6 +185,8 @@
     }
   },
   "upload": {
+    "showMore": "{{count}}개 더 보기",
+    "showLess": "접기",
     "title": "자료 업로드",
     "subtitle": "사진, PDF, 음성녹음까지 사건별로 모을 수 있습니다.",
     "dropzone": "파일 선택",
@@ -222,6 +240,7 @@
     }
   },
   "analysis": {
+    "fileIndex": "파일 {{index}}",
     "title": "분석 결과",
     "preAnalysis": "사전 분석 결과",
     "expected": "예상 금액",
@@ -247,6 +266,11 @@
     "runError": "분석을 실행하지 못했습니다."
   },
   "gps": {
+    "checkArea": "구역 확인",
+    "dailySummary": "일별 출근 요약",
+    "dayStat": "IN {{in}}회 · OUT {{out}}회 · {{hours}}시간",
+    "dayInOut": "출근 {{first}} → 퇴근 {{last}}",
+    "recentLogs": "최근 로그 ({{count}}건)",
     "title": "GPS 기록",
     "subtitle": "근무지 주변 출근 정황을 사건 자료와 함께 정리합니다.",
     "start": "기록 시작",

@@ -81,7 +81,7 @@ export default function NewCase() {
         router.replace({ pathname: "/cases/[id]", params: { id: created.id } });
       }
     } catch (e: any) {
-      Alert.alert("저장 실패", String(e?.message ?? e));
+      Alert.alert(t("cases.saveError"), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -147,7 +147,7 @@ export default function NewCase() {
               onChangeText={(value) =>
                 set("agreed_hourly_wage", value ? parseInt(value.replace(/[^0-9]/g, ""), 10) : null)
               }
-              placeholder="예: 10030"
+              placeholder={t("cases.wagePlaceholder")}
               placeholderTextColor={stitch.outline}
               keyboardType="number-pad"
             />

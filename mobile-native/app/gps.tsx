@@ -178,7 +178,7 @@ export default function GpsScreen() {
 
         <View style={styles.sectionTop}>
           <Text style={styles.sectionTitle}>{t("gps.saveWorkplace")}</Text>
-          <Text style={styles.sectionAction}>구역 확인</Text>
+          <Text style={styles.sectionAction}>{t("gps.checkArea")}</Text>
         </View>
         <View style={styles.mapCard}>
           <RemoteImage uri={stitchImages.map} style={styles.mapImage} />
@@ -235,16 +235,16 @@ export default function GpsScreen() {
         {/* 일별 출근 요약 */}
         {summary.length > 0 && (
           <View style={{ marginTop: 18, gap: 8 }}>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: stitch.text }}>일별 출근 요약</Text>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: stitch.text }}>{t("gps.dailySummary")}</Text>
             {summary.slice(0, 7).map((day) => (
               <Card key={day.work_date} style={{ padding: 12, gap: 2 }}>
                 <Text style={{ fontWeight: "700", color: stitch.text }}>{day.work_date}</Text>
                 <Text style={{ color: stitch.muted, fontSize: 13 }}>
-                  IN {day.in_count}회 · OUT {day.out_count}회 · {day.estimated_hours}시간
+                  {t("gps.dayStat", { in: day.in_count, out: day.out_count, hours: day.estimated_hours })}
                 </Text>
                 {day.first_in && (
                   <Text style={{ color: stitch.outline, fontSize: 12 }}>
-                    출근 {day.first_in.split(" ")[1] || day.first_in} → 퇴근 {day.last_out?.split(" ")[1] || "—"}
+                    {t("gps.dayInOut", { first: day.first_in.split(" ")[1] || day.first_in, last: day.last_out?.split(" ")[1] || "—" })}
                   </Text>
                 )}
               </Card>
@@ -255,7 +255,7 @@ export default function GpsScreen() {
         {/* 최근 GPS 로그 */}
         {logs.length > 0 && (
           <View style={{ marginTop: 18, gap: 6 }}>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: stitch.text }}>최근 로그 ({logs.length}건)</Text>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: stitch.text }}>{t("gps.recentLogs", { count: logs.length })}</Text>
             {logs.slice(-10).reverse().map((log) => (
               <View key={log.id} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 3 }}>
                 <Text style={{ fontWeight: "700", fontSize: 12, width: 30, color: log.status === "IN_WORKPLACE" ? stitch.green : stitch.muted }}>

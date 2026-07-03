@@ -297,7 +297,7 @@ export default function UploadScreen() {
             {cases.slice(0, 4).map((item) => (
               <Pressable key={item.id} onPress={() => setActiveCaseId(item.id)}>
                 <Chip
-                  label={item.workplace_name || item.employer_name || `사건 ${item.id.slice(0, 4)}`}
+                  label={item.workplace_name || item.employer_name || t("cases.shortLabel", { id: item.id.slice(0, 4) })}
                   active={item.id === activeCaseId}
                 />
               </Pressable>
@@ -376,13 +376,13 @@ export default function UploadScreen() {
           ))}
           {files.length > 5 && !filesExpanded && (
             <Pressable style={styles.showMoreRow} onPress={() => setFilesExpanded(true)}>
-              <Text style={styles.showMoreText}>{files.length - 5}개 더 보기</Text>
+              <Text style={styles.showMoreText}>{t("upload.showMore", { count: files.length - 5 })}</Text>
               <MaterialIcons name="expand-more" size={20} color={stitch.blue} />
             </Pressable>
           )}
           {files.length > 5 && filesExpanded && (
             <Pressable style={styles.showMoreRow} onPress={() => setFilesExpanded(false)}>
-              <Text style={styles.showMoreText}>접기</Text>
+              <Text style={styles.showMoreText}>{t("upload.showLess")}</Text>
               <MaterialIcons name="expand-less" size={20} color={stitch.blue} />
             </Pressable>
           )}

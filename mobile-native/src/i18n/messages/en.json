@@ -1,5 +1,7 @@
 {
   "common": {
+    "user": "User",
+    "won": "₩{{amount}}",
     "appName": "BADA",
     "tagline": "Turn scattered records into a consultation-ready case file.",
     "login": "Login",
@@ -33,6 +35,7 @@
     "noNotifications": "No notifications"
   },
   "home": {
+    "greetingName": "{{name}}",
     "badge": "Consultation prep",
     "title": "Prepare your case without losing the details",
     "subtitle": "Collect contracts, payslips, deposits, and chats into one Evidence Pack.",
@@ -86,6 +89,10 @@
     }
   },
   "login": {
+    "failed": "Login failed",
+    "tokenError": "Couldn't get a token. Please select your account again.",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
     "title": "Login to keep your case safe",
     "subtitle": "Your uploads and analysis stay connected to your account.",
     "google": "Continue with Google",
@@ -97,6 +104,15 @@
     "trustNoJudge": "No legal judgment"
   },
   "cases": {
+    "noPeriod": "No period",
+    "noWage": "No wage",
+    "saveError": "Save failed",
+    "wagePlaceholder": "e.g. 10030",
+    "shortLabel": "Case {{id}}",
+    "deleteTitle": "Delete case",
+    "deleteBody": "Delete this case?",
+    "deleteEvidenceTitle": "Delete file",
+    "deleteEvidenceBody": "Delete \"{{name}}\"?",
     "title": "My cases",
     "create": "Create case",
     "newTitle": "Case information",
@@ -169,6 +185,8 @@
     }
   },
   "upload": {
+    "showMore": "Show {{count}} more",
+    "showLess": "Show less",
     "title": "Upload files",
     "subtitle": "Add photos, PDFs, and audio recordings to this case.",
     "dropzone": "Choose file",
@@ -222,6 +240,7 @@
     }
   },
   "analysis": {
+    "fileIndex": "File {{index}}",
     "title": "Analysis",
     "preAnalysis": "Preliminary analysis",
     "expected": "Expected",
@@ -247,6 +266,11 @@
     "runError": "Could not run analysis."
   },
   "gps": {
+    "checkArea": "Check area",
+    "dailySummary": "Daily attendance summary",
+    "dayStat": "IN {{in}} · OUT {{out}} · {{hours}}h",
+    "dayInOut": "In {{first}} → Out {{last}}",
+    "recentLogs": "Recent logs ({{count}})",
     "title": "GPS record",
     "subtitle": "Keep workplace attendance context with your case.",
     "start": "Start tracking",
