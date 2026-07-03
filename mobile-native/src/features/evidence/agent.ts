@@ -54,8 +54,8 @@ const EVIDENCE_KEYWORDS = [
 export async function scanGallery(config: AgentConfig): Promise<AgentResult> {
   const start = Date.now();
 
-  const { status } = await MediaLibrary.requestPermissionsAsync();
-  if (status !== "granted") {
+  const permission = await MediaLibrary.requestPermissionsAsync();
+  if (permission.status !== "granted") {
     throw new Error("갤러리 접근 권한이 필요합니다.");
   }
 
@@ -64,14 +64,26 @@ export async function scanGallery(config: AgentConfig): Promise<AgentResult> {
   // ponytail: endDate는 항상 현재 시점. 퇴직 후 캡처한 증거(카톡 스크린샷 등)도 포함해야 함.
   const endDate = new Date();
 
-  // 갤러리에서 기간 내 이미지/PDF 가져오기
-  const assets = await MediaLibrary.getAssetsAsync({
+  // 버그 수정: createdAfter/createdBefore를 네이티브에 넘기면 Android에서
+  // MediaStore.Images.Media.DATE_TAKEN(촬영일 EXIF) 컬럼만으로 필터링한다.
+  // 카톡/메신저/파일공유로 전달받은 이미지는 EXIF가 없어 DATE_TAKEN이 0/NULL로
+  // 남는 경우가 흔해, 실제로는 최근에 받은 파일인데도 통째로 걸러진다.
+  // 그래서 날짜 필터는 네이티브에 안 넘기고 전체를 가져온 뒤 JS에서
+  // creationTime(없으면 modificationTime)으로 직접 걸러 이 문제를 피한다.
+  const allAssets = await MediaLibrary.getAssetsAsync({
     mediaType: [MediaLibrary.MediaType.photo],
-    createdAfter: startDate.getTime(),
-    createdBefore: endDate.getTime(),
     first: 9999, // ponytail: 기간 필터가 실질적 제한 역할. 제한 없이 전부 스캔
     sortBy: [MediaLibrary.SortBy.creationTime],
   });
+
+  const startMs = startDate.getTime();
+  const endMs = endDate.getTime();
+  const filteredAssets = allAssets.assets.filter(a => {
+    const ts = a.creationTime || a.modificationTime;
+    if (!ts) return true; // 타임스탬프가 전혀 없으면 배제하지 않고 후보로 남긴다(놓치는 것보다 안전)
+    return ts >= startMs && ts <= endMs;
+  });
+  const assets = { ...allAssets, assets: filteredAssets };
 
   const totalScanned = assets.assets.length;
 
