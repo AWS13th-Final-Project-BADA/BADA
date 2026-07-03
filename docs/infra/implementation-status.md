@@ -6,8 +6,9 @@
 > ⏱️ 일정: **구현 완성 마감 `2026-07-03 (금)`**, **인프라·서비스 유지 종료 `2026-07-10 (금)`**.
 > 7/10 이후 비용 리소스 종료 예정.
 >
-> 📅 기준일(last-updated): **2026-07-03** — 3-tier 네트워크 격리(ALB public / ECS+RDS private / NAT egress) 적용 반영.
-> ⚠️ 현재 문서는 **최종 dev/demo 환경** 기준이다. 실제 운영 전환 시에는 Dev/Prod를 별도 Terraform state·tfvars·Secret·DB·배포 승인 게이트로 분리하는 것을 후속 고도화 항목으로 둔다.
+> 📅 기준일(last-updated): **2026-07-03** — 3-tier 네트워크 격리와 Dev/Prod 환경 분리 적용 반영.
+> ⚠️ 현재 문서는 **dev 환경을 중심으로 실행 상태를 기록**하고, 하단 `Dev/Prod 환경 분리` 섹션에서 prod 구성 상태를 별도로 정리한다.
+> Dev/Prod는 Terraform state·tfvars·Secret·DB·도메인을 분리했으며, prod 전용 CD 파이프라인과 prod OAuth 콘솔 등록은 후속 항목이다.
 
 ## 1. 전체 요약
 
@@ -510,7 +511,7 @@ Pillar별 리스크:
 
 ## 10. Dev/Prod 환경 분리 (2026-07-03)
 
-멘토 피드백을 반영해 기존 dev 환경과 독립된 prod 환경을 추가했다. 이제 BADA는 **2개 환경(dev + prod)** 을 운영한다. (문서 상단 ⚠️의 "후속 고도화 항목"으로 두었던 Dev/Prod 분리가 실제 구현으로 전환된 것이다.)
+멘토 피드백을 반영해 기존 dev 환경과 독립된 prod 환경을 추가했다. 이제 BADA는 **2개 환경(dev + prod)** 을 운영한다. 이 섹션은 prod 구성 상태와 dev/prod 분리 기준을 별도로 기록한다.
 
 ### 환경 비교
 
