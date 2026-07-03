@@ -210,6 +210,39 @@ variable "s3_gateway_endpoint_enabled" {
   default     = true
 }
 
+# ─── ECS Private Subnet 격리 + NAT Gateway ──────────────────────────────────
+# 3-tier 격리(ALB=public / ECS=private / RDS=private)를 위한 토글.
+# nat_gateway_enabled : private subnet의 인터넷 egress 경로(NAT GW + EIP + route).
+#                       ECR pull, Bedrock/Transcribe/Translate, Secrets Manager,
+#                       CloudWatch Logs, SQS 등 아웃바운드가 이 경로로 나간다.
+# ecs_in_private_subnets : ECS 서비스(Backend/Worker/Prometheus/Grafana)를
+#                       private subnet으로 이전하고 public IP를 떼는 토글.
+#
+# ⚠️ 안전 원칙:
+#   1) ecs_in_private_subnets=true 는 nat_gateway_enabled=true 가 선행돼야 한다.
+#      (private subnet에 egress 경로가 없으면 ECR pull/AI 호출이 전부 실패)
+#   2) 문제 시 ecs_in_private_subnets=false 로 즉시 롤백(public subnet 복귀).
+#   3) 종료(7/10) 시 두 토글 모두 false → NAT/EIP 제거로 과금 정지.
+# 비용: NAT Gateway는 시간당 요금 + 데이터 처리 요금(유료). single_nat_gateway
+#       =true면 AZ 1개에만 NAT를 둬 비용을 절반으로 줄인다(가용성 트레이드오프).
+variable "nat_gateway_enabled" {
+  description = "NAT Gateway(+EIP) 생성 및 private route table의 0.0.0.0/0 경로 추가. private subnet egress용. 단일 private route table 구조라 NAT 1개(single-NAT)로 구성. 종료 시 false로 되돌리면 제거."
+  type        = bool
+  default     = false
+}
+
+variable "ecs_in_private_subnets" {
+  description = "ECS 서비스를 private subnet으로 이전하고 public IP를 제거. true 전에 nat_gateway_enabled=true 필요. 문제 시 false로 롤백."
+  type        = bool
+  default     = false
+
+  validation {
+    # private subnet에 egress 경로(NAT)가 없으면 ECR pull/AI 호출이 전부 실패한다.
+    condition     = !var.ecs_in_private_subnets || var.nat_gateway_enabled
+    error_message = "ecs_in_private_subnets=true 는 nat_gateway_enabled=true 를 선행해야 한다 (private subnet egress 경로 필요)."
+  }
+}
+
 variable "s3_lifecycle_enabled" {
   description = "Evidence/Report 버킷 Lifecycle(IA/Glacier 전환) 활성화. 종료 시 false로 되돌리면 룰 제거."
   type        = bool

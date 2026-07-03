@@ -20,6 +20,11 @@ locals {
     length(var.alarm_email_endpoints) > 0 ? [aws_sns_topic.alarms.arn] : []
   )
 
+  # ECS 서비스 네트워크 배치: ecs_in_private_subnets=true면 private subnet + public IP 제거.
+  # (private 이전 전에 nat_gateway_enabled=true로 egress 경로가 있어야 한다)
+  ecs_service_subnets  = var.ecs_in_private_subnets ? aws_subnet.private[*].id : aws_subnet.public[*].id
+  ecs_assign_public_ip = var.ecs_in_private_subnets ? false : true
+
   common_tags = {
     Project     = var.project_name
     Environment = var.environment

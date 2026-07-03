@@ -362,9 +362,9 @@ resource "aws_ecs_service" "backend" {
   }
 
   network_configuration {
-    subnets          = aws_subnet.public[*].id
+    subnets          = local.ecs_service_subnets
     security_groups  = [aws_security_group.ecs.id]
-    assign_public_ip = true
+    assign_public_ip = local.ecs_assign_public_ip
   }
 
   load_balancer {
@@ -425,9 +425,9 @@ resource "aws_ecs_service" "worker" {
   }
 
   network_configuration {
-    subnets          = aws_subnet.public[*].id
+    subnets          = local.ecs_service_subnets
     security_groups  = [aws_security_group.ecs.id]
-    assign_public_ip = true
+    assign_public_ip = local.ecs_assign_public_ip
   }
 
   dynamic "service_registries" {
@@ -462,9 +462,9 @@ resource "aws_ecs_service" "frontend" {
   }
 
   network_configuration {
-    subnets          = aws_subnet.public[*].id
+    subnets          = local.ecs_service_subnets
     security_groups  = [aws_security_group.ecs.id]
-    assign_public_ip = true
+    assign_public_ip = local.ecs_assign_public_ip
   }
 
   load_balancer {
