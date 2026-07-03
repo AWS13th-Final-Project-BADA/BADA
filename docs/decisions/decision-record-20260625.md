@@ -174,8 +174,5 @@
 | 문서 | 위치 |
 |------|------|
 | 예산 활용 가이드라인 | `C:\AIDLC\budget-upgrade-prompt.md` |
-| 프로덕션 로드맵 | `docs/infra/production-roadmap.md` |
-| 고가용성 설계 | `docs/infra/high-availability-design.md` |
-| Terraform 분리 설계 | `docs/infra/terraform-refactoring.md` |
+| 인프라 현황·로드맵·HA·Terraform 구조·인프라 검증 | `docs/infra/implementation-status.md` |
 | 팀 역할 배분 | `aidlc-docs/team-task-distribution.md` |
-| 인프라 검증 현황 | `docs/infra/verification-0625.md` |

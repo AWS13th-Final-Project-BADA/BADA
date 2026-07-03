@@ -203,7 +203,7 @@ evidences = session.query(Evidence).filter(
 
 - PDF 생성(WeasyPrint 한글 폰트 임베딩)이 CPU-bound → CPU 4배로 ~50초 → ~12-15초 단축 기대
 - 비용: desired=1 기준 약 +$8/2주
-- 산정 근거 문서: `docs/infra/worker-cpu-sizing.md`
+- 산정 근거 문서: `docs/infra/worker-sizing.md`
 
 ---
 
@@ -259,7 +259,7 @@ evidences = session.query(Evidence).filter(
   - Worker Memory 2048 MiB, 가용 ~1800 MB
   - 50건 동시 피크: ~600 MB (가용의 33%, 마진 67%)
   - 마진 기준: 40% 이상 확보 → 50건은 충족
-- **근거 문서**: `docs/infra/ocr-parallel-sizing.md`
+- **근거 문서**: `docs/infra/worker-sizing.md`
 
 ### 실측 결과
 - 11건 동시 처리: **~70초** (재시도 포함, 순차였으면 220초)
