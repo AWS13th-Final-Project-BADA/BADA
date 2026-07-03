@@ -30,7 +30,8 @@ export default function UploadScreen() {
   const routeCaseId = typeof caseId === "string" && caseId.trim() ? caseId : null;
   const [activeCaseId, setActiveCaseId] = useState<string | null>(routeCaseId);
   const [cases, setCases] = useState<Case[]>([]);
-  const [loadingCases, setLoadingCases] = useState(!routeCaseId);
+  // routeCaseId 유무와 무관하게 이제 항상 loadCases()가 비동기로 실행되므로 true로 시작.
+  const [loadingCases, setLoadingCases] = useState(true);
   const [category, setCategory] = useState<Category>("auto" as Category);
   const [busy, setBusy] = useState(false);
   const [files, setFiles] = useState<Array<{ name: string; status: string; uri?: string }>>([]);
@@ -42,21 +43,20 @@ export default function UploadScreen() {
 
   useEffect(() => {
     let mounted = true;
-    if (routeCaseId) {
-      setActiveCaseId(routeCaseId);
-      setLoadingCases(false);
-      return () => {
-        mounted = false;
-      };
-    }
+    setActiveCaseId(routeCaseId ?? null);
 
+    // 버그 수정: routeCaseId가 있는 경로(사건 상세 → 업로드)에서도 cases를 채워야
+    // selectedCase(useMemo)가 해당 사건을 찾을 수 있다. 이전에는 이 분기에서
+    // loadCases()를 호출하지 않아 cases가 항상 빈 배열로 남았고, selectedCase가
+    // 항상 null이 되어 AI 증거 탐색이 work_start_date 대신 폴백 날짜(2026-01-01)로
+    // 스캔 범위를 계산하는 문제가 있었다(실제 근무기간과 무관하게 좁은 범위만 스캔).
     async function loadCases() {
       try {
         const data = await fetchApi<Case[]>("/cases");
         if (!mounted) return;
         const list = Array.isArray(data) ? data : [];
         setCases(list);
-        setActiveCaseId(list[0]?.id ?? null);
+        if (!routeCaseId) setActiveCaseId(list[0]?.id ?? null);
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) router.replace("/login");
       } finally {
