@@ -156,7 +156,7 @@ worker/
 cd worker && python -m pytest tests/test_translate.py tests/test_translation_service.py -v
 ```
 
-- 131개 테스트 중 번역 관련 ~30개
+- 번역 관련 테스트 ~30개 (Worker 전체 ~168개 + property-based 13개)
 - MockTranslator(원문 그대로 반환)로 전체 파이프라인이 로컬에서 동작
 - 실제 번역 품질은 `PROVIDER_MODE=aws`로 수동 확인
 

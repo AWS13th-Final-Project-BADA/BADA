@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-06-19T17:26:13+09:00
-- **Current Stage**: POST-MVP — 프로덕션 고도화 (인프라 고도화 #4/#11/#13/#15/#16 반영 2026-07-02; #5/#12/#18 보류)
+- **Current Stage**: POST-MVP — 프로덕션 고도화 (인프라 고도화 #4/#11/#13/#15/#16 반영 2026-07-02; #12 Private Subnet+NAT apply 2026-07-03; #18 NAT egress로 갈음; #5 TF 분리만 보류)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -74,12 +74,14 @@
   - [x] #20 APK 배포 파이프라인 (`build-mobile.yml` EAS Build + `eas.json` preview/production, **수동 `workflow_dispatch` 전용**)
   - [x] Grafana Infrastructure 대시보드 수정 (ECS/ContainerInsights 적용 완료)
   - [x] Prometheus Worker 타겟 추가 (9090 포트 + Cloud Map 적용 완료)
-  - [~] Phase 2~4 인프라 고도화 — #4/#11/#13/#15 완료(2026-07-02, TF 분리 없이 적용). #5(TF 분리)/#12(Private Subnet+NAT)/#18(VPC Endpoint)은 종료 기간·비용 대비 보류
+  - [x] #12 ECS Private Subnet + NAT Gateway (3-tier: ALB=public / ECS=private / RDS=private, 토글 `nat_gateway_enabled`+`ecs_in_private_subnets` + validation·즉시 롤백·종료 경로) — PR #231, apply 완료 2026-07-03
+  - [x] #18 VPC Endpoint — Interface(SQS/ECR) 대신 NAT Gateway egress로 갈음(S3는 Gateway Endpoint 무료 유지). 별도 Interface 엔드포인트 미도입(기능 불필요)
+  - [~] Phase 2~4 인프라 고도화 — #4/#11/#13/#15(2026-07-02) + #12(2026-07-03) 완료(TF 분리 없이 적용). #5(TF 분리)만 종료 기간·state mv 리스크 대비 보류 유지
   - [x] #9 k6 부하 검증 (Backend CPU 1→2, Worker SQS 적체 1→3 scale-out, 읽기 여정 I/O 바운드) — PR #212/#213, load-test/
 
 ## Post-MVP 의사결정 (2026-06-25 확정)
 - 상세: `docs/decision-record-20260625.md`
 - 웹 프론트엔드 제거 → mobile-native 전환 (deploy-dev-frontend.yml 삭제, frontend_enabled=false 예정)
 - 즉시 실행: 19(모바일 로그인 E2E), 20(APK 배포), 3(행 수준 인가), 6(모델 비교), 10(X-Ray), 14(구조화 로깅), 16(TF Plan PR), 17(CI 강화)
-- TF 분리 후 후보: 2·7·8(완료), **4·11·13·15(완료 — 2026-07-02, TF 분리 없이 적용)**, 5·12·18(보류 — 종료 기간·비용 대비 위험 초과)
+- TF 분리 후 후보: 2·7·8(완료), **4·11·13·15(완료 — 2026-07-02, TF 분리 없이 적용)**, **12(완료 — 2026-07-03, Private Subnet+NAT, 토글 기반 apply)**, 18(NAT egress로 갈음 — Interface 엔드포인트 미도입), 5(보류 — TF 분리 state mv 리스크 초과)
 - 최종 검증: 9(k6 부하 테스트) **완료(2026-07-02)** — Backend CPU 1→2 + Worker SQS 적체(Visible 44k) 1→3 scale-out 실증, 읽기 여정 I/O 바운드 확인 (PR #212/#213)

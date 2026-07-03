@@ -142,7 +142,7 @@ Speaker 0: 지난달에도 같은 문제가 있었는데, 이번에도 늦어지
 | `inline` (기본) | Backend 프로세스 안에서 직접 전사 (백그라운드 스레드) | ECS 단일 Task, 로컬 개발 |
 | `sqs` | SQS에 메시지 보내고 Worker가 소비 | Worker Task가 따로 있을 때 |
 
-현재 ECS 환경: `inline` 모드 (Worker Task `desired=0`인 상태에서도 동작)
+현재 ECS 환경: `inline` 모드 (Backend가 직접 전사 — Worker Task와 무관하게 동작)
 
 ---
 

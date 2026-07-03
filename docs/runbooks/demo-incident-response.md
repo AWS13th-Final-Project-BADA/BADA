@@ -13,7 +13,7 @@ CLUSTER=bada-dev-cluster
 aws ecs describe-services \
   --region "$REGION" \
   --cluster "$CLUSTER" \
-  --services bada-dev-backend bada-dev-worker bada-dev-frontend bada-dev-prometheus bada-dev-grafana \
+  --services bada-dev-backend bada-dev-worker bada-dev-prometheus bada-dev-grafana \
   --query 'services[].{service:serviceName,desired:desiredCount,running:runningCount,rollout:deployments[0].rolloutState}' \
   --output table
 
@@ -24,24 +24,24 @@ aws cloudwatch describe-alarms \
   --output text
 
 curl -fsS https://api.badasoft.com/health
-curl -fsS https://badasoft.com/api/health
+curl -fsS https://badasoft.com/health   # 웹 프론트 제거됨 → Backend static 폴백
 ```
 
 정상 기준:
 
-- ECS 5개 서비스 `desired=running`, rollout `COMPLETED`
+- ECS 4개 서비스 `desired=running`, rollout `COMPLETED` (웹 프론트 제거됨)
 - 활성 CloudWatch Alarm 없음
 - Main Queue와 DLQ에 비정상 잔여 메시지 없음
-- Backend와 Frontend health 200
+- Backend health 200 (badasoft.com은 Backend static 폴백)
 
 ## 2. 로그인 장애
 
 | 구분 | 확인 내용 |
 | --- | --- |
-| 경로 | Cognito Hosted UI·Google IdP → `api.badasoft.com` → Backend |
+| 경로 | 소셜 OAuth(구글/카카오/네이버) `/auth/{provider}/login` → provider → `/callback` → 자체 JWT 발급 → `bada://auth` 딥링크 |
 | Alarm | ALB Target 5xx, Unhealthy Target, Backend CPU·Memory |
-| Logs | `/aws/ecs/bada-dev/backend`의 `auth`, `cognito`, `callback`, `JWT`, `401`, `403` |
-| 주요 원인 | callback/logout URL, CORS, `AUTH_MODE`, JWKS 검증, Backend 장애 |
+| Logs | `/aws/ecs/bada-dev/backend`의 `auth`, `callback`, `JWT`, `401`, `403` |
+| 주요 원인 | provider redirect_uri/client secret, CORS, `AUTH_MODE`, 딥링크 복귀 실패, Backend 장애 |
 | 복구 | 설정 확인 또는 Backend rollback 후 HTTPS health 검증 |
 
 실제 사용자 로그인 E2E가 완료되기 전까지 callback 이후 앱 복귀 문제는 인증·모바일 담당과 함께 판정한다.
@@ -50,10 +50,10 @@ curl -fsS https://badasoft.com/api/health
 
 | 구분 | 확인 내용 |
 | --- | --- |
-| 경로 | Frontend·앱 → Backend presigned URL → Evidence S3 |
-| Alarm | Frontend Unhealthy Target, Frontend CPU·Memory, ALB Target 5xx |
-| Logs | `/aws/ecs/bada-dev/frontend`, `/aws/ecs/bada-dev/backend` |
-| 주요 원인 | presigned URL 만료, S3·KMS 권한, Frontend 또는 Backend 장애 |
+| 경로 | 모바일 앱 → Backend presigned URL → Evidence S3 |
+| Alarm | Backend Unhealthy Target, Backend CPU·Memory, ALB Target 5xx |
+| Logs | `/aws/ecs/bada-dev/backend` |
+| 주요 원인 | presigned URL 만료, S3·KMS 권한, Backend 장애 |
 | 복구 | 서비스 rollback 또는 ECS Task Role의 S3·KMS 권한 점검 |
 
 객체 저장과 암호화를 확인한다.

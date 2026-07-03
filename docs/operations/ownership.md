@@ -13,7 +13,7 @@
 | 스키마 | `backend/app/schemas*.py` | ✅ API/LLM 출력 |
 | 규칙 엔진 | `worker/rules/*` | ✅ 테스트됨(차액·공제·누락·지오펜스) |
 | 파이프라인 | `worker/pipeline.py`, `worker/services/*` | ✅ provider 호출 골격 |
-| 인증 seam | `backend/app/deps.py` | ✅ 데모, Cognito 교체점 |
+| 인증 seam | `backend/app/deps.py` | ✅ 소셜 OAuth(구글/카카오/네이버) + 자체 JWT. Cognito는 미사용 레거시 |
 | 스토리지 seam | `backend/app/services/storage.py` | ✅ 로컬FS, S3 교체점 |
 | 에러/로깅 | `backend/app/errors.py`, `main.py` | ✅ |
 | 프론트 | `backend/app/static/index.html` | ✅ 단일페이지(API 연결) |
@@ -42,8 +42,8 @@
 
 ## 4) 인증 담당 — 로그인
 
-- **구현할 것**: `backend/app/deps.py:get_current_user` 의 `auth_mode=="cognito"` 분기
-- **전환**: `AUTH_MODE=cognito`, Cognito 설정값(`config.py`)
+- **구현된 것**: 소셜 OAuth(`/auth/{provider}/login`·`/callback`, `auth_service.py`) + 자체 HS256 JWT 발급/검증, `bada://auth` 딥링크 토큰 반환
+- **전환**: `AUTH_MODE=oauth` (Cognito Hosted UI는 미사용 레거시 — `data.tf` 리소스만 잔존)
 - **고정**: 라우터는 이미 `Depends(get_current_user)` 사용 → 라우터 수정 불필요.
 
 ## 5) 스토리지/인프라 담당 — 파일·배포
@@ -52,9 +52,9 @@
 - **참고**: `docs/infra/implementation-status.md`
 - **전환**: `STORAGE_MODE=s3`, `DATABASE_URL`을 Postgres로.
 - **운영 기준**:
-  - `ALB/ECS public subnet`, `RDS private subnet`
-  - `NAT Gateway 미사용`
-  - `RDS Single-AZ`
+  - `ALB public subnet / ECS·RDS private subnet` (3-tier, 2026-07-03 적용)
+  - `단일 NAT Gateway egress + S3 Gateway Endpoint(무료)` (토글: nat_gateway_enabled + ecs_in_private_subnets)
+  - `RDS Multi-AZ (encrypted, cutover 완료 — 원본 Single-AZ는 rollback 보존)`
   - `Secrets Manager + SSM Parameter Store 분리`
   - `CloudWatch Logs/Alarms`, 짧은 로그 보존기간
 
