@@ -13,6 +13,8 @@
 5. [인프라 / 배포](#5-인프라--배포)
 6. [모바일 빌드 / 개발환경](#6-모바일-빌드--개발환경)
 7. [개발 툴링 (MCP, 로컬환경)](#7-개발-툴링-mcp-로컬환경)
+8. [AI 챗봇 / RAG / Guardrails](#8-ai-챗봇--rag--guardrails)
+9. [Cognito / 소셜 로그인](#9-cognito--소셜-로그인)
 
 ---
 
@@ -350,6 +352,78 @@
 - `npx cap add android` 텔레메트리 응답 대기로 타임아웃 → `npx cap telemetry off` 실행 후 재시도.
 - Android Studio Gradle 빌드 실패(`capacitor.settings.gradle` 없음) → `npx cap sync android` 미실행이 원인, `www/` 폴더 생성 후 sync.
 - `@transistorsoft/capacitor-background-geolocation` 설치 실패 → 유료 플러그인이라 공개 레지스트리에 없음. 무료 `@capacitor/geolocation`으로 통일.
+
+---
+
+## 8. AI 챗봇 / RAG / Guardrails
+
+### 8-1. Bedrock 연결 후에도 템플릿 답변만 반환
+
+**증상**: `AI_CHAT_MODE=bedrock`과 AWS 자격 증명이 정상인데도 응답의 `ai_provider`가 `bedrock_fallback`으로 표시되고 질문과 무관한 템플릿 답변이 반복됨.
+
+**원인**: 설정한 Claude 모델은 foundation model ID를 사용한 On-Demand 호출을 지원하지 않고 inference profile을 요구했다. 초기 `BEDROCK_MODEL_ID`가 `anthropic.claude-opus-4-8`로 설정돼 `InvokeModel`이 실패했지만, 오케스트레이터가 예외를 템플릿 fallback으로 전환해 연결 실패가 사용자 화면에서는 정상 응답처럼 보였다.
+
+**해결**: `list-inference-profiles`로 리전에서 활성화된 profile을 확인하고 모델 ID를 `global.anthropic.claude-opus-4-8`로 변경했다. AWS CLI 직접 호출과 `llm_service` 단위 호출을 분리해 검증하고 응답 메타데이터의 `ai_provider`로 실제 Bedrock 응답과 fallback을 구분했다.
+
+### 8-2. Claude 모델별 요청 파라미터 차이와 JSON 응답 절단
+
+**증상**: Bedrock 직접 호출에서 ``temperature` is deprecated for this model` 오류가 발생했고, 베트남어처럼 출력이 길어진 요청에서는 `JSONDecodeError: Unterminated string`이 발생함.
+
+**원인**: Claude 모델 교체 후에도 이전 모델용 `temperature` 파라미터를 전송했다. 또한 답변과 `next_actions`를 하나의 JSON으로 생성하면서 출력 토큰 한도에 걸린 응답을 `json.loads()`로 즉시 파싱해, JSON 문자열이 중간에서 잘리면 전체 호출이 실패했다.
+
+**해결**: 해당 모델에서 지원하지 않는 `temperature`를 요청에서 제거하고 출력 토큰 한도를 조정했다. LLM 호출을 서비스 함수로 직접 실행해 원시 오류를 먼저 확인하도록 진단 절차를 분리하고, 파싱 실패 시 언어별 안전 fallback으로 전환하도록 보강했다.
+
+### 8-3. 다국어 질문에 답변 일부가 한국어로 혼합
+
+**증상**: 베트남어 질문의 본문은 베트남어로 생성됐지만 `next_actions`, 면책문구 또는 fallback 문장은 한국어로 표시됨. 전문용어도 번역 과정에서 원문 의미를 확인하기 어려웠음.
+
+**원인**: LLM 본문에는 감지 언어를 전달했지만, 후처리 단계의 행동 제안·면책문구·차단 fallback은 한국어 상수로 생성했다. 즉, 생성 모델과 규칙 기반 후처리가 서로 다른 언어 정책을 사용했다.
+
+**해결**: `language_service.py`에서 입력 언어를 판별하고 답변 생성부터 fallback, 행동 제안, 면책문구까지 같은 언어 코드를 전달하도록 통일했다. `terminology_service.py`를 추가해 `급여명세서(bảng lương)`처럼 핵심 한국 노동 용어를 원문과 번역어로 함께 표시하고, 한국어·영어·베트남어 Guardrails 회귀 테스트를 추가했다.
+
+### 8-4. RAG 출처가 깨지거나 화면에서 사라짐
+
+**증상**: 답변 하단의 공식 문서 출처가 `???`로 표시되거나, 답변은 생성됐지만 관련 자료 버튼이 나타나지 않아 RAG 사용 여부를 사용자 화면에서 확인하기 어려웠음.
+
+**원인**: 초기 seed 데이터의 출처 메타데이터와 문자 인코딩이 일관되지 않았고, 모바일 응답 모델이 RAG source의 표시 필드를 모두 보존하지 않았다. Bedrock 실패 시 템플릿 fallback이 반환되는 경우에도 본문만 보면 RAG 응답처럼 보여 진단이 어려웠다.
+
+**해결**: 공식 문서를 `rag_documents`와 `rag_chunks`로 분리하고 출처·문서명·섹션 메타데이터를 정규화했다. pgvector 검색 결과를 응답의 `sources`에 명시하고 모바일에서 출처 버튼과 관련 근거 설명을 표시하도록 연결했다. `used_rag`, `ai_provider`, `fallback_used` 메타데이터로 실제 RAG·Bedrock 경로를 구분해 검증했다.
+
+---
+
+## 9. Cognito / 소셜 로그인
+
+### 9-1. Google 로그인 진입점이 Cognito와 기존 OAuth로 이중화
+
+**증상**: 같은 Google 로그인 버튼을 눌러도 환경에 따라 `/auth/google/login` 또는 `/auth/cognito/login`으로 이동했고, 배포 후에도 이전 로그인 화면이 나타남.
+
+**원인**: 기존 백엔드 OAuth 경로와 Cognito Hosted UI 경로가 동시에 남아 있었고, PWA 서비스워커가 이전 `auth.js`를 캐시해 새 라우팅 코드 배포 후에도 구 경로를 실행했다.
+
+**해결**: Google 버튼의 진입점을 한 경로로 통일하고 서비스워커 캐시 버전을 갱신했다. 인증 관련 정적 파일은 network-first로 조회하고 새 서비스워커 감지 시 갱신되도록 수정했다. 이후 최종 인증 구조는 Cognito를 제거하고 소셜 OAuth 후 백엔드 JWT를 발급하는 방식으로 단일화했다.
+
+### 9-2. 로그인 콜백이 `//` 또는 사건 목록으로 잘못 이동
+
+**증상**: OAuth 콜백 뒤 `GET //` 404가 발생하거나, 모바일 로그인 완료 후 앱이 아니라 `badasoft.com/ko/cases` 웹 화면이 Custom Tab 안에 표시됨.
+
+**원인**: trailing slash가 포함된 `APP_BASE_URL`에 `/`를 다시 이어 붙였고, 로그인 시작 시 요청한 복귀 URI를 OAuth `state`에 보존하지 않았다. 모바일과 웹이 동일한 고정 callback 이후 웹 URL로만 이동하는 구조였음.
+
+**해결**: base URL 결합을 정규화하고 허용된 `redirect_uri`를 OAuth `state`에 저장했다. 모바일 요청은 callback 처리 후 `bada://auth?token=...` 딥링크로, 웹 요청은 웹 기본 경로로 돌아가도록 분기했다.
+
+### 9-3. 로그아웃 후 같은 Google 계정으로 즉시 재로그인
+
+**증상**: 앱에서 로그아웃한 뒤 Google 로그인을 다시 누르면 계정 선택 없이 직전 사용자로 자동 로그인됨.
+
+**원인**: 앱의 JWT만 삭제하고 Google/Cognito 브라우저 세션은 종료하지 않았다. 브라우저에 유효한 SSO 쿠키가 남아 있고 인증 요청도 계정 선택을 강제하지 않아 기존 세션이 재사용됐다.
+
+**해결**: 로컬 토큰 삭제와 외부 인증 세션 종료를 분리해 처리하고, 로그인 요청에 `prompt=select_account`를 전달해 계정을 다시 선택할 수 있게 했다. 최종 자체 OAuth/JWT 구조에서도 모바일 SecureStore 토큰 삭제와 provider 재인증 흐름을 별도로 검증했다.
+
+### 9-4. Cognito 통합에서 자체 OAuth/JWT로 인증 구조 전환
+
+**증상**: Google은 Cognito 기본 provider로 동작했지만 Kakao·Naver는 별도 연동이 필요했고, 기존 자체 OAuth와 Cognito 토큰이 공존하면서 프론트·백엔드의 인증 분기가 계속 증가함.
+
+**원인**: 서로 다른 token issuer와 callback 규칙을 한 앱에서 동시에 허용해 인증 경계가 복잡해졌다. 특히 모바일 딥링크, 계정 연결, 로그아웃 정책을 provider마다 다르게 처리해야 해 프로젝트 범위 대비 운영 복잡도가 커졌다.
+
+**해결**: Cognito 실험 결과와 운영 복잡도를 검토한 뒤, Google·Kakao·Naver OAuth callback을 FastAPI에서 처리하고 서비스용 JWT를 발급하는 단일 구조로 전환했다. 보호 API는 `get_current_user` 한 곳에서 Bearer JWT를 검증하도록 인증 경계를 통일했다.
 
 ---
 
