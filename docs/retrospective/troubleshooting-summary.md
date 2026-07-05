@@ -283,6 +283,48 @@
 
 **PR**: #156
 
+### 5-3. OAuth prod 전환 후 503 — CD가 만든 ECS revision에 시크릿 매핑 누락
+
+**증상**: Cognito를 제거하고 소셜 OAuth로 전환한 뒤 `terraform apply`로 OAuth 시크릿 7개를 넣었는데도 `/auth/google/login`이 503(not configured). Secrets Manager에는 값이 다 들어가 있어 원인이 안 보였음.
+
+**원인**: 서비스가 가리키는 Task Definition과 Terraform이 만든 Task Definition이 서로 다른 revision이었음. Terraform이 만든 `:59`에는 OAuth env/secrets 매핑이 있었지만, 실제 서비스는 CD(GitHub Actions)가 이미지 배포로 만든 `:58`을 참조 중이었고 `:58`의 secrets는 `DATABASE_URL` 하나뿐이었음. ECS Service의 `task_definition`에 `ignore_changes`가 걸려 있어 **CD가 만든 revision과 Terraform이 만든 revision이 갈라진 것**이 근본 원인. 그래서 `--force-new-deployment`만 하면 계속 `:58`로 떠서 OAuth env가 안 들어갔음.
+
+**해결**: 서비스를 Terraform revision으로 명시 전환. `aws ecs update-service --service bada-dev-backend --task-definition bada-dev-backend:59 --force-new-deployment`. `--task-definition`을 명시하는 게 핵심(생략 시 기존 `:58` 유지).
+
+**교훈**: `ignore_changes=[task_definition]`은 CD가 이미지 배포를 관리하게 해주지만, 그 대가로 "Terraform이 secret/env를 바꾼 revision"과 "CD가 이미지를 바꾼 revision"이 분기한다. secret/env 변경을 실제 서비스에 반영하려면 해당 revision으로 명시 전환이 필요하다.
+
+### 5-4. RDS 암호화 Multi-AZ 전환 — 인플레이스 대신 리허설 DB cutover
+
+**증상**: 운영 중 DB(`bada-dev-postgres`)가 Single-AZ + 미암호화 상태였고, 이를 암호화 Multi-AZ로 올려야 했음. 인플레이스 변경(암호화 활성화)은 스냅샷 복원을 수반해 다운타임·롤백 위험이 큼.
+
+**원인**: RDS 저장 암호화는 기존 인스턴스에 바로 켤 수 없고 **암호화된 스냅샷으로 새 인스턴스를 복원**해야 함. 운영 DB를 직접 건드리면 실패 시 되돌리기 어려움.
+
+**해결**: 멘토 피드백대로 "기존 DB를 건드리지 않고 새 DB를 만들어 검증 후 전환"으로 감. 별도 암호화 Multi-AZ DB(`bada-dev-postgres-multiaz`)를 생성 → dump/restore → row count·PostGIS·Alembic·Backend/Worker canary 검증 → Secrets Manager의 `DATABASE_URL`을 새 엔드포인트로 cutover → ECS 재배포. 기존 Single-AZ DB는 삭제하지 않고 **rollback용으로 보존**.
+
+**교훈**: 파괴적 데이터 변경은 인플레이스보다 "새로 만들고 검증 후 전환(cutover), 실패 시 롤백" 패턴이 안전하다. 전환의 실제 스위치는 애플리케이션이 참조하는 Secret(`DATABASE_URL`) 한 곳이었다.
+
+### 5-5. Dev/Prod 환경 분리 중 드러난 함정 (환경 복제 시에만 발생)
+
+**증상**: 단일 dev 환경을 `environment=prod`로 복제해 prod를 새로 올리는데, 로컬에선 안 보이던 문제들이 apply·CI 단계에서 연쇄적으로 터짐.
+
+**원인(4중)**:
+1. **계정 단위 싱글톤 충돌**: `aws_guardduty_detector`/`aws_securityhub_account`는 계정+리전당 하나만 존재 가능. dev state가 이미 소유 중이라 prod apply가 3개 리소스에서 실패.
+2. **partial backend config CI init 실패**: 환경 분리를 위해 `providers.tf`의 backend `key` 하드코딩을 제거했더니, `terraform-plan.yml`의 `terraform init`이 `-backend-config` 없이 실행돼 `Error: The attribute "key" is required by the backend`로 실패.
+3. **서브도메인 Route53 존 조회 실패**: `data.aws_route53_zone.main`이 `name=var.domain_name`으로 조회 → `prod.badasoft.com`으로 두면 "prod.badasoft.com이라는 존"을 찾다 실패(실제 존은 부모 `badasoft.com`).
+4. **secret version 생성 레이스**: apply 중 ECS 서비스가 `bada-prod/app-secrets`의 값(AWSCURRENT)보다 먼저 태스크를 띄우려다 `ResourceNotFoundException`으로 실패, deployment circuit breaker가 FAILED로 고정.
+
+**해결**:
+1. GuardDuty/Security Hub는 계정 전체(prod 리소스 포함)를 이미 커버하므로 prod는 `security_monitoring_enabled=false`.
+2. workflow init에 `-backend-config=backends/dev.hcl` 주입(PR plan은 dev state 기준).
+3. `route53_zone_name` 변수를 신설(빈값이면 domain_name). prod는 `route53_zone_name="badasoft.com"`으로 두어 `api.prod.badasoft.com` 레코드를 부모 존에 생성.
+4. secret version 생성 완료 후 `aws ecs update-service --force-new-deployment`로 backend/worker 재기동.
+
+**해결 방식**: Partial backend config + `environment=prod` fresh apply(모듈 리팩터링 없이). 코드가 이미 `var.environment`로 파라미터화돼 있어 state 분리 + tfvars override만으로 prod가 떴고, dev는 apply 전후 `No changes`로 무손상을 검증.
+
+**PR**: `feature/tf-env-separation-prod` (#237)
+
+**교훈**: 환경 분리의 90%는 backend state 분리 + tfvars override로 끝나지만, **계정 단위 싱글톤·존 조회·시크릿 생성 순서**처럼 "환경을 복제할 때만 드러나는" 함정이 따로 있다. 코드 리뷰로 예방 가능한 것(1·2·3)과 실행 로그로만 잡히는 것(4)을 구분해 대응했다.
+
 ---
 
 ## 6. 모바일 빌드 / 개발환경
