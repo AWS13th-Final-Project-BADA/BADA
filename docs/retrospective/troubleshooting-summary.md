@@ -4,6 +4,34 @@
 > 원본 상세는 각 항목의 "원본" 링크에서 확인할 수 있다. 이 문서는 발표에 쓸 수 있도록
 > 증상 → 원인 → 해결을 짧게 압축했다.
 
+## 정량 성과 요약 — 인프라 (포트폴리오 하이라이트)
+
+인프라 담당(E)이 직접 설계·실행한 작업 중 **수치로 나타낼 수 있는 성과**만 추린 것이다. 가용성·유지보수 항목은 실제 apply/plan 결과로 검증했고, 비용 항목은 실제 청구액이 아니라 **AWS 요금 구조 기준 추정**임을 구분해 표기한다.
+
+### 가용성 · 안전성 · 유지보수 (apply/plan 검증 기반)
+
+| 개선 | Before | After | 효과 | 근거 |
+|------|--------|-------|------|------|
+| RDS Single-AZ → 암호화 Multi-AZ 전환 | Single-AZ, 미암호화, 자동 failover 없음 | Multi-AZ, KMS 암호화, 자동 failover | **무중단 전환(다운타임 ~0)** — 리허설 DB 생성→검증→Secret cutover→롤링 재배포, 기존 DB는 롤백 보존 | 트러블슈팅 5-4 |
+| Terraform 단일 파일 → 성격별 분리 | `main.tf` 1,654줄 단일 파일 | network/data/compute/observability/iam 5개 파일 | 리소스 **재생성 0**(plan `0 destroy`, `moved` 방식) — 리뷰·유지보수성↑ | PR #78 |
+| Dev/Prod 환경 분리 | 단일 dev 환경·단일 state | dev/prod 2환경·state 분리 | prod **144개 리소스** 신규 생성, **dev `No changes`(무손상)**, 모듈 리팩터링 **0줄**(backend state 분리 + tfvars override만) | 트러블슈팅 5-5, PR #237 |
+| 3-tier 네트워크 격리 | ECS가 public subnet(public IP) | ALB=public / ECS·RDS=private | ECS 인바운드 **원천 차단**, egress는 NAT 단일 경로로 통제. 토글 기반 무중단 전환·롤백 | 트러블슈팅 5-5 |
+
+> OAuth 503 규명(5-3): Secrets Manager에 값이 있는데도 503이던 원인을 "CD가 만든 `:58`(secrets 1개) vs Terraform이 만든 `:59`(secrets 8개) revision 분기"로 특정 → `--task-definition :59` 명시 전환 1회로 해소. 추측(2-pass 전환 등) 없이 지표·revision 비교로 근본 원인에 도달.
+
+### 비용/구조 최적화 (요금 구조 기준 · 실측 $ 아님)
+
+| 개선 | 효과(추정) | 근거 |
+|------|-----------|------|
+| single-NAT (AZ 1개) 구성 | AZ별 NAT 대비 NAT 시간요금 **약 50% 절감** | 아키텍처(단일 private route table) |
+| S3 Gateway VPC Endpoint 연결 | S3 트래픽이 NAT를 우회 → **NAT 데이터 처리요금 회피**(엔드포인트 자체 무료) | 아키텍처 |
+| Frontend 제거(`frontend_enabled=false`) | ECS/ECR/TG/LR 리소스 정리 + **CloudWatch Alarm 14→11개**(불필요 알람 3개 감축, 노이즈↓) | apply 결과 |
+| 종료 토글 설계(`*_enabled=false`) | NAT/WAF/GuardDuty/monitoring 등을 토글 한 번으로 정리 → **7/10 종료 시 잔여 과금 0** 보장 | 아키텍처 |
+
+> 비용 수치는 실측 청구액 집계가 아니라 AWS 요금 구조에 근거한 추정이다. 발표 시 "실측"이 아니라 "요금 구조 기준 절감 레버"로 표현하는 것이 정확하다.
+
+---
+
 ## 목차
 
 1. [증거수집 에이전트 (모바일)](#1-증거수집-에이전트-모바일)
