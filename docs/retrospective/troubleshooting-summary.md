@@ -4,34 +4,31 @@
 > 원본 상세는 각 항목의 "원본" 링크에서 확인할 수 있다. 이 문서는 발표에 쓸 수 있도록
 > 증상 → 원인 → 해결을 짧게 압축했다.
 
-## 정량 성과 요약 (포트폴리오 하이라이트)
+## 정량 성과 요약 — 인프라 (포트폴리오 하이라이트)
 
-트러블슈팅 중 **수치로 나타낼 수 있는 개선**만 추린 것이다. 성능 항목은 실측(CloudWatch/Bedrock 지표·프로파일링) 기반이고, 비용 항목은 실제 절감액이 아니라 **AWS 요금 구조·할인율 기준 추정**임을 구분해 표기한다.
+인프라 담당(E)이 직접 설계·실행한 작업 중 **수치로 나타낼 수 있는 성과**만 추린 것이다. 가용성·유지보수 항목은 실제 apply/plan 결과로 검증했고, 비용 항목은 실제 청구액이 아니라 **AWS 요금 구조 기준 추정**임을 구분해 표기한다.
 
-### 성능 개선 (실측 기반)
+### 가용성 · 안전성 · 유지보수 (apply/plan 검증 기반)
 
 | 개선 | Before | After | 효과 | 근거 |
 |------|--------|-------|------|------|
-| PDF 생성 — Worker CPU 0.25→1 vCPU | ~50초 | ~12–15초 | **약 70% 단축** | 실측 프로파일링(0.25 vCPU CPU util ~100%), `worker-sizing.md` |
-| 다건 OCR — 순차→50 병렬 처리 | 12건 ~240초 | 목표 ~30초 | **약 8배(≈87%) 단축** | `worker-sizing.md`, PR #157 |
-| OCR 호출 — 2-pass→1-pass 복귀 | 증거당 2회 | 1회 | 호출당 **~20초 절약** | PR #152 |
-| 분석 스피너 — 음성 entity를 STT 직후로 이동 | +13초 포함 | 제거 | **~13초 단축** | `changelog-20260703.md`, PR #230 |
-| Vision 입력 — 이미지 다운스케일 | 4000×3000 (12.0M px) | 1568×1176 (1.84M px) | **픽셀 ~85%↓**(입력 토큰↓). 지연 단축폭은 배포 후 재측정 필요(미측정) | PR #232 |
-| 결과 폴링 주기 단축 | 5초 | 2초 | 체감 반응성 향상 | PR #230 |
+| RDS Single-AZ → 암호화 Multi-AZ 전환 | Single-AZ, 미암호화, 자동 failover 없음 | Multi-AZ, KMS 암호화, 자동 failover | **무중단 전환(다운타임 ~0)** — 리허설 DB 생성→검증→Secret cutover→롤링 재배포, 기존 DB는 롤백 보존 | 트러블슈팅 5-4 |
+| Terraform 단일 파일 → 성격별 분리 | `main.tf` 1,654줄 단일 파일 | network/data/compute/observability/iam 5개 파일 | 리소스 **재생성 0**(plan `0 destroy`, `moved` 방식) — 리뷰·유지보수성↑ | PR #78 |
+| Dev/Prod 환경 분리 | 단일 dev 환경·단일 state | dev/prod 2환경·state 분리 | prod **144개 리소스** 신규 생성, **dev `No changes`(무손상)**, 모듈 리팩터링 **0줄**(backend state 분리 + tfvars override만) | 트러블슈팅 5-5, PR #237 |
+| 3-tier 네트워크 격리 | ECS가 public subnet(public IP) | ALB=public / ECS·RDS=private | ECS 인바운드 **원천 차단**, egress는 NAT 단일 경로로 통제. 토글 기반 무중단 전환·롤백 | 트러블슈팅 5-5 |
 
-> 분석 파이프라인 병목 실측(OCR 케이스): `analyze_case` 76초 중 **vision 호출이 53.7초(71%)** 차지 → throttle이 아니라 단일 호출의 토큰량 비례 지연으로 규명(동시성 쿼터 상향 무의미). 근거: Bedrock `InvocationLatency` 최대 53.5초, ClientErrors/ServerErrors 0.
+> OAuth 503 규명(5-3): Secrets Manager에 값이 있는데도 503이던 원인을 "CD가 만든 `:58`(secrets 1개) vs Terraform이 만든 `:59`(secrets 8개) revision 분기"로 특정 → `--task-definition :59` 명시 전환 1회로 해소. 추측(2-pass 전환 등) 없이 지표·revision 비교로 근본 원인에 도달.
 
 ### 비용/구조 최적화 (요금 구조 기준 · 실측 $ 아님)
 
 | 개선 | 효과(추정) | 근거 |
 |------|-----------|------|
-| Worker Fargate Spot 적용 | Worker 컴퓨트 요금 **최대 ~70% 절감** | AWS Fargate Spot 할인율 |
-| S3 Lifecycle (90일 IA → 365일 Glacier) | 장기 보관 스토리지 요금 절감(IA 약 45%, Glacier 약 70% 저렴) | AWS S3 요금표 |
-| S3 Gateway VPC Endpoint | S3 트래픽이 NAT를 우회 → NAT 데이터 처리요금 회피(엔드포인트 자체 무료) | 아키텍처 |
-| single-NAT (AZ 1개 구성) | AZ별 NAT 대비 NAT 시간요금 **약 50% 절감** | 아키텍처 |
-| Worker CPU 상향의 대가 | +$8/2주 (성능 70%↑ 대비, 예산 $1,500 대비 무시 가능) | `worker-sizing.md` |
+| single-NAT (AZ 1개) 구성 | AZ별 NAT 대비 NAT 시간요금 **약 50% 절감** | 아키텍처(단일 private route table) |
+| S3 Gateway VPC Endpoint 연결 | S3 트래픽이 NAT를 우회 → **NAT 데이터 처리요금 회피**(엔드포인트 자체 무료) | 아키텍처 |
+| Frontend 제거(`frontend_enabled=false`) | ECS/ECR/TG/LR 리소스 정리 + **CloudWatch Alarm 14→11개**(불필요 알람 3개 감축, 노이즈↓) | apply 결과 |
+| 종료 토글 설계(`*_enabled=false`) | NAT/WAF/GuardDuty/monitoring 등을 토글 한 번으로 정리 → **7/10 종료 시 잔여 과금 0** 보장 | 아키텍처 |
 
-> 위 비용 수치는 프로젝트 규모·기간상 실측 청구액 집계가 아니라 AWS 요금 구조/할인율에 근거한 추정이다. 발표 시 "실측"이 아니라 "요금 구조 기준 절감 레버"로 표현하는 것이 정확하다.
+> 비용 수치는 실측 청구액 집계가 아니라 AWS 요금 구조에 근거한 추정이다. 발표 시 "실측"이 아니라 "요금 구조 기준 절감 레버"로 표현하는 것이 정확하다.
 
 ---
 
