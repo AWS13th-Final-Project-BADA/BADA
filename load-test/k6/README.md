@@ -9,12 +9,13 @@ scale-out/scale-in 그래프를 캡처하기 위한 스크립트다.
 >   --service-namespace ecs --region ap-northeast-2 --profile bada-team \
 >   --query "ScalableTargets[].{id:ResourceId,min:MinCapacity,max:MaxCapacity}"
 > ```
-> `bada-dev-backend`, `bada-dev-worker`가 min=1/max=3으로 나오면 준비 완료.
+> `bada-dev-backend`, `bada-dev-worker` 또는 대상 환경의 Backend/Worker scalable target이 확인되면 준비 완료.
 
-## ⚠️ 가드레일 (공용 데모 환경)
-- 대상은 운영 데모 엔드포인트(`api.badasoft.com`)다. **팀에 실행 시간대를 공지**하고 데모/리허설과 겹치지 않게 한다.
-- 처음엔 `PEAK_RATE`를 낮게(예: 60) 잡아 짧게 시험한 뒤 본 실행한다.
-- Backend만 대상으로 한다(사용자 대면). Worker 스케일링은 아래 별도 섹션 참고.
+## ⚠️ 가드레일
+- 대상 환경을 명시한다. 기본 대상은 `https://api.badasoft.com`이므로, `perf` 실행 시 `TARGET_URL`을 반드시 지정한다.
+- 공유 검증 환경에서는 낮은 값으로 짧게 실행하고, 대규모 검증은 분리된 `perf` 환경에서 수행한다.
+- 처음엔 `RATE` 또는 `VUS`를 낮게 잡아 짧게 시험한 뒤 단계적으로 올린다.
+- Backend HTTP 부하와 Worker SQS backlog 부하는 목적이 다르므로 분리해서 실행한다.
 
 ## 1) Backend CPU 기반 스케일링 (주 시나리오)
 
@@ -31,6 +32,9 @@ k6 run load-test/k6/backend-autoscaling.js
 
 # 부하 조절 (CPU가 75% 밑이면 VUS↑, 100% 붙어 타임아웃 많으면 VUS↓)
 k6 run -e VUS=50 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
+
+# perf 환경 대상
+k6 run -e TARGET_URL="$PERF_API_URL" -e VUS=200 -e SUSTAIN=15m load-test/k6/backend-autoscaling.js
 
 # MODE=latency: 개방형(constant-arrival-rate) + 실제 읽기 엔드포인트(/community/boards)로
 #   scale-out 지연 구간의 p95 저하→회복을 측정 (메커니즘 증명이 아니라 "지연 특성")
@@ -69,6 +73,7 @@ k6 종료 시 `load-test/k6/last-run-summary.json`에 요약이 저장된다(리
 이건 HTTP 부하(k6)가 아니라 **SQS 큐에 메시지를 쌓아야** 유발된다.
 
 - 권장: 실제 분석 요청(앱 업로드→분석)을 소량 반복해 큐를 채운다. 더미 메시지는 파싱 실패로 DLQ 노이즈를 만들고, 워커가 빨리 실패 처리하면 backlog가 유지되지 않아 스케일이 잘 안 뜬다.
+- 대규모 backlog 검증은 `load-test/sqs/fill_backlog.py --queue <perf-queue>`로 대상 큐를 명시해 수행한다.
 - 스케일 확인:
   ```bash
   aws application-autoscaling describe-scaling-activities \
@@ -79,4 +84,5 @@ k6 종료 시 `load-test/k6/last-run-summary.json`에 요약이 저장된다(리
 
 ## 종료 후
 - 부하 종료 후 desired가 min(1)로 돌아오는지 확인(scale-in cooldown 300s).
-- 캡처한 그래프/CLI 출력은 발표 자료에 첨부.
+- 캡처한 그래프/CLI 출력은 결과 기록에 첨부.
+- 대규모 검증에서는 [`../perf-test-plan.md`](../perf-test-plan.md)의 종료 절차에 따라 큐, 임시 리소스, 알람 상태를 확인한다.
