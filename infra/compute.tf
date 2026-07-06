@@ -375,7 +375,12 @@ resource "aws_ecs_service" "backend" {
 
   health_check_grace_period_seconds = 60
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [
+    aws_lb_listener.http,
+    aws_lb_listener.https,
+    aws_lb_listener_rule.api,
+    aws_secretsmanager_secret_version.app
+  ]
 
   lifecycle {
     # desired_count: Application Auto Scaling(autoscaling.tf)이 관리하므로 무시.
@@ -436,6 +441,8 @@ resource "aws_ecs_service" "worker" {
       registry_arn = aws_service_discovery_service.worker[0].arn
     }
   }
+
+  depends_on = [aws_secretsmanager_secret_version.app]
 
   lifecycle {
     # desired_count: Application Auto Scaling(autoscaling.tf)이 관리하므로 무시.

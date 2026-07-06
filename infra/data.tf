@@ -303,9 +303,13 @@ resource "aws_cognito_user_pool_domain" "main" {
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
+# force_destroy: perf 환경에서만 true. perf는 일회성 부하테스트 환경이라
+# destroy 시 ALB access log 객체가 남아 있어도 버킷째 정리되도록 한다.
+# dev/prod(environment != "perf")는 false로 유지 → 기존 동작 불변(plan 무변화).
 resource "aws_s3_bucket" "alb_logs" {
-  bucket = "${local.name_prefix}-alb-logs"
-  tags   = merge(local.common_tags, { Name = "${local.name_prefix}-alb-logs" })
+  bucket        = "${local.name_prefix}-alb-logs"
+  force_destroy = var.environment == "perf"
+  tags          = merge(local.common_tags, { Name = "${local.name_prefix}-alb-logs" })
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "alb_logs" {
