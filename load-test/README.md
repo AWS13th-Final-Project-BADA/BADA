@@ -40,7 +40,7 @@ k6 run -e TOKEN=<jwt> -e CASE_ID=<case> load-test/k6/backend-journey.js  # + 분
 python load-test/sqs/fill_backlog.py --count 6000 --watch   # 적체 투입 + 드레인 곡선 관측
 ```
 - 원리: 없는 case_id → 워커가 첫 DB 조회에서 실패(Bedrock 미호출). 테스트 창엔 DLQ로 안 감(visibility 900s).
-- 확인: Grafana `BADA Infrastructure`의 **SQS Oldest Message Age** 상승→회복 + **Worker Task Count 1→3**. `--watch`가 elapsed/visible/in-flight/oldest_age를 주기 출력해 드레인 곡선·소요시간을 캡처(비동기의 "지연" = 큐 대기시간). `describe-scaling-activities`(worker)로 텍스트 증거.
+- 확인: Grafana `BADA Infrastructure`의 **SQS Oldest Message Age** 상승→회복 + **Worker Task Count 1→3**. `--watch`는 elapsed/visible/in-flight를 주기 출력해 드레인 곡선·소요시간을 캡처(큐 대기시간=oldest age는 GetQueueAttributes로 못 얻으니 Grafana 패널에서 확인). `describe-scaling-activities`(worker)로 텍스트 증거.
 - ⚠️ bogus 메시지라 처리시간은 비현실적으로 짧음 → 여기서 보는 건 "적체→소진(드레인) 회복"이지 실제 분석 처리 latency가 아니다. 실제 end-to-end 지연은 유효 case를 소량 실행해야 측정 가능(Bedrock 비용 발생).
 - **정리(필수)**: 종료 후 `python load-test/sqs/fill_backlog.py --purge` 로 잔여 메시지 제거(재출현/DLQ 방지). purge는 큐 전체를 비우므로 실제 트래픽 없는 창에서만.
 - 부작용: 워커 실패 메트릭이 합성적으로 튄다(정상). backlog가 안 쌓이면 `--count`를 늘린다(워커 소비속도보다 많아야 유지됨).

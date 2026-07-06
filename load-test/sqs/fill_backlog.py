@@ -102,43 +102,45 @@ def send_all(sqs, queue_url: str, count: int, workers: int) -> int:
     return sent
 
 
-def queue_depth(sqs, queue_url: str) -> tuple[int, int, int]:
-    """(visible, in-flight, oldest_message_age_seconds)."""
+def queue_depth(sqs, queue_url: str) -> tuple[int, int]:
+    """(visible, in-flight).
+
+    참고: 큐의 '가장 오래된 메시지 나이'(ApproximateAgeOfOldestMessage)는 GetQueueAttributes로
+    조회할 수 없다(CloudWatch AWS/SQS 지표 전용). 큐 대기시간은 Grafana 'SQS Oldest Message Age'
+    패널에서 보고, 이 스크립트의 --watch는 적체 소진(드레인) 곡선/소요시간을 잡는다.
+    """
     attrs = sqs.get_queue_attributes(
         QueueUrl=queue_url,
         AttributeNames=[
             "ApproximateNumberOfMessages",
             "ApproximateNumberOfMessagesNotVisible",
-            "ApproximateAgeOfOldestMessage",
         ],
     )["Attributes"]
     return (
         int(attrs["ApproximateNumberOfMessages"]),
         int(attrs["ApproximateNumberOfMessagesNotVisible"]),
-        int(attrs.get("ApproximateAgeOfOldestMessage", 0)),
     )
 
 
 def watch_drain(sqs, queue_url: str, interval: int, timeout: int) -> None:
-    """큐가 빌 때까지 depth와 oldest-message age를 주기적으로 출력(드레인 곡선 캡처용).
+    """큐가 빌 때까지 depth를 주기적으로 출력(드레인 곡선/소요시간 캡처용).
 
-    컬럼: elapsed_s,visible,in_flight,oldest_age_s
-    스케일아웃 효과 = oldest_age가 치솟았다가 Worker 증설 후 꺾여 내려오고 visible이 0으로 소진되는 곡선.
-    CloudWatch/Grafana의 ApproximateAgeOfOldestMessage + Worker RunningTaskCount 그래프와 대조한다.
+    컬럼: elapsed_s,visible,in_flight
+    스케일아웃 효과 = visible이 0으로 소진되는 곡선 + 드레인 소요시간.
+    큐 대기시간(oldest-message age)은 GetQueueAttributes로 못 얻으니 Grafana
+    'SQS Oldest Message Age'(CloudWatch) 패널 + Worker RunningTaskCount 그래프와 대조한다.
     """
     print("\n=== 드레인 관측 시작 (Ctrl+C 중단) ===")
-    print("elapsed_s,visible,in_flight,oldest_age_s")
+    print("elapsed_s,visible,in_flight")
     t0 = time.time()
     peak_visible = 0
-    peak_age = 0
     drained_at = None
     try:
         while True:
             elapsed = time.time() - t0
-            visible, inflight, age = queue_depth(sqs, queue_url)
+            visible, inflight = queue_depth(sqs, queue_url)
             peak_visible = max(peak_visible, visible)
-            peak_age = max(peak_age, age)
-            print(f"{elapsed:7.0f},{visible},{inflight},{age}")
+            print(f"{elapsed:7.0f},{visible},{inflight}")
             if visible == 0 and inflight == 0 and elapsed > interval:
                 drained_at = elapsed
                 break
@@ -149,9 +151,10 @@ def watch_drain(sqs, queue_url: str, interval: int, timeout: int) -> None:
     except KeyboardInterrupt:
         print("# 사용자 중단")
     print("=== 드레인 관측 종료 ===")
-    print(f"peak: visible~{peak_visible}, oldest_age~{peak_age}s")
+    print(f"peak visible ~ {peak_visible}")
     if drained_at is not None:
         print(f"드레인 완료 소요: ~{drained_at:.0f}s (peak visible {peak_visible} -> 0)")
+    print("→ 큐 대기시간은 Grafana 'SQS Oldest Message Age' 패널에서 함께 확인하세요.")
 
 
 def main():
@@ -162,7 +165,7 @@ def main():
     ap.add_argument("--profile", default=None, help="AWS 프로파일 (미지정 시 기본 체인/AWS_PROFILE)")
     ap.add_argument("--workers", type=int, default=20, help="병렬 전송 스레드 수")
     ap.add_argument("--purge", action="store_true", help="큐를 비우고 종료(테스트 정리용)")
-    ap.add_argument("--watch", action="store_true", help="전송 후 큐가 빌 때까지 depth/oldest-age 주기 출력(드레인 곡선). --count 0과 함께 쓰면 관측만.")
+    ap.add_argument("--watch", action="store_true", help="전송 후 큐가 빌 때까지 depth(visible/in-flight)를 주기 출력(드레인 곡선/소요시간). --count 0과 함께 쓰면 관측만.")
     ap.add_argument("--watch-interval", type=int, default=15, help="--watch 폴링 간격(초, 기본 15)")
     ap.add_argument("--watch-timeout", type=int, default=1800, help="--watch 최대 관측 시간(초, 기본 1800)")
     args = ap.parse_args()
@@ -173,14 +176,14 @@ def main():
     print(f"queue: {queue_url}")
 
     if args.purge:
-        visible, inflight, age = queue_depth(sqs, queue_url)
-        print(f"purge 전 depth: visible={visible}, in-flight={inflight}, oldest_age={age}s")
+        visible, inflight = queue_depth(sqs, queue_url)
+        print(f"purge 전 depth: visible={visible}, in-flight={inflight}")
         sqs.purge_queue(QueueUrl=queue_url)
         print("purge 요청 완료 (최대 60초 내 반영). 실제 트래픽 없는 창에서만 사용하세요.")
         return
 
-    visible0, inflight0, age0 = queue_depth(sqs, queue_url)
-    print(f"시작 depth: visible={visible0}, in-flight={inflight0}, oldest_age={age0}s")
+    visible0, inflight0 = queue_depth(sqs, queue_url)
+    print(f"시작 depth: visible={visible0}, in-flight={inflight0}")
 
     if args.count > 0:
         print(f"{args.count}건 투입 시작...")
@@ -188,8 +191,8 @@ def main():
         sent = send_all(sqs, queue_url, args.count, args.workers)
         dt = time.time() - t0
         print(f"완료: {sent}건 전송 ({dt:.1f}s, {sent / dt:.0f} msg/s)")
-        visible1, inflight1, age1 = queue_depth(sqs, queue_url)
-        print(f"투입 후 depth: visible={visible1}, in-flight={inflight1}, oldest_age={age1}s")
+        visible1, inflight1 = queue_depth(sqs, queue_url)
+        print(f"투입 후 depth: visible={visible1}, in-flight={inflight1}")
     else:
         print("--count 0 → 전송 생략 (관측만).")
 
@@ -201,7 +204,7 @@ def main():
     if args.watch:
         watch_drain(sqs, queue_url, args.watch_interval, args.watch_timeout)
     else:
-        print("드레인 곡선 캡처: --watch (elapsed/visible/in-flight/oldest_age 주기 출력)")
+        print("드레인 곡선 캡처: --watch (elapsed/visible/in-flight 주기 출력)")
     print("정리: python load-test/sqs/fill_backlog.py --purge")
 
 
