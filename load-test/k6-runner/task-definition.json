@@ -1,0 +1,32 @@
+{
+  "family": "bada-perf-k6-runner",
+  "requiresCompatibilities": ["FARGATE"],
+  "networkMode": "awsvpc",
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "__EXEC_ROLE_ARN__",
+  "taskRoleArn": "__TASK_ROLE_ARN__",
+  "runtimePlatform": {
+    "operatingSystemFamily": "LINUX",
+    "cpuArchitecture": "ARM64"
+  },
+  "containerDefinitions": [
+    {
+      "name": "k6-runner",
+      "image": "__IMAGE_URI__",
+      "essential": true,
+      "environment": [
+        { "name": "AWS_REGION", "value": "__AWS_REGION__" },
+        { "name": "RESULT_S3_BUCKET", "value": "__RESULT_S3_BUCKET__" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/bada-perf-k6-runner",
+          "awslogs-region": "__AWS_REGION__",
+          "awslogs-stream-prefix": "runner"
+        }
+      }
+    }
+  ]
+}

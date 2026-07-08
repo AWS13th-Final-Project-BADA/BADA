@@ -12,7 +12,17 @@
 # 선택:
 #   RUNNERS(기본 5) VUS_PER_RUNNER(기본 500) DURATION(기본 5m)
 #   SCENARIO(기본 distributed-http.js) AWS_REGION(기본 ap-northeast-2)
+#
+# setup-infra.sh가 생성한 runner-env.sh(CLUSTER/SUBNETS/SECURITY_GROUP/TASKDEF 등)가
+# 이 스크립트와 같은 디렉터리에 있으면 자동으로 source 한다. TARGET_URL만 별도로 export 하면 된다.
 set -euo pipefail
+
+# setup-infra.sh 산출물 자동 로드(있으면). 수동 export가 우선하도록 : "${VAR:=...}" 패턴 사용.
+_HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$_HERE/runner-env.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_HERE/runner-env.sh"
+fi
 
 : "${TARGET_URL:?TARGET_URL 필요(perf ALB)}"
 : "${CLUSTER:?CLUSTER 필요}"
