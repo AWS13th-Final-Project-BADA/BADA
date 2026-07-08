@@ -32,8 +32,11 @@ export const options = {
   },
 };
 
-// 비면제 엔드포인트(DB 읽기). rate limit이 걸리는 실제 경로.
-const READ_PATHS = ["/community/boards", "/cases", "/community/posts?sort=hot&limit=20"];
+// 대상 경로. 기본은 비면제 엔드포인트(DB 읽기, rate limit 적용). `-e PATHS=/version` 처럼
+// 쉼표구분으로 override 가능(예: 면제 엔드포인트 /version 으로 순수 Backend CPU 부하, 또는 /health/db 로 저강도 DB 부하).
+const READ_PATHS = (__ENV.PATHS && __ENV.PATHS.length > 0)
+  ? __ENV.PATHS.split(",").map((p) => p.trim()).filter((p) => p.length > 0)
+  : ["/community/boards", "/cases", "/community/posts?sort=hot&limit=20"];
 
 export default function () {
   const path = READ_PATHS[Math.floor(Math.random() * READ_PATHS.length)];

@@ -33,6 +33,7 @@ RUNNERS="${RUNNERS:-5}"
 VUS_PER_RUNNER="${VUS_PER_RUNNER:-500}"
 DURATION="${DURATION:-5m}"
 SCENARIO="${SCENARIO:-distributed-http.js}"
+PATHS="${PATHS:-}"   # 쉼표구분 경로 override(예: /version 또는 /health/db). 비우면 시나리오 기본값.
 AWS_REGION="${AWS_REGION:-ap-northeast-2}"
 
 # ─── 안전 재검사 (오케스트레이터 레벨) ─────────────────────────────────────
@@ -57,6 +58,7 @@ for i in $(seq 1 "$RUNNERS"); do
   {"name":"SCENARIO","value":"$SCENARIO"},
   {"name":"VUS","value":"$VUS_PER_RUNNER"},
   {"name":"DURATION","value":"$DURATION"},
+  {"name":"PATHS","value":"$PATHS"},
   {"name":"RUNNER_ID","value":"$RID"}
 ]}]}
 JSON
