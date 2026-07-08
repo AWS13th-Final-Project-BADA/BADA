@@ -17,6 +17,6 @@ aws ecr get-login-password --region "$AWS_REGION" --profile "$AWS_PROFILE" \
   | docker login --username AWS --password-stdin "$REGISTRY"
 
 echo "[build] buildx (linux/arm64) → push: $ECR_URL:latest"
-docker buildx build --platform linux/arm64 -t "$ECR_URL:latest" --push "$RUNNER_DIR"
+docker buildx build --platform linux/amd64 -t "$ECR_URL:latest" --push "$RUNNER_DIR"
 
 echo "[build] 완료: $ECR_URL:latest"

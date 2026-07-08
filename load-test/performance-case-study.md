@@ -255,3 +255,5 @@ CPU 기반 Auto Scaling은 알람 감지와 Fargate task 기동, ALB health chec
 | 비용 대비 성능 비교 | small/medium/large 프로파일별 p95·RPS·비용 효율 비교 |
 
 분산 k6 runner의 설계·구현과 5,000~10,000 VU 단계 테스트 절차는 [`k6-runner/`](./k6-runner/)와 [`perf-scale-experiment.md`](./perf-scale-experiment.md)에 정리했다.
+
+> **후속 실행 결과(2026-07-08).** ECS Fargate 분산 runner로 5,000/7,500/10,000 VU를 실제 실행했다. Fargate public IP로 source IP 분산 자체는 성공(5 runner = 5 distinct IP)했으나, 앱 rate limit이 IP당 300건/60초라 runner 10~20개(=IP 10~20개)로 수천 RPS를 만들면 여전히 응답의 92~98%가 429였고, 유효 처리량은 약 5,000 RPS에서 정체했다. RDS는 CPU 6% 이하로 병목이 아니었다. 결론적으로 **비면제 엔드포인트의 인프라 한계를 측정하려면 수천 개 규모의 source IP(예: k6 Cloud 다중 로드존)가 필요**하며, 단일 서비스의 IP rate limit 정책이 지배적 상한임을 분산 환경에서도 재확인했다. 상세 수치는 [`perf-scale-experiment.md §15`](./perf-scale-experiment.md)에 있다. (테스트 후 perf·runner 리소스 전량 destroy, dev `No changes` 확인.)

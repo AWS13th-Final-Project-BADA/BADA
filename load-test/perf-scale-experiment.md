@@ -319,3 +319,60 @@ terraform plan -var-file=env/dev.tfvars
 
 ---
 
+## 15. 분산 k6 runner 기반 5,000~10,000 VU (2026-07-08 실행 결과)
+
+> **상태: 실행 완료.** perf 환경 재기립(`terraform apply`, 101 add / 0 change / 0 destroy) → runner 이미지 GitHub Actions로 빌드/ECR push(amd64) → source IP 분산 검증 PASS → 5,000/7,500/10,000 VU 3단계 실행 → 결과 수집 → **perf 및 runner 리소스 전량 destroy**, dev plan `No changes` 확인. 대상은 perf ALB DNS(`http://bada-perf-alb-*`)만 사용했고 앱 `rate_limit.py`는 수정하지 않았다.
+
+### 15.1 분산 k6 runner source IP 검증
+
+| Runner 수 | Distinct external IP 수 | 방식 | 결과 |
+| --- | --- | --- | --- |
+| 5 | **5** (13.209.18.96 / 3.34.41.3 / 3.38.187.249 / 43.201.51.200 / 43.203.218.62) | Fargate public subnet + assignPublicIp=ENABLED | **PASS** |
+
+runner 수만큼 서로 다른 external IP가 확인되어 Fargate public IP 방식의 source IP 분산이 실제로 동작함을 검증했다. 이 PASS를 확인한 뒤에만 5,000 VU 이상을 진행했다.
+
+### 15.2 5,000~10,000 VU 결과 (각 단계 5분, constant-vus)
+
+| 단계 | Runner 수 | 총 VU | 총요청 | RPS(ALB peak) | p95 | 2XX | 4XX(429) | 5XX | 병목 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 5,000 | 10 × 500 | 5,000 | 1,344,978 | ≈4,300 rps (peak 5,620/min) | ~1,610ms | 2,900 (0.2%) | 1,321,008 (429 1,314,548 · 97.7%) | 6,900 (0.5%) | 앱 IP rate limit |
+| 7,500 | 15 × 500 | 7,500 | 1,587,995 | ≈5,190 rps | ~10,000ms | 2,991 (0.2%) | 1,512,963 (429 1,506,464 · 94.9%) | 50,492 (3.2%) | rate limit + 백엔드 과부하 조짐 |
+| 10,000 | 20 × 500 | 10,000 | 1,563,467 | ≈5,090 rps | ~10,000ms | 3,069 (0.2%) | 1,445,926 (429 1,438,990 · 92.0%) | 90,254 (5.8%) | rate limit + 백엔드 5xx 증가 |
+
+- **처리량은 약 5,000~5,600 RPS에서 정체**됐다(VU를 7,500→10,000으로 올려도 유효 RPS는 늘지 않음).
+- **응답의 92~98%가 429**(앱 IP rate limit). 2xx는 전 단계 0.2% 수준.
+- **5xx 비율이 부하와 함께 상승**(0.5% → 3.2% → 5.8%). rate limit 처리량 한계를 넘어선 백엔드 과부하 신호다.
+
+### 15.3 Backend scale-out
+
+| 단계 | Backend min/max | Peak task | CPU(avg/peak) | Memory peak | 판단 |
+| --- | --- | --- | --- | --- | --- |
+| 5,000 | 4 / 30 | **4 (미확장)** | ~50–59% / **100%** | ~15% | 서비스 평균 CPU가 목표 부근이라 scale-out 미발동 |
+| 7,500 | 4 / 30 | **4 (미확장)** | ~76% / **~100%** | ~15% | 평균이 짧게 초과했으나 5분 창에서 지속 조건 미달 |
+| 10,000 | 4 / 30 | **4 (미확장)** | 高(peak 100%) | ~15% | 동일 |
+
+> rate limit 미들웨어가 **모든 요청을 앱 안에서 처리한 뒤 429를 반환**하므로 429 폭주에도 Backend CPU는 peak 100%까지 올랐다. 다만 4개 태스크의 서비스 평균 CPU가 목표 부근에 머물고 부하 창이 5분이라, CPU Target Tracking의 지속 조건을 넘기지 못해 min 4에서 확장되지 않았다.
+
+### 15.4 RDS 상태
+
+| 단계 | RDS class | CPU peak | Connection peak | 병목 여부 |
+| --- | --- | --- | --- | --- |
+| 5,000 | db.m6g.large | ~5.9% | 65 | 아님 |
+| 7,500 | db.m6g.large | ~6% | ~45 | 아님 |
+| 10,000 | db.m6g.large | ~5% | ~46 | 아님 |
+
+RDS는 전 구간 CPU 6% 이하로 병목이 아니었다(대부분 요청이 429로 조기 반환되어 DB까지 도달하지 않음).
+
+### 15.5 결론 — 분산 IP만으로는 비면제 엔드포인트 인프라 한계를 못 본다
+
+- Fargate public IP로 **source IP 분산 자체는 성공**(5 runner = 5 distinct IP)했다.
+- 그러나 앱 rate limit은 **IP당 300건/60초(≈5 rps/IP)**라, runner 10~20개(=IP 10~20개)로 수천 RPS를 만들면 **IP마다 한도를 수십 배 초과**해 결국 92~98%가 429가 된다.
+- 즉 **비면제 엔드포인트의 진짜 인프라 한계(백엔드 scale-out 상한, RDS 한계)를 측정하려면** ① 수천 개 규모의 source IP(k6 Cloud 다중 로드존 또는 훨씬 큰 러너 플릿), ② 테스트 소스 대역에 한정한 rate limit 예외(앱 변경 — 이번 범위 밖), 또는 ③ 면제 엔드포인트 대상 테스트가 필요하다.
+- **지배적 상한은 인프라가 아니라 앱 IP rate limit 정책**임을 3,000 VU(단일 IP)에 이어 5,000~10,000 VU(분산 IP)에서도 재확인했다.
+
+### 15.6 정리(cleanup) 확인
+
+- runner 태스크 종료, runner CLI 리소스(ECR/S3/IAM/LogGroup/TaskDef) 삭제
+- `terraform destroy` 완료(perf state 0 resources), ALB log 버킷 정리 후 destroy
+- dev backend 재init 후 `terraform plan` → **No changes** (dev/prod 무영향)
+- 임시 GitHub Actions 빌드 브랜치/워크플로 삭제
