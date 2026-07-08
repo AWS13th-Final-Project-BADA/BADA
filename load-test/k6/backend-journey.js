@@ -12,17 +12,21 @@
 //       * TOKEN은 로그인된 앱에서 얻거나(access_token), jwt_secret로 서명해 발급.
 //       * -e CASE_ID=<id> 를 주면 분석 조회(/cases/{id}/analysis?lang=en) 포함 → Amazon Translate 경유(현실적 읽기).
 //
-// ⚠️ 공용 데모 환경(api.badasoft.com). 팀 공지 + 데모/리허설 시간 회피.
+// ⚠️ 안전장치: TARGET_URL을 반드시 명시해야 하며(기본 운영 URL 폴백 없음), prod/dev URL이면 실행을 거부한다.
+//    기본 허용 대상은 perf ALB DNS(http://bada-perf-*) 계열이다. 개발용 예외는 -e ALLOW_NON_PERF_TARGET=true.
+//    팀 공지 + 데모/리허설 시간 회피는 여전히 지킨다.
 //
-// 실행:
-//   k6 run load-test/k6/backend-journey.js                          # 공개 엔드포인트만
-//   k6 run -e TOKEN=<jwt> load-test/k6/backend-journey.js           # 인증 여정
-//   k6 run -e TOKEN=<jwt> -e CASE_ID=<case> -e VUS=40 load-test/k6/backend-journey.js
+// 실행 (TARGET_URL 필수):
+//   k6 run -e TARGET_URL="$PERF_TARGET_URL" load-test/k6/backend-journey.js                          # 공개 엔드포인트만
+//   k6 run -e TARGET_URL="$PERF_TARGET_URL" -e TOKEN=<jwt> load-test/k6/backend-journey.js           # 인증 여정
+//   k6 run -e TARGET_URL="$PERF_TARGET_URL" -e TOKEN=<jwt> -e CASE_ID=<case> -e VUS=40 load-test/k6/backend-journey.js
+//   (개발 환경 대상은: -e TARGET_URL=<dev-url> -e ALLOW_NON_PERF_TARGET=true)
 
 import http from "k6/http";
 import { check, sleep } from "k6";
+import { resolveTarget } from "./_target-guard.js";
 
-const BASE = __ENV.TARGET_URL || "https://api.badasoft.com";
+const BASE = resolveTarget(); // 안전장치: 미지정/운영·dev URL이면 init 단계에서 즉시 중단
 const TOKEN = __ENV.TOKEN || "";
 const CASE_ID = __ENV.CASE_ID || "";
 const VUS = Number(__ENV.VUS || 30); // 동시 사용자 수 (읽기 여정은 I/O 바운드라 여유 있게)

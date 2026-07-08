@@ -2,6 +2,8 @@
 
 이 문서는 BADA의 대규모 부하 특성을 검증하기 위한 `perf` 환경 실행 기준을 정의한다. `perf` 환경은 기존 `dev`/`prod` 리소스와 분리된 성능 검증 전용 환경이며, 테스트 종료 후 제거하는 것을 기본 원칙으로 한다.
 
+더 큰 규모의 운영 실험은 [`perf-scale-experiment.md`](./perf-scale-experiment.md)를 따른다. 해당 문서는 1,000/3,000/5,000~10,000 VU 단계 테스트, RDS/Backend/Worker 사이징 비교, SQS 10만 건 drain, 장애 주입 테스트와 결과 정리 구조를 별도로 정의한다.
+
 ## 1. 목적
 
 - Backend API의 처리량, 지연, 오류율을 단계별 부하에서 관측한다.
@@ -23,7 +25,7 @@
 | SQS/DLQ | 별도 분석 큐와 DLQ |
 | S3 | 별도 evidence/report bucket |
 | CloudWatch | 별도 Log Group/Alarm prefix |
-| 도메인 | 가능하면 `api.perf.badasoft.com`, 아니면 ALB DNS 직접 사용 |
+| 도메인 | **현재 ALB DNS HTTP 사용**(도메인/HTTPS 미사용). `api.perf.badasoft.com`은 `badasoft.com` 위임 복구 시에만 쓸 수 있는 옵션 |
 
 운영과 동일한 3-tier 네트워크 구조가 반드시 필요한 테스트가 아니라면, `perf`는 단순화된 네트워크 구성을 사용할 수 있다. 예를 들어 NAT Gateway를 추가하지 않고 ECS를 public subnet에 배치해 계정 단위 NAT/EIP 사용량을 줄일 수 있다.
 
@@ -52,17 +54,23 @@ worker_max_capacity  = 30
 
 ### 2.1 리허설로 검증된 구조 (2026-07-06)
 
-2026-07-06 기립 리허설에서 아래 구조가 정상 생성·삭제됨을 확인했다. 이 구조가 현재 검증된 baseline이다.
+2026-07-06 기립 리허설에서 아래 구조가 생성·삭제됨을 기록했다.
 
-| 항목 | 값 |
-| --- | --- |
-| Terraform state | `bada/perf/terraform.tfstate` |
-| 리소스 prefix | `bada-perf-*` |
-| 도메인 | `perf.badasoft.com`, `api.perf.badasoft.com` |
-| 진입/보안 | Route53 + ACM + WAF + ALB HTTPS(443) |
-| ECS 배치 | public subnet + public IP |
-| NAT Gateway | 없음 (EIP 미사용) |
-| 분리 리소스 | RDS / SQS·DLQ / S3(evidence·report) / Secrets Manager / CloudWatch 모두 `bada-perf-*` 별도 |
+> ⚠️ **정정(2026-07-07)**: 아래 표의 "Route53 + ACM + WAF + ALB HTTPS(443)" 및 `https://api.perf.badasoft.com/health 200`은 7/6 리허설 시점 기록이다. 이후 검증에서 **`badasoft.com` 공인 DNS 위임이 끊겨 있어** ACM DNS 검증이 완료될 수 없음이 확인됐다(§4.1.1 및 개인 execution-log 참조). **실제 본 실험(perf-small/medium)은 도메인/HTTPS를 사용하지 않고 ALB DNS HTTP로 수행**했다. HTTPS 경로는 도메인 위임 복구 시에만 유효하다.
+
+| 항목 | 리허설 목표 (2026-07-06) | 본 실험 실제 (2026-07-07) |
+| --- | --- | --- |
+| Terraform state | `bada/perf/terraform.tfstate` | 동일 |
+| 리소스 prefix | `bada-perf-*` | 동일 |
+| 도메인 | `perf.badasoft.com`, `api.perf.badasoft.com` | **미사용** (DNS 위임 끊김) |
+| 진입/보안 | Route53 + ACM + WAF + ALB HTTPS(443) | **WAF + ALB HTTP(80)**, ACM/Route53 미생성 |
+| 접속 URL | `https://api.perf.badasoft.com` | **`http://<perf-alb-dns>`** |
+| ECS 배치 | public subnet + public IP | 동일 |
+| NAT Gateway | 없음 (EIP 미사용) | 동일 |
+| 분리 리소스 | RDS / SQS·DLQ / S3 / Secrets / CloudWatch 모두 `bada-perf-*` 별도 | 동일 |
+
+> "리허설 목표"는 7/6 기립 리허설이 의도한 도메인+HTTPS 구성이고, "본 실험 실제"는 DNS 위임 문제로
+> 도메인/HTTPS를 제외하고 ALB DNS HTTP로 수행한 perf-small/medium 실험의 실제 구성이다.
 
 > Route53 레코드(`perf.badasoft.com`, `api.perf.badasoft.com`)는 기존 dev(`badasoft.com`,
 > `api.badasoft.com`)/prod(`prod.badasoft.com`, `api.prod.badasoft.com`)와 이름이 겹치지 않는
@@ -163,7 +171,7 @@ terraform destroy -var-file=env/perf.tfvars
 
 - Terraform plan: 신규 `perf` 리소스만 생성 대상으로 확인
 - Terraform apply: `bada-perf-cluster`, Backend/Worker ECS, RDS, SQS/DLQ, S3, ALB, WAF, ACM, Route53, Secrets Manager, CloudWatch 리소스 생성 확인
-- API smoke: `https://api.perf.badasoft.com/health` → HTTP 200, `{"status":"ok"}`
+- API smoke: `https://api.perf.badasoft.com/health` → HTTP 200 (⚠️ 7/6 리허설 기록. 이후 DNS 위임 끊김 확인 → 본 실험은 `http://<perf-alb-dns>/health` 200으로 수행)
 - ECS: Backend/Worker desired 1, running 1 상태 확인
 - SQS: main queue visible 0, in-flight 0 확인
 - Terraform destroy: `perf` state empty, RDS/S3 삭제 확인, ECS cluster는 `INACTIVE` 상태 확인
@@ -190,6 +198,20 @@ terraform destroy -var-file=env/perf.tfvars
 7. 결과 캡처
 8. 큐/데이터 정리
 9. `perf` 환경 제거
+
+대규모 확장 검증을 수행하는 경우에는 위 순서를 유지하되, 아래 단계로 확장한다.
+
+1. `perf` 환경 scale-up 프로파일 확정
+2. 1,000 VU smoke
+3. 3,000 VU 본 테스트
+4. 5,000~10,000 VU 한계 테스트
+5. RDS/Backend/Worker 사이징 비교
+6. SQS backlog 10만 건 drain 테스트
+7. 장애 주입 테스트
+8. 결과 표·그래프 정리
+9. `terraform destroy`
+
+세부 기준과 결과 기록 양식은 [`perf-scale-experiment.md`](./perf-scale-experiment.md)를 기준으로 한다.
 
 ## 5. 부하 시나리오
 
@@ -264,6 +286,8 @@ k6 run \
 - p95 상승 후 회복 여부
 
 ### 5.4 Worker SQS backlog 부하
+
+> **1차 실행 결과(2026-07-07)**: `--count 50000`으로 수행 → 3.7초에 50,000건 투입, Worker **2→20 자동 확장**, DLQ 0. 아래 `--count 100000`은 후속 확대 목표다("100,000건 완료"로 기록하지 말 것).
 
 `perf` 큐를 명시한다.
 
@@ -390,3 +414,16 @@ aws rds describe-db-instances \
 - Worker task count
 - Worker drain time
 - Scale-out activity timeline
+
+
+---
+
+## 10. perf-medium 단계 실행 결과 (2026-07-07)
+
+perf-small 대비 Backend task를 **1 vCPU / 2GB, min 4 / max 30**, RDS **db.m6g.large**로 상향(`perf.tfvars`만 수정, plan `1 add / 3 change / 1 destroy`, dev/prod 변경 0).
+
+- ⚠️ Backend 서비스 `ignore_changes=[task_definition]` → apply 후 `aws ecs update-service --task-definition bada-perf-backend --force-new-deployment`로 새 task def(1vCPU) 반영 필요.
+- 1,000 VU journey 재검증: 평균 RPS 23.9→697, p95 60s→96ms, Backend CPU 100%→59% (**CPU 병목 해소**).
+- 3,000 VU latency(RATE=300, `/community/boards`): 실패율 83.56%이나 대부분 **429(앱 IP rate limit)** — Backend CPU 16%. 자세한 원인은 `perf-scale-experiment.md §14`.
+
+**중요**: 비면제 엔드포인트 부하는 앱 IP rate limit(`_LIMIT=300/60s`, 면제 `/health`·`/version`·`/health/db`)에 먼저 걸린다. 단일 IP 부하로는 이 이상 유효 부하를 못 만드므로, 한계 테스트는 **분산 소스 IP(분산 k6 runner)** 선행이 필요하다.
