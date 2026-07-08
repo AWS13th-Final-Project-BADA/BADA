@@ -315,3 +315,50 @@ terraform plan -var-file=env/dev.tfvars
 ### 후속 과제
 - **분산 k6 runner**(Fargate 다중 태스크 또는 k6 Cloud, 멀티 소스 IP)를 설계해야 비면제 엔드포인트의 실제 처리량 한계와 Backend scale-out(≥ min4→max30)을 관측할 수 있다.
 - RDS는 전 구간 병목 아님(CPU ≤ 7%) → m6g.large는 헤드룸 성격, 비용 최적화 시 하향 여지.
+
+
+---
+
+## 15. 분산 k6 runner 기반 5,000~10,000 VU (실행 준비 / 결과 양식)
+
+> **상태: 미수행 (실행 게이트 대기).** [`k6-runner/`](./k6-runner/)에 ECS Fargate 기반 분산 runner 구현을 추가했다. 실제 실행(perf 재기립 → 이미지 push → RunTask → destroy)은 비용·쿼터·중단기준을 확인한 뒤 인프라 담당이 수행한다. 아래 표는 실행 후 채우는 결과 양식이며, **source IP 분산 검증이 PASS된 경우에만** 5,000 VU 이상을 진행한다.
+
+### 15.1 분산 k6 runner source IP 검증
+
+| Runner 수 | Distinct external IP 수 | 방식 | 결과 |
+| --- | --- | --- | --- |
+| 5 | (실행 후 기록) | Fargate public subnet + assignPublicIp=ENABLED | 대기 |
+
+판정 기준: distinct IP 수가 runner 수에 근접하면 PASS(대규모 진행), 모두 같은 IP면 FAIL(단일 NAT/EIP 뒤 → 구성 재검토). `run/collect-results.sh`가 자동 판정한다.
+
+### 15.2 5,000~10,000 VU 결과
+
+| 단계 | Runner 수 | 총 VU | RPS | p95 | p99 | 2XX | 4XX | 5XX | 병목 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 5,000 | 10 × 500 | 5,000 | | | | | | | 대기 |
+| 7,500 | 15 × 500 | 7,500 | | | | | | | 대기 |
+| 10,000 | 20 × 500 | 10,000 | | | | | | | 대기 |
+
+### 15.3 Backend scale-out
+
+| 단계 | Backend min/max | Peak task | CPU peak | Memory peak | 판단 |
+| --- | --- | --- | --- | --- | --- |
+| 5,000 | 4 / 30 | | | | 대기 |
+| 7,500 | 4 / 30 | | | | 대기 |
+| 10,000 | 4 / 30 | | | | 대기 |
+
+### 15.4 RDS 상태
+
+| 단계 | RDS class | CPU peak | Connection peak | 병목 여부 |
+| --- | --- | --- | --- | --- |
+| 5,000 | db.m6g.large | | | 대기 |
+| 7,500 | db.m6g.large | | | 대기 |
+| 10,000 | db.m6g.large | | | 대기 |
+
+### 15.5 실행 후 산출물
+
+- k6 summary(runner별 JSON, 결과 S3 `summaries/`) + `collect-results.sh` 집계
+- CloudWatch: ALB 2XX/4XX/5XX·TargetResponseTime, ECS RunningTaskCount·CPU, RDS CPU·Connections, SQS depth
+- distinct source IP 목록(`run/collect-results.sh` → `distinct-ips.txt`)
+- 단계별 그래프: p95 by VU, RPS by VU, Backend task count by VU, status code distribution, RDS CPU/connection by VU
+- 결과는 본 문서 §15와 [`performance-case-study.md`](./performance-case-study.md)에 반영
