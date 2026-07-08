@@ -376,3 +376,51 @@ RDS는 전 구간 CPU 6% 이하로 병목이 아니었다(대부분 요청이 42
 - `terraform destroy` 완료(perf state 0 resources), ALB log 버킷 정리 후 destroy
 - dev backend 재init 후 `terraform plan` → **No changes** (dev/prod 무영향)
 - 임시 GitHub Actions 빌드 브랜치/워크플로 삭제
+
+
+---
+
+## 16. 후속 실험 (2026-07-08 2차) — 면제 엔드포인트 CPU 한계 · RDS · SQS 100k · 장애주입
+
+§15에서 "비면제 엔드포인트는 앱 rate limit이 상한"임을 확인한 뒤, **rate limit 예외(면제) 엔드포인트로 실제 Backend 인프라 한계를 측정**하고, RDS·SQS·장애복구까지 보강 실행했다. perf 재기립 → runner 이미지 GitHub Actions(amd64) 빌드 → 실행 → 전량 destroy, dev `No changes` 확인. 앱 코드 미수정.
+
+### 16.1 `/version` (rate-limit 면제) 분산 부하 — Backend CPU 한계
+
+| 단계 | runner×VU | 총요청 | RPS(합) | p95 | 2XX | 429 | 5XX | Backend CPU(avg/max) | Running task |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 5,000 | 10×500 | 321,013 | ~1,033 | 20s(timeout) | 270,264 (84%) | **0** | 24,109 (7.5%) | 88% / 99.7% | 4 (순간 5) |
+| 7,500 | 15×500 | 377,039 | ~1,190 | 20s | 284,388 (75%) | **0** | 48,890 (13%) | ~99% | 4 (순간 5) |
+| 10,000 | 20×500 | 437,103 | ~1,382 | 20s | 281,712 (64%) | **0** | 99.4% / 99.7% | 4 |
+
+- **429가 0건** → 면제 엔드포인트에서는 rate limit이 개입하지 않음을 확인(§15 대비 대조군 성립).
+- **성공 2xx 처리량이 ~270,000~284,000건/5분(≈900~950 2xx RPS)에서 정체**하고, 초과분은 20s 타임아웃 → **5xx가 7.5% → 13% → 24%로 증가**. 즉 **Backend CPU가 진짜 병목**(1 vCPU × 4 태스크가 ~99% 포화).
+- **리액티브 CPU Auto Scaling은 이 스파이크에서 확실히 확장되지 않음**: RunningTaskCount가 순간 5까지 갔으나 desired 4 유지. 과부하로 태스크가 헬스체크 실패·교체(churn)되며 CPU 평균이 분 단위로 요동쳐(간헐 0%대) target tracking의 sustained breach 조건을 못 채운 것으로 해석. → **짧고 강한 스파이크에는 max보다 min capacity 확보가 더 직접적**(§12.1 재확인).
+
+### 16.2 `/health/db` 저강도 부하 — RDS 관측
+
+| 항목 | 값 |
+| --- | --- |
+| 부하 | 3 runner × 50 VU (150 VU), 3분 |
+| 결과 | 2XX 100%, 5xx 0, p95 **10.8ms** |
+| RDS CPU | 기준 ~3% → peak **~8.4%** |
+
+- DB에 실제로 도달하는 경로(`/health/db`)에서도 RDS는 CPU 8%대로 여유. `/version`(DB 미접촉)은 RDS ~3~5% idle. **RDS(m6g.large)는 전 실험 구간에서 병목이 아님**(헤드룸 성격 — 비용 최적화 시 하향 여지).
+
+### 16.3 SQS 100,000건 drain + Worker 장애주입
+
+- **주입**: 100,000건을 6.8초에 투입(14,609 msg/s).
+- **Worker Auto Scaling**: backlog-per-task Target Tracking 발동 → **desired 2 → 30**(activity "Setting desired count to 30"), running 2 → 20 → 30.
+- **drain**: visible 72,804 → **0 (약 5분)**. (bogus case_id라 in-flight로 남아 재시도, DLQ 0 — 테스트 후 purge.)
+- **장애주입(self-healing)**: drain 진행 중 Worker task 1개 강제 stop → running 2→1 → **ECS가 자동으로 교체(1→2)**, backlog 처리 무중단.
+
+### 16.4 종합 결론
+
+| 계층 | 한계/관측 | 병목 여부 |
+| --- | --- | --- |
+| Backend(비면제) | 앱 IP rate limit 300/분 이 상한 (§15) | 앱 정책 |
+| Backend(면제 `/version`) | 1vCPU×4에서 CPU ~99% 포화, 2xx ~900 RPS 상한, 초과분 5xx | **Backend CPU** |
+| Backend autoscaling | 5분 스파이크 + 과부하 churn으로 reactive scale-out 지연 → min capacity 중요 | 정책 튜닝 포인트 |
+| RDS | `/health/db` 150 VU에서 CPU 8% | 아님(여유) |
+| Worker/SQS | 100k backlog → 2→30 확장, ~5분 drain, task stop 자동복구 | 정상 동작 |
+
+- **정리**: runner/perf 리소스 전량 destroy, SQS purge, dev `terraform plan` No changes, prod 무영향. 임시 GitHub Actions 브랜치/워크플로 삭제.
