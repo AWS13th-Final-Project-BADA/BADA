@@ -12,7 +12,16 @@ scale-out/scale-in 그래프를 캡처하기 위한 스크립트다.
 > `bada-dev-backend`, `bada-dev-worker` 또는 대상 환경의 Backend/Worker scalable target이 확인되면 준비 완료.
 
 ## ⚠️ 가드레일
-- 대상 환경을 명시한다. 기본 대상은 `https://api.badasoft.com`이므로, `perf` 실행 시 `TARGET_URL`을 반드시 지정한다.
+- **`TARGET_URL`은 필수다.** 지정하지 않으면 실행이 거부된다(더 이상 운영 URL로 기본 폴백하지 않는다). 안전장치는 `_target-guard.js`가 담당한다.
+- prod/dev 도메인(`api.badasoft.com`, `badasoft.com`, `api.prod.badasoft.com`, `prod.badasoft.com`, `api.dev.badasoft.com` 등)으로는 실행이 거부된다.
+- 기본 허용 대상은 perf ALB DNS(`http://bada-perf-*`) 또는 `api.perf.badasoft.com` 계열이다.
+- 개발 환경 등 예외가 필요하면 `-e ALLOW_NON_PERF_TARGET=true`로 명시적으로 우회한다(기본은 안전하게 막힘).
+  ```bash
+  # 거부 예시: TARGET_URL 미지정 → "TARGET_URL must be explicitly set ..."
+  # 거부 예시: 운영 URL → "Refusing to run load test against production/dev URL: ..."
+  # 개발 대상 우회:
+  k6 run -e TARGET_URL="https://api.dev.badasoft.com" -e ALLOW_NON_PERF_TARGET=true load-test/k6/backend-journey.js
+  ```
 - 공유 검증 환경에서는 낮은 값으로 짧게 실행하고, 대규모 검증은 분리된 `perf` 환경에서 수행한다.
 - 처음엔 `RATE` 또는 `VUS`를 낮게 잡아 짧게 시험한 뒤 단계적으로 올린다.
 - Backend HTTP 부하와 Worker SQS backlog 부하는 목적이 다르므로 분리해서 실행한다.
@@ -25,21 +34,21 @@ CPU를 70~100%에 꾸준히 유지해 스케일 알람(70% x 3분 연속)을 충
 ### 설치
 - k6: https://k6.io/docs/get-started/installation/ (Windows: `winget install k6` 또는 `choco install k6`)
 
-### 실행
+### 실행 (`TARGET_URL` 필수)
 ```bash
-# 기본 (VUS=40, sustain 8m, 총 약 14분)
-k6 run load-test/k6/backend-autoscaling.js
+# perf 환경 대상 (기본 VUS=40, sustain 8m, 총 약 14분)
+k6 run -e TARGET_URL="$PERF_TARGET_URL" load-test/k6/backend-autoscaling.js
 
 # 부하 조절 (CPU가 75% 밑이면 VUS↑, 100% 붙어 타임아웃 많으면 VUS↓)
-k6 run -e VUS=50 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
-
-# perf 환경 대상
-k6 run -e TARGET_URL="$PERF_API_URL" -e VUS=200 -e SUSTAIN=15m load-test/k6/backend-autoscaling.js
+k6 run -e TARGET_URL="$PERF_TARGET_URL" -e VUS=200 -e SUSTAIN=15m load-test/k6/backend-autoscaling.js
 
 # MODE=latency: 개방형(constant-arrival-rate) + 실제 읽기 엔드포인트(/community/boards)로
 #   scale-out 지연 구간의 p95 저하→회복을 측정 (메커니즘 증명이 아니라 "지연 특성")
-k6 run -e MODE=latency -e RATE=100 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
+k6 run -e TARGET_URL="$PERF_TARGET_URL" -e MODE=latency -e RATE=100 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
 #   RATE 튜닝: CPU 70%를 3분 못 넘기면 RATE↑, 타임아웃 폭주면 RATE↓
+
+# 개발 환경 대상(예외): 명시적 우회 플래그 필요
+k6 run -e TARGET_URL="https://api.dev.badasoft.com" -e ALLOW_NON_PERF_TARGET=true load-test/k6/backend-autoscaling.js
 ```
 
 부하 단계: ramp-up 3m → **sustain 8m**(여기서 scale-out 1→2→3) → ramp-down 3m. 총 약 14분.

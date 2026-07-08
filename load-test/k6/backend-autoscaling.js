@@ -17,21 +17,25 @@
 // 스케일 알람 조건(확인됨): CPUUtilization > 70% 를 60초 x 3 = 3분 연속. scale-in cooldown 300초.
 // 스케일아웃 지연 = 감지(~3분) + Fargate 태스크 기동/부팅 + ALB 헬스체크 통과(interval 30s x healthy 2 ≈ 60s).
 //
-// ⚠️ 공용 데모 환경(api.badasoft.com)에 부하. 팀 공지 + 데모/리허설 시간 회피. 낮은 값으로 시험 후 본 실행.
+// ⚠️ 안전장치: TARGET_URL을 반드시 명시해야 하며(기본 운영 URL 폴백 없음), prod/dev URL이면 실행을 거부한다.
+//    기본 허용 대상은 perf ALB DNS(http://bada-perf-*) 계열이다. 개발용 예외는 -e ALLOW_NON_PERF_TARGET=true.
+//    팀 공지 + 데모/리허설 시간 회피, 낮은 값 시험 후 본 실행은 여전히 지킨다.
 //
-// 실행:
+// 실행 (TARGET_URL 필수):
 //   # 1) 메커니즘 증명 (기본)
-//   k6 run load-test/k6/backend-autoscaling.js
-//   k6 run -e VUS=50 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
+//   k6 run -e TARGET_URL="$PERF_TARGET_URL" load-test/k6/backend-autoscaling.js
+//   k6 run -e TARGET_URL="$PERF_TARGET_URL" -e VUS=50 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
 //   # 2) 스케일아웃 지연 측정 (개방형, 실제 엔드포인트)
-//   k6 run -e MODE=latency load-test/k6/backend-autoscaling.js
-//   k6 run -e MODE=latency -e RATE=100 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
+//   k6 run -e TARGET_URL="$PERF_TARGET_URL" -e MODE=latency load-test/k6/backend-autoscaling.js
+//   k6 run -e TARGET_URL="$PERF_TARGET_URL" -e MODE=latency -e RATE=100 -e SUSTAIN=8m load-test/k6/backend-autoscaling.js
+//   (개발 환경 대상은: -e TARGET_URL=<dev-url> -e ALLOW_NON_PERF_TARGET=true)
 //   (cpu 모드: CPU가 75% 밑이면 VUS↑ / latency 모드: CPU 70%를 3분 못 넘기면 RATE↑, 타임아웃 폭주면 RATE↓)
 
 import http from "k6/http";
 import { check, sleep } from "k6";
+import { resolveTarget } from "./_target-guard.js";
 
-const BASE = __ENV.TARGET_URL || "https://api.badasoft.com";
+const BASE = resolveTarget(); // 안전장치: 미지정/운영·dev URL이면 init 단계에서 즉시 중단
 const MODE = (__ENV.MODE || "cpu").toLowerCase(); // "cpu" | "latency"
 const VUS = Number(__ENV.VUS || 40); // cpu 모드: 동시 가상 사용자(폐쇄 루프)
 const RATE = Number(__ENV.RATE || 80); // latency 모드: 목표 초당 요청수(1태스크 용량 초과로 튜닝)
