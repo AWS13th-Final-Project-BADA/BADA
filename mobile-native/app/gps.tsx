@@ -26,6 +26,14 @@ import { useLocale } from "@/i18n/LocaleContext";
 
 const RADIUS_PRESETS = [50, 80, 100, 200, 500];
 
+// ponytail: 실제 지도 SDK가 없어 좌표-픽셀 변환은 불가능하다(정적 이미지라 실제 축척 없음).
+// 대신 반경 프리셋 간 상대적 크기감만 보이도록 근사치로 매핑하고, 카드 안에 항상 보이게 40~190px로 clamp.
+// 업그레이드 경로: 네이티브 지도 SDK 연동 시 이 함수와 mapImage 확대(zoom) 트릭 전체 제거.
+function radiusToCirclePx(radiusM: number): number {
+  const px = 40 + (radiusM / 500) * 150;
+  return Math.min(190, Math.max(55, px));
+}
+
 export default function GpsScreen() {
   const params = useLocalSearchParams<{ caseId?: string }>();
   const router = useRouter();
@@ -87,6 +95,7 @@ export default function GpsScreen() {
       const wp = await registerWorkplace(caseId, loc.coords.latitude, loc.coords.longitude, radiusM);
       setWorkplace(wp);
       setLastStatus(t("gps.saveWorkplace"));
+      Alert.alert(t("gps.saveWorkplace"), `${wp.center_lat.toFixed(5)}, ${wp.center_lng.toFixed(5)} (${wp.radius_m}m)`);
     } catch (e: any) {
       Alert.alert(t("gps.saveError"), String(e?.message ?? e));
     } finally {
@@ -107,6 +116,9 @@ export default function GpsScreen() {
     }
     const result = await sendPing(caseId, loc);
     setLastStatus(formatStatus(result));
+    // 새 핑을 보낸 뒤 목록도 함께 갱신해야 "새로고침"이 실제로 최신 상태를 반영한다.
+    try { const ld = await getLogs(caseId); setLogs(ld.logs || []); } catch {}
+    try { const sd = await getSummary(caseId); setSummary(sd.summary || []); } catch {}
     return result;
   }
 
@@ -183,7 +195,16 @@ export default function GpsScreen() {
         <View style={styles.mapCard}>
           <RemoteImage uri={stitchImages.map} style={styles.mapImage} />
           <View style={styles.mapOverlay}>
-            <View style={styles.radiusCircle}>
+            <View
+              style={[
+                styles.radiusCircle,
+                {
+                  width: radiusToCirclePx(radiusM),
+                  height: radiusToCirclePx(radiusM),
+                  borderRadius: radiusToCirclePx(radiusM) / 2,
+                },
+              ]}
+            >
               <View style={styles.locationDot} />
             </View>
           </View>
@@ -228,8 +249,8 @@ export default function GpsScreen() {
         </View>
         <View style={styles.logs}>
           <Log icon="check-circle" title={t("gps.inside")} detail={lastStatus} badge={tracking ? t("gps.active") : t("gps.inactive")} color={stitch.green} />
-          <Log icon="sensors" title={t("gps.summary")} detail={t("gps.subtitle")} badge={t("common.confirm")} color={stitch.blue} />
-          <Log icon="location-on" title={t("cases.detail")} detail={cases.find((item) => item.id === caseId)?.workplace_name || ""} badge={t("common.confirm")} color={stitch.muted} />
+          <Log icon="sensors" title={t("gps.summary")} detail={t("gps.subtitle")} badge={`${logs.length}${t("gps.logs")}`} color={stitch.blue} />
+          <Log icon="location-on" title={t("cases.detail")} detail={cases.find((item) => item.id === caseId)?.workplace_name || ""} badge={workplace ? `${workplace.radius_m}m` : t("gps.empty")} color={stitch.muted} />
         </View>
 
         {/* 일별 출근 요약 */}
