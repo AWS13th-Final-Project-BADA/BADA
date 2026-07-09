@@ -1,0 +1,75 @@
+{
+  "uid": "bada-prod-backend",
+  "title": "BADA Prod Backend",
+  "tags": ["bada", "backend", "prod"],
+  "timezone": "Asia/Seoul",
+  "panels": [
+    {
+      "id": 100,
+      "title": "Prod Backend (Prometheus · 크로스 환경)",
+      "type": "text",
+      "gridPos": {"h": 3, "w": 24, "x": 0, "y": 0},
+      "options": {
+        "mode": "markdown",
+        "content": "prod backend `/metrics`를 공인 ALB(`api.prod.badasoft.com`) 경유로 스크랩한 지표입니다(`env=\"prod\"`, `prod_monitoring_enabled=true` 필요).\n\n- 분석/OCR 등 **worker에서 산출**되는 지표는 prod worker가 크로스-VPC로 Prometheus 미수집이라 여기 표시되지 않습니다 → `BADA Prod Worker`(CloudWatch)·`BADA Prod Infrastructure` 참조."
+      }
+    },
+    {
+      "id": 1,
+      "title": "요청수 (method별)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 3},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(http_requests_total{env=\"prod\"}[5m])) by (method)", "legendFormat": "{{method}}"}]
+    },
+    {
+      "id": 2,
+      "title": "상태코드별 요청수",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 3},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(http_requests_total{env=\"prod\"}[5m])) by (status)", "legendFormat": "{{status}}"}]
+    },
+    {
+      "id": 3,
+      "title": "에러율 (5xx %)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 11},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(http_requests_total{status=~\"5..\",env=\"prod\"}[5m])) / sum(rate(http_requests_total{env=\"prod\"}[5m])) * 100", "legendFormat": "5xx %"}],
+      "fieldConfig": {"defaults": {"unit": "percent"}}
+    },
+    {
+      "id": 4,
+      "title": "응답시간 (P50/P95/P99)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 11},
+      "datasource": {"uid": "prometheus"},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{env=\"prod\"}[5m])) by (le))", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{env=\"prod\"}[5m])) by (le))", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{env=\"prod\"}[5m])) by (le))", "legendFormat": "P99"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "id": 5,
+      "title": "상위 경로별 요청수",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 19},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "topk(10, sum(rate(http_requests_total{env=\"prod\"}[5m])) by (path))", "legendFormat": "{{path}}"}]
+    },
+    {
+      "id": 6,
+      "title": "상위 경로별 P95 지연",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "topk(10, histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{env=\"prod\"}[5m])) by (le, path)))", "legendFormat": "{{path}}"}],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

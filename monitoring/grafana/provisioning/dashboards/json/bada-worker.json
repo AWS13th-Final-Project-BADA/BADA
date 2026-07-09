@@ -1,7 +1,7 @@
 {
   "uid": "bada-worker",
-  "title": "BADA Worker",
-  "tags": ["bada", "worker"],
+  "title": "BADA Dev Worker",
+  "tags": ["bada", "worker", "dev"],
   "timezone": "Asia/Seoul",
   "templating": {
     "list": []
@@ -13,7 +13,7 @@
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
       "datasource": {"uid": "prometheus"},
-      "targets": [{"expr": "sum(rate(worker_sqs_messages_total[5m])) by (task_type)", "legendFormat": "{{task_type}}"}]
+      "targets": [{"expr": "sum(rate(worker_sqs_messages_total{env=\"dev\"}[5m])) by (task_type)", "legendFormat": "{{task_type}}"}]
     },
     {
       "id": 2,
@@ -21,7 +21,7 @@
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
       "datasource": {"uid": "prometheus"},
-      "targets": [{"expr": "sum(rate(worker_sqs_messages_total[5m])) by (status)", "legendFormat": "{{status}}"}]
+      "targets": [{"expr": "sum(rate(worker_sqs_messages_total{env=\"dev\"}[5m])) by (status)", "legendFormat": "{{status}}"}]
     },
     {
       "id": 3,
@@ -30,9 +30,9 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "datasource": {"uid": "prometheus"},
       "targets": [
-        {"expr": "histogram_quantile(0.50, sum(rate(worker_sqs_processing_seconds_bucket[5m])) by (le))", "legendFormat": "P50"},
-        {"expr": "histogram_quantile(0.95, sum(rate(worker_sqs_processing_seconds_bucket[5m])) by (le))", "legendFormat": "P95"},
-        {"expr": "histogram_quantile(0.99, sum(rate(worker_sqs_processing_seconds_bucket[5m])) by (le))", "legendFormat": "P99"}
+        {"expr": "histogram_quantile(0.50, sum(rate(worker_sqs_processing_seconds_bucket{env=\"dev\"}[5m])) by (le))", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, sum(rate(worker_sqs_processing_seconds_bucket{env=\"dev\"}[5m])) by (le))", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, sum(rate(worker_sqs_processing_seconds_bucket{env=\"dev\"}[5m])) by (le))", "legendFormat": "P99"}
       ],
       "fieldConfig": {"defaults": {"unit": "s"}}
     },
@@ -42,7 +42,7 @@
       "type": "stat",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "datasource": {"uid": "prometheus"},
-      "targets": [{"expr": "sum(rate(worker_sqs_messages_total{status=\"failed\"}[5m])) / sum(rate(worker_sqs_messages_total[5m])) * 100", "legendFormat": "실패율"}],
+      "targets": [{"expr": "sum(rate(worker_sqs_messages_total{status=\"failed\",env=\"dev\"}[5m])) / sum(rate(worker_sqs_messages_total{env=\"dev\"}[5m])) * 100", "legendFormat": "실패율"}],
       "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 5}, {"color": "red", "value": 10}]}}}
     },
     {
@@ -101,5 +101,5 @@
     }
   ],
   "schemaVersion": 39,
-  "version": 3
+  "version": 4
 }

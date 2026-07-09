@@ -1,73 +1,110 @@
 {
   "uid": "bada-overview",
   "title": "BADA Overview",
-  "tags": ["bada"],
+  "tags": ["bada", "overview"],
   "timezone": "Asia/Seoul",
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "환경",
+        "type": "query",
+        "datasource": {"uid": "prometheus"},
+        "query": "label_values(http_requests_total, env)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {"selected": true, "text": ["All"], "value": ["$__all"]},
+        "sort": 1
+      }
+    ]
+  },
   "panels": [
+    {
+      "id": 100,
+      "title": "BADA Overview (dev + prod)",
+      "type": "text",
+      "gridPos": {"h": 3, "w": 24, "x": 0, "y": 0},
+      "options": {
+        "mode": "markdown",
+        "content": "상단 **환경(`$env`)** 셀렉터로 dev/prod를 함께(All) 또는 개별로 볼 수 있습니다. 시계열은 `by (env)`로 환경별 분리됩니다.\n\n- HTTP/분석 지표는 dev·prod backend 모두 Prometheus 스크랩(env 라벨)으로 표시됩니다(prod는 `prod_monitoring_enabled` 필요).\n- **Worker 메시지 처리량**은 prod worker가 크로스-VPC로 Prometheus 미수집이라 **dev만** 표시됩니다. prod worker는 `BADA Prod Worker`(CloudWatch)에서 관측하세요."
+      }
+    },
     {
       "id": 1,
       "title": "총 요청수 (5분)",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
-      "targets": [{"expr": "sum(rate(http_requests_total[5m]))", "legendFormat": "req/s"}]
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 3},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum by (env)(rate(http_requests_total{env=~\"$env\"}[5m]))", "legendFormat": "{{env}}"}]
     },
     {
       "id": 2,
       "title": "에러율 (5xx)",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
-      "targets": [{"expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100", "legendFormat": "% error"}]
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 3},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum by (env)(rate(http_requests_total{status=~\"5..\",env=~\"$env\"}[5m])) / sum by (env)(rate(http_requests_total{env=~\"$env\"}[5m])) * 100", "legendFormat": "{{env}}"}],
+      "fieldConfig": {"defaults": {"unit": "percent"}}
     },
     {
       "id": 3,
       "title": "P95 응답시간",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
-      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P95"}]
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 3},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{env=~\"$env\"}[5m])) by (le, env))", "legendFormat": "{{env}}"}],
+      "fieldConfig": {"defaults": {"unit": "s"}}
     },
     {
       "id": 4,
       "title": "분석 실행 (성공/실패)",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 3},
+      "datasource": {"uid": "prometheus"},
       "targets": [
-        {"expr": "sum(bada_analysis_runs_total{status=\"success\"})", "legendFormat": "성공"},
-        {"expr": "sum(bada_analysis_runs_total{status=\"failed\"})", "legendFormat": "실패"}
+        {"expr": "sum by (env)(bada_analysis_runs_total{status=\"success\",env=~\"$env\"})", "legendFormat": "성공 {{env}}"},
+        {"expr": "sum by (env)(bada_analysis_runs_total{status=\"failed\",env=~\"$env\"})", "legendFormat": "실패 {{env}}"}
       ]
     },
     {
       "id": 5,
-      "title": "요청수 추이",
+      "title": "요청수 추이 (method·env별)",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
-      "targets": [{"expr": "sum(rate(http_requests_total[1m])) by (method)", "legendFormat": "{{method}}"}]
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 7},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(http_requests_total{env=~\"$env\"}[1m])) by (method, env)", "legendFormat": "{{env}} {{method}}"}]
     },
     {
       "id": 6,
-      "title": "응답시간 히스토그램",
+      "title": "응답시간 (P50/P95/P99, env별)",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 7},
+      "datasource": {"uid": "prometheus"},
       "targets": [
-        {"expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P50"},
-        {"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P95"},
-        {"expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P99"}
-      ]
+        {"expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{env=~\"$env\"}[5m])) by (le, env))", "legendFormat": "P50 {{env}}"},
+        {"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{env=~\"$env\"}[5m])) by (le, env))", "legendFormat": "P95 {{env}}"},
+        {"expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{env=~\"$env\"}[5m])) by (le, env))", "legendFormat": "P99 {{env}}"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
     },
     {
       "id": 7,
-      "title": "Worker 메시지 처리량",
+      "title": "Worker 메시지 처리량 (dev only)",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
-      "targets": [{"expr": "sum(rate(worker_sqs_messages_total[5m])) by (task_type)", "legendFormat": "{{task_type}}"}]
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 15},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(worker_sqs_messages_total{env=~\"$env\"}[5m])) by (task_type, env)", "legendFormat": "{{env}} {{task_type}}"}]
     },
     {
       "id": 8,
-      "title": "상태코드 분포",
+      "title": "상태코드 분포 (env별)",
       "type": "piechart",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
-      "targets": [{"expr": "sum(http_requests_total) by (status)", "legendFormat": "{{status}}"}]
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 15},
+      "datasource": {"uid": "prometheus"},
+      "targets": [{"expr": "sum by (status, env)(http_requests_total{env=~\"$env\"})", "legendFormat": "{{env}} {{status}}"}]
     }
   ],
   "schemaVersion": 39,
-  "version": 2
+  "version": 3
 }

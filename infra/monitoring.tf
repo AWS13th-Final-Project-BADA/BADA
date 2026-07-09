@@ -53,6 +53,21 @@ locals {
       sqs_dlq_name    = var.prod_sqs_dlq_name
     }
   ))
+  # prod Backend는 Prometheus(env="prod") 기반 — 순수 파일(템플릿 변수 없음).
+  grafana_prod_backend_dashboard_base64 = filebase64(
+    "${path.module}/../monitoring/grafana/provisioning/dashboards/json/bada-prod-backend.json"
+  )
+  # prod Worker는 CloudWatch 기반(prod worker는 크로스-VPC로 Prometheus 미수집) — prod 리소스 이름 주입.
+  grafana_prod_worker_dashboard_base64 = base64encode(templatefile(
+    "${path.module}/../monitoring/grafana/provisioning/dashboards/json/bada-prod-worker.json",
+    {
+      aws_region     = var.aws_region
+      ecs_cluster    = var.prod_ecs_cluster_name
+      worker_service = var.prod_worker_service_name
+      sqs_queue_name = var.prod_sqs_queue_name
+      sqs_dlq_name   = var.prod_sqs_dlq_name
+    }
+  ))
   grafana_backend_dashboard_base64 = filebase64(
     "${path.module}/../monitoring/grafana/provisioning/dashboards/json/bada-backend.json"
   )
@@ -410,7 +425,7 @@ resource "aws_ecs_task_definition" "grafana" {
         "-c"
       ]
       command = [
-        "set -eu; mkdir -p /config/datasources /config/dashboards/json /config/alerting; printf '%s' \"$DATASOURCES_BASE64\" | base64 -d > /config/datasources/datasources.yml; printf '%s' \"$DASHBOARDS_CONFIG_BASE64\" | base64 -d > /config/dashboards/dashboards.yml; printf '%s' \"$OVERVIEW_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-overview.json; printf '%s' \"$INFRA_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-infrastructure.json; printf '%s' \"$PROD_INFRA_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-prod-infrastructure.json; printf '%s' \"$BACKEND_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-backend.json; printf '%s' \"$WORKER_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-worker.json; printf '%s' \"$ALERTING_CONTACTPOINTS_BASE64\" | base64 -d > /config/alerting/contactpoints.yml; printf '%s' \"$ALERTING_RULES_BASE64\" | base64 -d > /config/alerting/rules.yml; printf '%s' \"$ALERTING_POLICIES_BASE64\" | base64 -d > /config/alerting/policies.yml"
+        "set -eu; mkdir -p /config/datasources /config/dashboards/json /config/alerting; printf '%s' \"$DATASOURCES_BASE64\" | base64 -d > /config/datasources/datasources.yml; printf '%s' \"$DASHBOARDS_CONFIG_BASE64\" | base64 -d > /config/dashboards/dashboards.yml; printf '%s' \"$OVERVIEW_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-overview.json; printf '%s' \"$INFRA_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-infrastructure.json; printf '%s' \"$PROD_INFRA_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-prod-infrastructure.json; printf '%s' \"$BACKEND_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-backend.json; printf '%s' \"$WORKER_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-worker.json; printf '%s' \"$PROD_BACKEND_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-prod-backend.json; printf '%s' \"$PROD_WORKER_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-prod-worker.json; printf '%s' \"$ALERTING_CONTACTPOINTS_BASE64\" | base64 -d > /config/alerting/contactpoints.yml; printf '%s' \"$ALERTING_RULES_BASE64\" | base64 -d > /config/alerting/rules.yml; printf '%s' \"$ALERTING_POLICIES_BASE64\" | base64 -d > /config/alerting/policies.yml"
       ]
       environment = [
         { name = "DATASOURCES_BASE64", value = local.grafana_datasources_base64 },
@@ -420,6 +435,8 @@ resource "aws_ecs_task_definition" "grafana" {
         { name = "PROD_INFRA_DASHBOARD_BASE64", value = local.grafana_prod_infrastructure_dashboard_base64 },
         { name = "BACKEND_DASHBOARD_BASE64", value = local.grafana_backend_dashboard_base64 },
         { name = "WORKER_DASHBOARD_BASE64", value = local.grafana_worker_dashboard_base64 },
+        { name = "PROD_BACKEND_DASHBOARD_BASE64", value = local.grafana_prod_backend_dashboard_base64 },
+        { name = "PROD_WORKER_DASHBOARD_BASE64", value = local.grafana_prod_worker_dashboard_base64 },
         { name = "ALERTING_CONTACTPOINTS_BASE64", value = local.grafana_alerting_contactpoints_base64 },
         { name = "ALERTING_RULES_BASE64", value = local.grafana_alerting_rules_base64 },
         { name = "ALERTING_POLICIES_BASE64", value = local.grafana_alerting_policies_base64 }
