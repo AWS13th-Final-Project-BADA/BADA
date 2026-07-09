@@ -1,6 +1,6 @@
 # BADA
 
-외국인·취약 노동자가 흩어진 증거를 올리면, AI가 OCR·번역으로 사실관계를 구조화하여
+외국인·취약 노동자가 흩어진 증거를 올리면, AI가 OCR·음성 전사(STT)·번역으로 사실관계를 구조화하여
 **사건 타임라인 + 미지급 의심 금액 + 상담/신고 제출용 Evidence Pack(PDF)** 을 만들고,
 다음 행동을 모국어로 안내하는 도구.
 
@@ -26,7 +26,7 @@
 
 ```
 backend/        FastAPI API 서버 (라우터 9 + 서비스 22)
-worker/         분석 워커 (rules = 규칙엔진, llm = OCR·문장화)
+worker/         분석 워커 (rules = 규칙엔진, llm = OCR·STT·문장화, SQS 비동기 처리)
 mobile-native/  React Native + Expo 모바일 앱 (주력 프론트엔드)
 prompts/        LLM 프롬프트 템플릿
 infra/          Terraform (AWS IaC, .tf 15개)
@@ -69,6 +69,7 @@ cd mobile-native && npm install && npx expo start
 
 > 인증은 **소셜 OAuth(구글/카카오/네이버) 직접 구현 + 자체 HS256 JWT**. (Cognito는 미사용 레거시)
 > 네트워크는 **3-tier 격리(ALB=public / ECS·RDS=private) + 단일 NAT Gateway egress + S3 Gateway Endpoint(무료)** 로 운영한다. (2026-07-03 적용, 종료 토글 有)
+> 환경은 **dev/prod 2개를 분리 운영**한다(별도 Terraform state·VPC·도메인: dev=`badasoft.com`, prod=`prod.badasoft.com`). dev Grafana에서 prod까지 **크로스 환경 관측** 가능. (2026-07-03 적용)
 
 ```mermaid
 flowchart TB
@@ -94,7 +95,7 @@ flowchart TB
     end
 
     subgraph AI["AI / ML Services"]
-        Bedrock["Bedrock\nClaude Sonnet 4"]
+        Bedrock["Bedrock\nClaude Sonnet 4.6"]
         Transcribe["Amazon Transcribe"]
         Translate["Amazon Translate"]
     end
@@ -163,8 +164,8 @@ flowchart TB
 | **컴퓨트** | ECS Fargate (ARM64, Auto Scaling) · Worker FARGATE_SPOT · ECR · ALB (HTTPS/ACM/TLS1.3) |
 | **데이터** | RDS PostgreSQL + PostGIS (Multi-AZ, encrypted) · S3 (SSE-KMS · Lifecycle) · SQS + DLQ |
 | **인증** | 소셜 OAuth (구글/카카오/네이버) + 자체 HS256 JWT (`bada://` 딥링크) — *Cognito는 미사용 레거시* |
-| **AI** | Bedrock Claude Sonnet 4 · Titan Embeddings (RAG/pgvector) · Amazon Translate · Amazon Transcribe |
-| **관측성** | CloudWatch Logs/Alarms · Prometheus · Grafana · X-Ray · SNS Alert |
+| **AI** | Bedrock Claude Sonnet 4.6 · Titan Embeddings (RAG/pgvector) · Amazon Translate · Amazon Transcribe |
+| **관측성** | CloudWatch Logs/Alarms(14) · Prometheus · Grafana(대시보드 7 · Alert G1~G10) · X-Ray · SNS Alert · dev/prod 크로스 환경 |
 | **보안** | AWS WAF v2 · GuardDuty · Security Hub · Secrets Manager · SSM Parameter Store |
 | **PDF** | WeasyPrint (다국어 폰트 임베딩) |
 | **모바일** | React Native · Expo · EAS Build |
@@ -174,13 +175,16 @@ flowchart TB
 
 ## 배포 현황
 
-| 서비스 | URL | 상태 |
+| 환경 / 서비스 | URL | 상태 |
 |--------|-----|------|
-| Backend API | `https://api.badasoft.com` | ✅ |
-| Grafana | `https://monitor.badasoft.com` | ✅ |
-| 모바일 앱 | EAS Build (수동 `workflow_dispatch`) Preview APK | 🔄 구현 중 |
+| Backend API (dev) | `https://api.badasoft.com` | ✅ |
+| Backend API (prod) | `https://api.prod.badasoft.com` | ✅ |
+| Grafana (dev) | `https://monitor.badasoft.com` | ✅ |
+| Grafana (prod) | `https://monitor.prod.badasoft.com` | ✅ |
+| 모바일 앱 | EAS Build (수동 `workflow_dispatch`) Preview APK | ✅ |
 
 > `https://badasoft.com`은 웹 프론트 제거(`frontend_enabled=false`) 이후 Backend 폴백이다.
+> dev/prod는 별도 Terraform state(`backends/<env>.hcl`) + tfvars로 분리 운영한다. 상세: `docs/infra/implementation-status.md` §10.
 
 ## 인프라 운영 기준
 
