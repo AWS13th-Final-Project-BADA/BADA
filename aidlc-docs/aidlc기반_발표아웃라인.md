@@ -149,7 +149,7 @@
 ## 슬라이드 12 — 보안 & 관측성 (15:30–17:00)
 [화면]
 - 보안: WAF(관리형 룰), GuardDuty/Security Hub, KMS/SSE, Secrets Manager, 행 수준 인가(verify_case_owner), 3-tier 격리
-- 관측성: CloudWatch Logs·Alarm 14개, Prometheus+Grafana(대시보드 4·알림 10), X-Ray 분산 추적
+- 관측성: CloudWatch Logs·Alarm 14개, Prometheus+Grafana(대시보드 5·알림 10, dev+prod 크로스 환경), X-Ray 분산 추적
 - SLI/SLO 정의 + 알림 계층화
 
 [멘트]
@@ -194,7 +194,7 @@
 - 테스트 ~218개 / property-based 13개
 - OCR 병렬 12건 240s→25s, PDF 50s→15s(Worker CPU 256→1024)
 - k6 scale-out: Backend 1→2, Worker 1→3
-- CloudWatch alarm 14 / Grafana 대시보드 4·알림 10
+- CloudWatch alarm 14 / Grafana 대시보드 5·알림 10 (dev+prod 크로스 환경)
 - 예산 사용 ~$55 / 상한 $1,500 / 운영 2026-06-04~07-10
 - 백엔드 라우터 9 · 서비스 22 / 규칙 모듈 11 · LLM 모듈 3
 
