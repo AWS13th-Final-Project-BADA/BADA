@@ -786,3 +786,65 @@ variable "security_monitoring_enabled" {
   type        = bool
   default     = true
 }
+
+# ---- 크로스 환경(prod) 관측 타깃 ----
+# dev 모니터링 스택(Prometheus + Grafana)에서 prod 클러스터 현황을 함께 관측하기 위한 설정.
+# prod는 별도 Terraform state/VPC이므로 리소스를 이름으로 참조한다(같은 계정·리전이라
+# Grafana CloudWatch datasource가 조회 가능하고, 모니터링 Task Role은 cloudwatch read:* 보유).
+# Prometheus는 prod backend /metrics를 공인 ALB(api.<prod_domain>)로 스크랩한다.
+# prod worker는 다른 VPC의 Cloud Map이라 크로스-VPC 스크랩 불가 → CloudWatch로 관측한다.
+# 종료 시 prod_monitoring_enabled=false 로 되돌리면 prod 스크랩 타깃/ALB 조회가 제거된다.
+
+variable "prod_monitoring_enabled" {
+  description = "dev 모니터링 스택에서 prod 크로스 환경 관측(prod backend Prometheus 스크랩 + prod ALB arn_suffix 조회)을 활성화한다. prod 스택이 배포돼 있어야 한다."
+  type        = bool
+  default     = false
+}
+
+variable "prod_domain_name" {
+  description = "prod 공인 도메인. prod backend /metrics를 api.<domain>:443 으로 스크랩한다. 빈값이면 prod Prometheus 타깃을 비활성."
+  type        = string
+  default     = "prod.badasoft.com"
+}
+
+variable "prod_ecs_cluster_name" {
+  description = "prod ECS 클러스터 이름 (CloudWatch 크로스 환경 대시보드용)."
+  type        = string
+  default     = "bada-prod-cluster"
+}
+
+variable "prod_backend_service_name" {
+  description = "prod backend ECS 서비스 이름."
+  type        = string
+  default     = "bada-prod-backend"
+}
+
+variable "prod_worker_service_name" {
+  description = "prod worker ECS 서비스 이름."
+  type        = string
+  default     = "bada-prod-worker"
+}
+
+variable "prod_rds_instance_id" {
+  description = "prod 앱 RDS 인스턴스 식별자. prod는 Multi-AZ 인스턴스를 앱 DB로 사용한다(use_rehearsal_multiaz_db_as_app_db=true)."
+  type        = string
+  default     = "bada-prod-postgres-multiaz"
+}
+
+variable "prod_sqs_queue_name" {
+  description = "prod 분석 SQS 큐 이름."
+  type        = string
+  default     = "bada-prod-analysis"
+}
+
+variable "prod_sqs_dlq_name" {
+  description = "prod 분석 SQS DLQ 이름."
+  type        = string
+  default     = "bada-prod-analysis-dlq"
+}
+
+variable "prod_alb_name" {
+  description = "prod ALB 이름. ALB CloudWatch 지표 dimension(arn_suffix) 조회에 사용한다. prod_monitoring_enabled=true일 때만 조회한다. 빈값이면 ALB 패널 비활성."
+  type        = string
+  default     = "bada-prod-alb"
+}

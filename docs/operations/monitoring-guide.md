@@ -29,7 +29,7 @@ aws secretsmanager get-secret-value \
   --query SecretString --output text
 ```
 
-## 3. 대시보드 (4개)
+## 3. 대시보드 (5개)
 
 Grafana `Dashboards → BADA` 폴더. 프로비저닝 소스: `monitoring/grafana/provisioning/dashboards/json/*.json`
 (Grafana UI 수동 수정이 아니라 JSON 변경 후 Terraform apply로 영구 반영).
@@ -39,7 +39,8 @@ Grafana `Dashboards → BADA` 폴더. 프로비저닝 소스: `monitoring/grafan
 | BADA Overview | Prometheus | 비즈니스 KPI(사건/분석/PDF), 요청량·에러율 |
 | BADA Backend | Prometheus | HTTP 요청/지연/에러, 미들웨어 메트릭 |
 | BADA Worker | Prometheus + CloudWatch | Worker 처리량·실패·지연, SQS 깊이 |
-| BADA Infrastructure | CloudWatch | ECS CPU/Mem, RDS, ALB 4xx/5xx·요청량, SQS Visible·Oldest Age, **ECS Task Count(scale-out)** |
+| BADA Infrastructure | CloudWatch | (**dev**) ECS CPU/Mem, RDS, ALB 4xx/5xx·요청량, SQS Visible·Oldest Age, **ECS Task Count(scale-out)** |
+| BADA Prod Infrastructure | CloudWatch | (**prod, 크로스 환경**) prod 클러스터의 ECS/RDS/ALB/SQS + Task Count. §9 참조 |
 
 > **Infrastructure 대시보드 패널**은 `AWS/ECS`·`AWS/RDS`·`AWS/ApplicationELB`·`AWS/SQS`와
 > `ECS/ContainerInsights`(Task Count) namespace를 사용한다. Container Insights가 켜져 있어야 한다(클러스터 설정 적용됨).
@@ -47,11 +48,13 @@ Grafana `Dashboards → BADA` 폴더. 프로비저닝 소스: `monitoring/grafan
 
 ## 4. Prometheus 타겟 & 메트릭
 
-- 스크랩 대상: Prometheus 자기 자신, `bada-backend`(HTTPS `api.${domain}/metrics`), `bada-worker`(Cloud Map DNS `worker.${namespace}:9090`).
+- 스크랩 대상: Prometheus 자기 자신, `bada-backend`(HTTPS `api.${domain}/metrics`, 라벨 `env="dev"`), `bada-worker`(Cloud Map DNS `worker.${namespace}:9090`, 라벨 `env="dev"`).
+- **크로스 환경(prod)**: `prod_monitoring_enabled=true` 시 `bada-backend-prod` 타겟(HTTPS `api.${prod_domain}/metrics`, 라벨 `env="prod"`)이 추가된다. prod backend는 공인 ALB로 노출돼 인터넷(NAT egress) 경유로 스크랩된다. §9 참조.
 - Backend: `http_requests_total`, `http_request_duration_seconds_bucket` 등(미들웨어 계측).
 - Worker(`prometheus_client`, `:9090`): 메시지 처리/실패, 처리 지연, Bedrock 호출, OCR/STT/PDF 건수, 분석 소요시간.
 
 > 알림 규칙(§5)이 참조하는 정확한 지표명은 `monitoring/grafana/provisioning/alerting/rules.yml`과 worker 계측 코드가 단일 출처다.
+> ⚠️ prod 타겟을 켜면 `env` 라벨 없는 기존 알림 쿼리(예: G1·G3·G9)는 dev+prod를 **합산**한다. 환경별로 분리하려면 쿼리에 `{env="dev"}`(또는 `{env="prod"}`)를 추가한다.
 
 ## 5. Grafana Alerting
 
@@ -113,3 +116,47 @@ Auto Scaling(#4, Backend CPU 70% / Worker SQS backlog-per-task, min=1/max=3)의 
 - [ ] Alert Rules 10개(G1~G10) BADA 폴더 존재
 - [ ] Infra 대시보드 Task Count 패널로 scale-out 확인(부하 테스트 시)
 - [ ] G3 Alerting → 요청 후 OK 전환 + Resolved 이메일
+
+## 9. 크로스 환경(prod) 관측 — dev 스택에서 prod 보기
+
+dev/prod/perf는 **각각 별도 Terraform state/VPC**이며, 각 환경이 자기 Prometheus+Grafana를 띄운다. 그래서 `monitor.badasoft.com`(dev) Grafana는 기본적으로 dev 리소스만 본다. prod 현황을 같은 화면에서 보기 위해 아래를 추가했다.
+
+### 어떻게 동작하나
+
+| 대상 | 방식 | 근거 |
+|------|------|------|
+| prod **backend** 앱 메트릭 | Prometheus가 공인 ALB(`api.prod.badasoft.com/metrics`)를 인터넷 경유로 스크랩 (`env="prod"` 라벨) | backend `/metrics`가 ALB로 노출됨 |
+| prod **ECS/RDS/ALB/SQS/Task Count** | Grafana CloudWatch datasource가 prod 리소스 이름으로 조회 (같은 계정·리전) | 모니터링 Task Role이 `cloudwatch:*` 읽기 보유 |
+| prod **worker** 앱 메트릭 | ❌ 미수집 (다른 VPC의 Cloud Map이라 크로스-VPC 스크랩 불가) → **CloudWatch(Container Insights)** 로 대체 관측 | Prometheus DNS SD는 VPC 내부 전용 |
+
+> 원칙: prod worker의 상세 애플리케이션 메트릭까지 Prometheus로 모으려면 VPC 피어링 또는 중앙 관측 계정이 필요하다. 데모/기간 대비 과하여 **CloudWatch 기반 인프라 관측으로 갈음**한다(ECS CPU/메모리·Task Count·SQS는 CloudWatch로 충분히 확인 가능).
+
+### 활성화 절차 (Terraform)
+
+```hcl
+# infra/env/dev.tfvars (또는 실행 시 -var)
+prod_monitoring_enabled = true          # prod backend 스크랩 + prod ALB arn_suffix 조회 on
+prod_domain_name        = "prod.badasoft.com"
+# 리소스 이름은 bada-prod-* 규칙 기본값 사용. 다르면 아래로 override.
+# prod_ecs_cluster_name     = "bada-prod-cluster"
+# prod_backend_service_name = "bada-prod-backend"
+# prod_worker_service_name  = "bada-prod-worker"
+# prod_rds_instance_id      = "bada-prod-postgres-multiaz"
+# prod_sqs_queue_name       = "bada-prod-analysis"
+# prod_sqs_dlq_name         = "bada-prod-analysis-dlq"
+# prod_alb_name             = "bada-prod-alb"
+```
+
+```bash
+# dev state에서 적용 (모니터링 스택은 dev에 있음)
+terraform init -reconfigure -backend-config=backends/dev.hcl
+terraform plan  -var-file=env/dev.tfvars
+terraform apply -var-file=env/dev.tfvars   # 담당자만
+```
+
+- 적용 후 Grafana에 **BADA Prod Infrastructure** 대시보드가 나타난다.
+- `prod_monitoring_enabled=false`(기본)이면 prod ALB arn_suffix 조회를 하지 않아 dev plan/apply가 prod 존재 여부와 무관하게 안전하다. 이 경우 prod 대시보드의 ALB 패널만 무데이터가 되고, 이름 기반(ECS/RDS/SQS) 패널은 prod가 떠 있으면 데이터를 보여준다.
+- **주의**: `prod_monitoring_enabled=true`는 prod 스택(특히 `bada-prod-alb`)이 실제 배포돼 있어야 한다(`data "aws_lb" "prod"` 조회). 미배포 상태에서 켜면 apply가 실패한다.
+
+### 종료(7/10) 정리
+- `prod_monitoring_enabled=false`로 되돌리면 prod backend 스크랩 타깃과 ALB 조회가 제거된다. prod 대시보드 자체는 남지만(무해), 원하면 `bada-prod-infrastructure.json` 프로비저닝 라인을 제거한다.

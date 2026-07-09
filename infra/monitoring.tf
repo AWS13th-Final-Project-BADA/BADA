@@ -7,6 +7,9 @@ locals {
     {
       domain_name                 = var.domain_name
       service_discovery_namespace = local.monitoring_service_discovery_namespace
+      # prod backend를 공인 ALB로 스크랩(크로스 환경). prod worker는 크로스-VPC라 CloudWatch로 관측.
+      prod_backend_target_enabled = var.prod_monitoring_enabled && var.prod_domain_name != ""
+      prod_domain_name            = var.prod_domain_name
     }
   ))
   grafana_datasources_base64 = base64encode(templatefile(
@@ -33,6 +36,21 @@ locals {
       alb_arn_suffix  = aws_lb.main.arn_suffix
       sqs_queue_name  = aws_sqs_queue.analysis.name
       sqs_dlq_name    = aws_sqs_queue.analysis_dlq.name
+    }
+  ))
+  # 크로스 환경(prod) 대시보드: prod는 별도 state이므로 리소스를 이름으로 참조한다.
+  # ALB arn_suffix만 비결정적이라 data source로 조회(prod_monitoring_enabled일 때만).
+  grafana_prod_infrastructure_dashboard_base64 = base64encode(templatefile(
+    "${path.module}/../monitoring/grafana/provisioning/dashboards/json/bada-prod-infrastructure.json",
+    {
+      aws_region      = var.aws_region
+      ecs_cluster     = var.prod_ecs_cluster_name
+      backend_service = var.prod_backend_service_name
+      worker_service  = var.prod_worker_service_name
+      rds_instance_id = var.prod_rds_instance_id
+      alb_arn_suffix  = try(data.aws_lb.prod[0].arn_suffix, "")
+      sqs_queue_name  = var.prod_sqs_queue_name
+      sqs_dlq_name    = var.prod_sqs_dlq_name
     }
   ))
   grafana_backend_dashboard_base64 = filebase64(
@@ -63,6 +81,14 @@ locals {
   grafana_alerting_policies_base64 = filebase64(
     "${path.module}/../monitoring/grafana/provisioning/alerting/policies.yml"
   )
+}
+
+# prod ALB arn_suffix 조회 — CloudWatch ALB 지표(LoadBalancer dimension)용.
+# prod_monitoring_enabled=true일 때만 조회하며, prod 스택의 ALB가 존재해야 한다.
+# 종료 시 false로 되돌리면 조회가 사라지고 prod ALB 패널은 무데이터가 된다.
+data "aws_lb" "prod" {
+  count = var.prod_monitoring_enabled && var.prod_alb_name != "" ? 1 : 0
+  name  = var.prod_alb_name
 }
 
 # Prometheus는 외부에 노출하지 않고 Grafana가 VPC 내부 DNS로 접근한다.
@@ -384,13 +410,14 @@ resource "aws_ecs_task_definition" "grafana" {
         "-c"
       ]
       command = [
-        "set -eu; mkdir -p /config/datasources /config/dashboards/json /config/alerting; printf '%s' \"$DATASOURCES_BASE64\" | base64 -d > /config/datasources/datasources.yml; printf '%s' \"$DASHBOARDS_CONFIG_BASE64\" | base64 -d > /config/dashboards/dashboards.yml; printf '%s' \"$OVERVIEW_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-overview.json; printf '%s' \"$INFRA_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-infrastructure.json; printf '%s' \"$BACKEND_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-backend.json; printf '%s' \"$WORKER_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-worker.json; printf '%s' \"$ALERTING_CONTACTPOINTS_BASE64\" | base64 -d > /config/alerting/contactpoints.yml; printf '%s' \"$ALERTING_RULES_BASE64\" | base64 -d > /config/alerting/rules.yml; printf '%s' \"$ALERTING_POLICIES_BASE64\" | base64 -d > /config/alerting/policies.yml"
+        "set -eu; mkdir -p /config/datasources /config/dashboards/json /config/alerting; printf '%s' \"$DATASOURCES_BASE64\" | base64 -d > /config/datasources/datasources.yml; printf '%s' \"$DASHBOARDS_CONFIG_BASE64\" | base64 -d > /config/dashboards/dashboards.yml; printf '%s' \"$OVERVIEW_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-overview.json; printf '%s' \"$INFRA_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-infrastructure.json; printf '%s' \"$PROD_INFRA_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-prod-infrastructure.json; printf '%s' \"$BACKEND_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-backend.json; printf '%s' \"$WORKER_DASHBOARD_BASE64\" | base64 -d > /config/dashboards/json/bada-worker.json; printf '%s' \"$ALERTING_CONTACTPOINTS_BASE64\" | base64 -d > /config/alerting/contactpoints.yml; printf '%s' \"$ALERTING_RULES_BASE64\" | base64 -d > /config/alerting/rules.yml; printf '%s' \"$ALERTING_POLICIES_BASE64\" | base64 -d > /config/alerting/policies.yml"
       ]
       environment = [
         { name = "DATASOURCES_BASE64", value = local.grafana_datasources_base64 },
         { name = "DASHBOARDS_CONFIG_BASE64", value = local.grafana_dashboards_config_base64 },
         { name = "OVERVIEW_DASHBOARD_BASE64", value = local.grafana_overview_dashboard_base64 },
         { name = "INFRA_DASHBOARD_BASE64", value = local.grafana_infrastructure_dashboard_base64 },
+        { name = "PROD_INFRA_DASHBOARD_BASE64", value = local.grafana_prod_infrastructure_dashboard_base64 },
         { name = "BACKEND_DASHBOARD_BASE64", value = local.grafana_backend_dashboard_base64 },
         { name = "WORKER_DASHBOARD_BASE64", value = local.grafana_worker_dashboard_base64 },
         { name = "ALERTING_CONTACTPOINTS_BASE64", value = local.grafana_alerting_contactpoints_base64 },
