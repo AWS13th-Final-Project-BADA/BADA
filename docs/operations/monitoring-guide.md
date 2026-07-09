@@ -8,7 +8,7 @@
 | 계층 | 구성 | 상태 |
 |------|------|------|
 | 메트릭 수집 | Prometheus (ECS Fargate) — Backend `/metrics`, Worker `:9090/metrics` scrape | ✅ 두 타겟 UP |
-| 시각화 | Grafana (ECS Fargate) — 대시보드 5개 (dev 4 + prod 크로스 환경 1) | ✅ |
+| 시각화 | Grafana (ECS Fargate) — 대시보드 7개 (Overview 공용 + dev 3 + prod 3) | ✅ |
 | 클라우드 지표 | CloudWatch — ECS/RDS/ALB/SQS + Container Insights, Alarm 14개 | ✅ |
 | 분산 추적 | AWS X-Ray — Backend + Worker (사이드카) | ✅ |
 | 알림 | Grafana Alerting → SNS → Email + CloudWatch Alarm → SNS | ✅ |
@@ -29,17 +29,19 @@ aws secretsmanager get-secret-value \
   --query SecretString --output text
 ```
 
-## 3. 대시보드 (5개)
+## 3. 대시보드 (7개)
 
 Grafana `Dashboards → BADA` 폴더. 프로비저닝 소스: `monitoring/grafana/provisioning/dashboards/json/*.json`
 (Grafana UI 수동 수정이 아니라 JSON 변경 후 Terraform apply로 영구 반영).
 
 | 대시보드 | 데이터소스 | 내용 |
 |----------|-----------|------|
-| BADA Overview | Prometheus | 비즈니스 KPI(사건/분석/PDF), 요청량·에러율 |
-| BADA Backend | Prometheus | HTTP 요청/지연/에러, 미들웨어 메트릭 |
-| BADA Worker | Prometheus + CloudWatch | Worker 처리량·실패·지연, SQS 깊이 |
-| BADA Infrastructure | CloudWatch | (**dev**) ECS CPU/Mem, RDS, ALB 4xx/5xx·요청량, SQS Visible·Oldest Age, **ECS Task Count(scale-out)** |
+| BADA Overview | Prometheus | **dev+prod 공용** — 상단 `env` 셀렉터로 환경 선택/합산(`by (env)`). HTTP 요청량·에러율·P95·분석 실행. (Worker 처리량은 dev만 — §9) |
+| BADA Dev Backend | Prometheus | (**dev**) HTTP 요청/상태코드/에러율/지연(P50·95·99)/상위 경로, 분석·OCR (`env="dev"` 필터) |
+| BADA Dev Worker | Prometheus + CloudWatch | (**dev**) Worker 처리량·결과·처리시간·실패율(Prometheus), SQS 대기·In-Flight(CloudWatch) |
+| BADA Dev Infrastructure | CloudWatch | (**dev**) ECS CPU/Mem, RDS, ALB 4xx/5xx·요청량, SQS Visible·Oldest Age, **ECS Task Count(scale-out)** |
+| BADA Prod Backend | Prometheus | (**prod, 크로스 환경**) prod backend HTTP 요청/상태코드/에러율/지연/상위 경로 (`env="prod"`). §9 참조 |
+| BADA Prod Worker | CloudWatch | (**prod, 크로스 환경**) Worker ECS CPU/Mem, SQS 대기·In-Flight·Oldest Age, Task Count. prod worker는 Prometheus 미수집 → CloudWatch. §9 참조 |
 | BADA Prod Infrastructure | CloudWatch | (**prod, 크로스 환경**) prod 클러스터의 ECS/RDS/ALB/SQS + Task Count. §9 참조 |
 
 > **Infrastructure 대시보드 패널**은 `AWS/ECS`·`AWS/RDS`·`AWS/ApplicationELB`·`AWS/SQS`와
@@ -110,8 +112,8 @@ Auto Scaling(#4, Backend CPU 70% / Worker SQS backlog-per-task, min=1/max=3)의 
 
 ## 8. 체크리스트
 
-- [ ] Grafana 로그인 + 4개 대시보드 데이터 표시
-- [ ] Prometheus 타겟(backend/worker) UP
+- [ ] Grafana 로그인 + 7개 대시보드 데이터 표시 (Overview 공용 + dev 3 + prod 3)
+- [ ] Prometheus 타겟(dev backend/worker) UP (prod 활성 시 `bada-backend-prod` 포함)
 - [ ] Contact Point `BADA-SNS` Test 이메일 수신
 - [ ] Alert Rules 10개(G1~G10) BADA 폴더 존재
 - [ ] Infra 대시보드 Task Count 패널로 scale-out 확인(부하 테스트 시)
@@ -121,15 +123,26 @@ Auto Scaling(#4, Backend CPU 70% / Worker SQS backlog-per-task, min=1/max=3)의 
 
 dev/prod/perf는 **각각 별도 Terraform state/VPC**이며, 각 환경이 자기 Prometheus+Grafana를 띄운다. 그래서 `monitor.badasoft.com`(dev) Grafana는 기본적으로 dev 리소스만 본다. prod 현황을 같은 화면에서 보기 위해 아래를 추가했다.
 
+### 대시보드 구성 (dev/prod 대칭)
+
+환경 구분을 명확히 하기 위해 dev 대시보드는 이름에 **Dev**를 붙였고, prod는 dev와 유사한 세트를 갖춘다. **Overview는 dev+prod 공용**이다.
+
+| 구분 | 대시보드 | 데이터소스 |
+|------|----------|-----------|
+| 공용 | BADA Overview | Prometheus (`env` 셀렉터로 dev/prod 선택·합산) |
+| dev | BADA Dev Backend / Dev Worker / Dev Infrastructure | Prometheus(+CloudWatch) |
+| prod | BADA Prod Backend / Prod Worker / Prod Infrastructure | Prod Backend=Prometheus(`env="prod"`), Prod Worker/Infra=CloudWatch |
+
 ### 어떻게 동작하나
 
 | 대상 | 방식 | 근거 |
 |------|------|------|
-| prod **backend** 앱 메트릭 | Prometheus가 공인 ALB(`api.prod.badasoft.com/metrics`)를 인터넷 경유로 스크랩 (`env="prod"` 라벨) | backend `/metrics`가 ALB로 노출됨 |
-| prod **ECS/RDS/ALB/SQS/Task Count** | Grafana CloudWatch datasource가 prod 리소스 이름으로 조회 (같은 계정·리전) | 모니터링 Task Role이 `cloudwatch:*` 읽기 보유 |
-| prod **worker** 앱 메트릭 | ❌ 미수집 (다른 VPC의 Cloud Map이라 크로스-VPC 스크랩 불가) → **CloudWatch(Container Insights)** 로 대체 관측 | Prometheus DNS SD는 VPC 내부 전용 |
+| prod **backend** 앱 메트릭 | Prometheus가 공인 ALB(`api.prod.badasoft.com/metrics`)를 인터넷 경유로 스크랩 (`env="prod"` 라벨) → **BADA Prod Backend** | backend `/metrics`가 ALB로 노출됨 |
+| prod **ECS/RDS/ALB/SQS/Task Count** | Grafana CloudWatch datasource가 prod 리소스 이름으로 조회 (같은 계정·리전) → **BADA Prod Worker / Prod Infrastructure** | 모니터링 Task Role이 `cloudwatch:*` 읽기 보유 |
+| prod **worker** 앱 메트릭(처리량·처리시간 등) | ❌ 미수집 (다른 VPC의 Cloud Map이라 크로스-VPC 스크랩 불가) → **CloudWatch(Container Insights)** 로 대체 관측 | Prometheus DNS SD는 VPC 내부 전용 |
 
-> 원칙: prod worker의 상세 애플리케이션 메트릭까지 Prometheus로 모으려면 VPC 피어링 또는 중앙 관측 계정이 필요하다. 데모/기간 대비 과하여 **CloudWatch 기반 인프라 관측으로 갈음**한다(ECS CPU/메모리·Task Count·SQS는 CloudWatch로 충분히 확인 가능).
+> 원칙: prod worker의 상세 애플리케이션 메트릭까지 Prometheus로 모으려면 VPC 피어링 또는 중앙 관측 계정(remote_write)이 필요하다. 데모/기간 대비 과하여 **CloudWatch 기반 관측으로 갈음**한다(ECS CPU/메모리·Task Count·SQS는 CloudWatch로 충분히 확인 가능).
+> Overview의 **Worker 메시지 처리량** 패널은 같은 이유로 prod가 표시되지 않고 dev만 나온다.
 
 ### 활성화 절차 (Terraform)
 
@@ -154,9 +167,9 @@ terraform plan  -var-file=env/dev.tfvars
 terraform apply -var-file=env/dev.tfvars   # 담당자만
 ```
 
-- 적용 후 Grafana에 **BADA Prod Infrastructure** 대시보드가 나타난다.
-- `prod_monitoring_enabled=false`(기본)이면 prod ALB arn_suffix 조회를 하지 않아 dev plan/apply가 prod 존재 여부와 무관하게 안전하다. 이 경우 prod 대시보드의 ALB 패널만 무데이터가 되고, 이름 기반(ECS/RDS/SQS) 패널은 prod가 떠 있으면 데이터를 보여준다.
+- 적용 후 Grafana에 **BADA Prod Backend / Prod Worker / Prod Infrastructure** 대시보드가 나타나고, **BADA Overview**의 `env` 셀렉터에서 `prod`를 선택할 수 있다.
+- `prod_monitoring_enabled=false`(기본)이면 prod backend 스크랩 타깃과 prod ALB arn_suffix 조회를 하지 않아 dev plan/apply가 prod 존재 여부와 무관하게 안전하다. 이 경우 prod 대시보드는 provisioning되지만 데이터가 비어 보인다(ALB 패널은 arn_suffix 없이 무데이터, backend는 스크랩 타깃 미생성). 이름 기반(ECS/RDS/SQS) 패널은 prod가 떠 있으면 데이터를 보여준다.
 - **주의**: `prod_monitoring_enabled=true`는 prod 스택(특히 `bada-prod-alb`)이 실제 배포돼 있어야 한다(`data "aws_lb" "prod"` 조회). 미배포 상태에서 켜면 apply가 실패한다.
 
 ### 종료(7/10) 정리
-- `prod_monitoring_enabled=false`로 되돌리면 prod backend 스크랩 타깃과 ALB 조회가 제거된다. prod 대시보드 자체는 남지만(무해), 원하면 `bada-prod-infrastructure.json` 프로비저닝 라인을 제거한다.
+- `prod_monitoring_enabled=false`로 되돌리면 prod backend 스크랩 타깃과 ALB 조회가 제거된다. prod 대시보드(`bada-prod-*.json`) 자체는 남지만(무해), 원하면 해당 프로비저닝 라인을 제거한다.

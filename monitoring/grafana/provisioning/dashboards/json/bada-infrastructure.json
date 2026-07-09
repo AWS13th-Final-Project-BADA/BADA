@@ -1,7 +1,7 @@
 {
   "uid": "bada-infrastructure",
-  "title": "BADA Infrastructure",
-  "tags": ["bada", "infrastructure"],
+  "title": "BADA Dev Infrastructure",
+  "tags": ["bada", "infrastructure", "dev"],
   "timezone": "Asia/Seoul",
   "templating": {
     "list": []
