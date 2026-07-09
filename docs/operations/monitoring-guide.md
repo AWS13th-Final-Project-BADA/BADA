@@ -8,7 +8,7 @@
 | 계층 | 구성 | 상태 |
 |------|------|------|
 | 메트릭 수집 | Prometheus (ECS Fargate) — Backend `/metrics`, Worker `:9090/metrics` scrape | ✅ 두 타겟 UP |
-| 시각화 | Grafana (ECS Fargate) — 대시보드 4개 | ✅ |
+| 시각화 | Grafana (ECS Fargate) — 대시보드 5개 (dev 4 + prod 크로스 환경 1) | ✅ |
 | 클라우드 지표 | CloudWatch — ECS/RDS/ALB/SQS + Container Insights, Alarm 14개 | ✅ |
 | 분산 추적 | AWS X-Ray — Backend + Worker (사이드카) | ✅ |
 | 알림 | Grafana Alerting → SNS → Email + CloudWatch Alarm → SNS | ✅ |

@@ -217,3 +217,18 @@ aws secretsmanager get-secret-value \
 - [x] Dashboard JSON 4개 작성
 - [ ] terraform apply (인프라 담당 실행 예정)
 - [ ] Grafana UI 검증 (`docs/monitoring-alert-test-scenario.md`)
+
+---
+
+## 구현 현황 (2026-07-09) — 크로스 환경(prod) 관측 추가 (PR #252)
+
+초기 설계 이후 반영된 변경:
+
+- **Worker 메트릭 수집 완료**: 초기 설계의 "Worker 메트릭: exporter 구현 후 별도 target으로 추가" 항목이 구현됨(Cloud Map `worker.bada-dev.local:9090` scrape).
+- **Alert Rule 확장**: G1~G8 → **G1~G10** (G9 가용성 SLO < 99%, G10 분석 성공률 < 90% 추가). 단일 출처는 `monitoring/grafana/provisioning/alerting/rules.yml`.
+- **Grafana 대시보드 5개로 확장**: 기존 Overview / Backend / Worker / Infrastructure(4) + **`bada-prod-infrastructure.json`**(CloudWatch 기반 prod 인프라).
+- **dev 스택에서 prod 크로스 환경 관측**(dev/prod가 별도 state·VPC라 dev Grafana가 prod를 못 보던 문제 해소):
+  - prod backend는 공인 ALB(`api.prod.badasoft.com/metrics`)로 Prometheus 스크랩(`env="prod"` 라벨, `prod_monitoring_enabled` 토글).
+  - prod ECS/RDS/ALB/SQS는 dev Grafana의 CloudWatch datasource로 조회(동일 계정·리전).
+  - prod worker는 크로스-VPC Cloud Map 스크랩 불가 → CloudWatch(Container Insights)로 갈음.
+- 상세/활성화 절차: `docs/operations/monitoring-guide.md` §9.

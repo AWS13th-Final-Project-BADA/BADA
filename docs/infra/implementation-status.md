@@ -31,7 +31,7 @@
 | 팀원 모델 테스트 | 팀원 IAM 호출 권한 검증 완료, 모델 액세스는 자동 활성화(Model access 페이지 폐지)·IAM/SCP 통제 / `BEDROCK_MODEL_ID` 전환 |
 | 배포 자동화 | Backend/Worker GitHub Actions OIDC 배포, Mobile EAS Build, Terraform Plan-in-PR 및 AWS 권한 반영 |
 | 롤백 | Backend 수동 workflow + Worker·Grafana ECS CLI, Backend·Worker 자동 circuit breaker (`docs/runbooks/rollback-and-recovery.md`) |
-| 모니터링 | Prometheus + Grafana ECS, CloudWatch datasource, Logs/Alarms/SNS/MCP, Grafana Task Role의 Alarm SNS Topic 한정 `sns:Publish`, Grafana `BADA-SNS` Contact Point·G1~G8 Rule·Notification Policy 적용 완료, **Container Insights 활성화**, **Worker Prometheus 메트릭 수집 적용 완료**(Cloud Map `worker.bada-dev.local` + 9090 scrape) |
+| 모니터링 | Prometheus + Grafana ECS, CloudWatch datasource, Logs/Alarms/SNS/MCP, Grafana Task Role의 Alarm SNS Topic 한정 `sns:Publish`, Grafana `BADA-SNS` Contact Point·G1~G8 Rule·Notification Policy 적용 완료, **Container Insights 활성화**, **Worker Prometheus 메트릭 수집 적용 완료**(Cloud Map `worker.bada-dev.local` + 9090 scrape), **dev 스택에서 prod 크로스 환경 관측 추가**(PR #252: prod backend 공인 ALB Prometheus 스크랩 + Grafana `BADA Prod Infrastructure` CloudWatch 대시보드, `prod_monitoring_enabled` 토글, 기본 off — apply·활성화는 인프라 담당 예정) |
 | X-Ray 분산 추적 | ECS Task Role X-Ray 권한, X-Ray daemon sidecar, `/aws/ecs/bada-dev/xray` Log Group 적용. PR #187 이후 Backend/Worker 모두 안전한 수동 segment 방식으로 전환했으며 Terraform에서 `backend_xray_enabled=true`, `worker_xray_enabled=true` 기준으로 재활성화 |
 | Week 3 복구 검증 | Worker 재시도·DLQ·재시작 멱등성 검증, ALB 로그 30일 보존 적용 완료 (PR #60) |
 | Week 3 운영 런북·Grafana 권한 | 팀 공용 장애·롤백 런북과 Alarm SNS Topic 한정 Publish 권한 반영 완료 (PR #61) |
@@ -537,6 +537,20 @@ Pillar별 리스크:
 
 - GuardDuty / Security Hub는 **계정-리전 단위 싱글턴**으로 이미 dev state가 소유하며 계정 전체를 커버한다.
 - 따라서 prod는 `security_monitoring_enabled=false`로 두어 중복 생성을 피한다.
+
+### 크로스 환경 관측 (dev → prod, PR #252)
+
+prod도 자체 Prometheus/Grafana 스택을 갖지만, **dev 단일 Grafana에서 양 환경을 함께 보기 위한 크로스 환경 관측**을 추가했다(환경별 state 분리로 dev Grafana가 prod를 못 보던 문제 해소). 크로스-VPC 네트워킹 없이 구성한다.
+
+| 대상 | 방식 |
+| --- | --- |
+| prod backend 앱 메트릭 | Prometheus가 공인 ALB(`api.prod.badasoft.com/metrics`)를 인터넷(NAT egress) 경유로 스크랩, `env="prod"` 라벨 |
+| prod ECS/RDS/ALB/SQS/Task Count | dev Grafana의 CloudWatch datasource가 prod 리소스 이름으로 조회(동일 계정·리전, 모니터링 Task Role CloudWatch read 재사용) → `BADA Prod Infrastructure` 대시보드 |
+| prod worker 앱 메트릭 | 크로스-VPC Cloud Map 스크랩 불가 → CloudWatch(Container Insights)로 갈음 |
+
+- **토글/안전판**: `prod_monitoring_enabled`(기본 `false`). off일 때는 `data.aws_lb.prod` 조회를 하지 않아 prod 미배포 상태에서도 dev plan/apply가 안전하다. on으로 켜려면 prod 스택(특히 `bada-prod-alb`)이 실제 배포돼 있어야 한다.
+- **부작용 주의**: 켜면 `env` 라벨 없는 기존 알림 쿼리(G1·G3·G9 등)가 dev+prod를 합산한다. 환경 분리가 필요하면 쿼리에 `{env="dev"}`를 추가한다(`docs/operations/monitoring-guide.md` §9).
+- **현재 상태**: 코드 병합 완료. `prod_monitoring_enabled=true` tfvars 설정 및 apply는 인프라 담당 예정.
 
 ### 이월 항목
 
