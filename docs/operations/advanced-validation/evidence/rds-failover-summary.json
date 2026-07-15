@@ -1,0 +1,53 @@
+{
+  "db_identifier": "bada-perf-postgres-multiaz",
+  "configuration": {
+    "engine": "PostgreSQL 16.13",
+    "class": "db.m6g.large",
+    "multi_az": true,
+    "storage_encrypted": true
+  },
+  "topology": {
+    "primary_az_before": "ap-northeast-2b",
+    "primary_az_after": "ap-northeast-2a",
+    "secondary_az_after": "ap-northeast-2b"
+  },
+  "application_probe": {
+    "started_at": "2026-07-15T05:06:42.840962Z",
+    "force_failover_requested_at": "2026-07-15T05:07:42.844923Z",
+    "read_interval_seconds": 0.5,
+    "write_interval_seconds": 1.0,
+    "read_attempts": 567,
+    "read_successes": 562,
+    "read_failures": 5,
+    "observed_rto_seconds": 15.808,
+    "write_attempts": 287,
+    "acknowledged_writes": 284,
+    "failed_or_timed_out_writes": 3,
+    "acknowledged_writes_missing_after_failover": 0,
+    "observed_rpo_acknowledged_writes": 0
+  },
+  "rds_events": [
+    {
+      "timestamp": "2026-07-15T05:07:53.685Z",
+      "message": "Multi-AZ instance failover started."
+    },
+    {
+      "timestamp": "2026-07-15T05:08:04.204Z",
+      "message": "DB instance restarted"
+    },
+    {
+      "timestamp": "2026-07-15T05:08:38.564Z",
+      "message": "The user requested a failover of the DB instance."
+    },
+    {
+      "timestamp": "2026-07-15T05:08:38.564Z",
+      "message": "Multi-AZ instance failover completed"
+    }
+  ],
+  "interpretation": {
+    "rto": "15.808 seconds is the client-visible recovery interval from the last successful DB probe before the first failure to the first of three consecutive successes after the final failure.",
+    "rpo": "Zero applies only to 284 writes that returned HTTP 200 and were verified after failover; the three failed or timed-out attempts are not claimed as committed data.",
+    "event_timing": "AWS RDS event completion timestamps describe control-plane failover progress and are not substituted for the application-observed RTO."
+  },
+  "raw_probe": "rds-failover-continuous.json"
+}

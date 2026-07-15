@@ -1,0 +1,145 @@
+{
+  "experiment": "sqs-poison-message-sanitation-and-worker-scaling",
+  "executed_at": "2026-07-14",
+  "aws_region": "ap-northeast-2",
+  "source_revision": "e30b7e2ce5614f28f3b2efcd6b71a1e359ac0850",
+  "environment": {
+    "name": "perf",
+    "resource_prefix": "bada-perf-",
+    "terraform_isolated": true,
+    "dev_prod_resources_changed": false
+  },
+  "scope": {
+    "purpose": "Verify malformed-message deletion semantics, SQS backlog visibility, and ECS Worker target-tracking scale-out.",
+    "message_type": "Deliberately malformed JSON poison message",
+    "business_analysis_executed": false,
+    "bedrock_or_transcribe_called": false,
+    "important_limitation": "This is not evidence that 100,000 valid evidence-analysis jobs completed. It validates the poison-message sanitation path and Worker elasticity only."
+  },
+  "sender": {
+    "requested_messages": 100000,
+    "sent_messages": 100000,
+    "failed_messages": 0,
+    "started_at_utc": "2026-07-14T07:53:40.440578Z",
+    "finished_at_utc": "2026-07-14T07:53:50.161999Z",
+    "elapsed_seconds": 9.721,
+    "send_rate_messages_per_second": 10286.7
+  },
+  "cloudwatch_totals": {
+    "number_of_messages_sent": 100000,
+    "number_of_messages_received": 100000,
+    "number_of_messages_deleted": 100000,
+    "visible_messages_max": 87382,
+    "not_visible_messages_max": 8,
+    "oldest_message_age_max_seconds": 273
+  },
+  "cloudwatch_minute_series_kst": [
+    {
+      "time": "2026-07-14T16:53:00+09:00",
+      "visible": 0,
+      "received": 4938,
+      "deleted": 4933,
+      "worker_running_max": 2
+    },
+    {
+      "time": "2026-07-14T16:54:00+09:00",
+      "visible": 87382,
+      "received": 14550,
+      "deleted": 14550,
+      "worker_running_max": 2
+    },
+    {
+      "time": "2026-07-14T16:55:00+09:00",
+      "visible": 81792,
+      "received": 14860,
+      "deleted": 14863,
+      "worker_running_max": 2
+    },
+    {
+      "time": "2026-07-14T16:56:00+09:00",
+      "visible": 61834,
+      "received": 10792,
+      "deleted": 10794,
+      "worker_running_max": 2
+    },
+    {
+      "time": "2026-07-14T16:57:00+09:00",
+      "visible": 53705,
+      "received": 8495,
+      "deleted": 8491,
+      "worker_running_max": 2
+    },
+    {
+      "time": "2026-07-14T16:58:00+09:00",
+      "visible": 43955,
+      "received": 9050,
+      "deleted": 9030,
+      "worker_running_max": 2
+    },
+    {
+      "time": "2026-07-14T16:59:00+09:00",
+      "visible": 0,
+      "received": 37315,
+      "deleted": 37339,
+      "worker_running_max": 29
+    },
+    {
+      "time": "2026-07-14T17:00:00+09:00",
+      "visible": 0,
+      "received": 0,
+      "deleted": 0,
+      "worker_running_max": 30
+    }
+  ],
+  "worker_scaling": {
+    "initial_running_tasks": 2,
+    "maximum_running_tasks": 30,
+    "scale_out_activity_started_kst": "2026-07-14T16:58:18.603+09:00",
+    "scale_out_activity_completed_kst": "2026-07-14T16:59:25.830+09:00",
+    "policy": "SQS backlog-per-task target tracking"
+  },
+  "drain_observation": {
+    "final_visible_messages": 0,
+    "final_not_visible_messages": 0,
+    "observed_empty_at_utc": "2026-07-14T07:59:20Z",
+    "approx_seconds_after_sender_finished": 330,
+    "dlq_final_visible": 0,
+    "dlq_final_not_visible": 0
+  },
+  "logs_insights_before_destroy": {
+    "matched_log_message": "잘못된 JSON 본문, 삭제",
+    "matched_count": 100000,
+    "records_scanned": 100056
+  },
+  "cleanup": {
+    "terraform_destroy_completed": true,
+    "destroyed_resource_count": 101,
+    "perf_state_empty": true,
+    "perf_ecs_cluster_absent": true,
+    "perf_rds_absent": true,
+    "perf_queues_absent": true,
+    "perf_alb_absent": true
+  },
+  "post_experiment_checks": {
+    "dev_api_health_http_status": 200,
+    "prod_api_health_http_status": 200,
+    "dev_ecs_services_stable": true,
+    "prod_ecs_services_stable": true,
+    "rds_instances_available": true
+  },
+  "interpretation": {
+    "proven": [
+      "The sender published 100,000 messages without send failures.",
+      "SQS reported Sent=Received=Deleted=100,000 for the observation window.",
+      "The malformed-message branch logged 100,000 explicit deletions.",
+      "Worker running tasks scaled from 2 to 30.",
+      "The main queue and DLQ were empty at the end of observation."
+    ],
+    "not_proven": [
+      "Completion of 100,000 valid AI analysis jobs",
+      "Bedrock, Transcribe, database, or PDF throughput",
+      "End-to-end business-message durability or a production RPO",
+      "Worker scale-out latency under long-running valid analysis workloads"
+    ]
+  }
+}

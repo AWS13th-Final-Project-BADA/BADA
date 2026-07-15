@@ -1,0 +1,33 @@
+{
+  "experiment": "10000vu-large-a-stabilization",
+  "executed_at_kst": "2026-07-08T17:55:57+09:00",
+  "target": "http://bada-perf-alb-538068171.ap-northeast-2.elb.amazonaws.com/version",
+  "endpoint_type": "rate-limit-exempt",
+  "runner": {
+    "type": "ECS Fargate distributed k6 inline task",
+    "tasks": 20,
+    "vus_per_task": 500,
+    "total_vus": 10000,
+    "duration": "8m",
+    "source_ip_count": 20,
+    "distinct_source_ip_count": 20
+  },
+  "k6_aggregate": {
+    "summary_count": 20,
+    "total_requests": 1172609,
+    "rps_sum": 2351.5,
+    "status_2xx": 1036422,
+    "status_429": 0,
+    "status_5xx": 56903,
+    "p95_runner_avg_ms": 19404.4,
+    "p95_runner_max_ms": 19960,
+    "error_rate_avg_percent": 11.62,
+    "error_rate_max_percent": 12.23
+  },
+  "interpretation": {
+    "rate_limit_bottleneck": false,
+    "rds_bottleneck": false,
+    "result": "partial_improvement_but_not_stable",
+    "summary": "large-A profile increased throughput and reduced 5xx compared with the previous 10,000 VU medium baseline, but p95 remained near 20s and 5xx/timeouts persisted. The next bottleneck appears around ALB target health, backend connection handling, timeout behavior, or application runtime concurrency rather than RDS."
+  }
+}
