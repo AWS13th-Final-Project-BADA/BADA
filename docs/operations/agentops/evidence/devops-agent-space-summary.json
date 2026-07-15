@@ -1,0 +1,27 @@
+{
+  "asOf": "2026-07-10T13:06:50+09:00",
+  "agentSpace": {
+    "name": "BADA-DevOps-Agent-Space",
+    "region": "ap-northeast-1",
+    "workloadRegion": "ap-northeast-2",
+    "accountAssociationStatus": "VALID",
+    "topologyMappingStatus": "COMPLETED",
+    "mappedRelationshipCount": 508
+  },
+  "infrastructureAsCode": {
+    "tool": "AWS CloudFormation",
+    "stackStatus": "CREATE_COMPLETE",
+    "resourceTypes": [
+      "AWS::DevOpsAgent::AgentSpace",
+      "AWS::DevOpsAgent::Association",
+      "AWS::IAM::Role"
+    ]
+  },
+  "architectureDecision": {
+    "constraint": "AWS DevOps Agent is unavailable in ap-northeast-2",
+    "decision": "Create only the Agent Space in ap-northeast-1 and associate the existing AWS account",
+    "workloadReplicationPerformed": false,
+    "productionTrafficChanged": false
+  },
+  "sensitiveIdentifiersRedacted": true
+}

@@ -1,0 +1,87 @@
+{
+  "asOf": "2026-07-15T20:56:44+09:00",
+  "finOpsAgent": {
+    "status": "ACTIVE",
+    "region": "us-east-1",
+    "name": "BADA-FinOps-Agent",
+    "resourceChangesPerformed": false,
+    "externalIntegrations": []
+  },
+  "costAnalysis": {
+    "period": "2026-07-01/2026-07-15",
+    "estimated": true,
+    "unblendedCostUsd": 300.1602133692,
+    "topServices": [
+      {"service": "EC2 - Other", "usd": 65.3177034049},
+      {"service": "Amazon Relational Database Service", "usd": 64.5634171891},
+      {"service": "Amazon Elastic Container Service", "usd": 42.8783621056},
+      {"service": "AmazonCloudWatch", "usd": 39.0780049516},
+      {"service": "Tax", "usd": 25.27}
+    ]
+  },
+  "costAnomalies": {
+    "count": 9,
+    "totalImpactUsd": 42.45,
+    "largest": [
+      {"period": "2026-07-10/2026-07-13", "impactUsd": 22.84, "rootCause": "NAT Gateway and regional data transfer usage"},
+      {"period": "2026-07-14", "impactUsd": 9.15, "rootCause": "RDS Multi-AZ m6g.large usage"},
+      {"period": "2026-07-14", "impactUsd": 8.97, "rootCause": "ECS Fargate ARM vCPU usage"}
+    ]
+  },
+  "optimization": {
+    "agentReportedItemCount": 11,
+    "canonicalApiItemCount": 7,
+    "estimatedMonthlySavingsUsd": 43.005,
+    "actions": [
+      {"action": "Stop RDS candidates", "count": 2, "estimatedMonthlySavingsUsd": 30.46},
+      {"action": "Purchase RDS Reserved Instance", "count": 1, "estimatedMonthlySavingsUsd": 8.772},
+      {"action": "Migrate EC2 to Graviton", "count": 2, "estimatedMonthlySavingsUsd": 3.213},
+      {"action": "Upgrade RDS storage to gp3", "count": 2, "estimatedMonthlySavingsUsd": 0.56}
+    ],
+    "apiCrossCheck": "PASS_WITH_ITEM_COUNT_DISCREPANCY"
+  },
+  "computeOptimizer": {
+    "ecsRecommendationCount": 6,
+    "prodPrometheus": {
+      "finding": "Underprovisioned",
+      "performanceRisk": "High",
+      "current": {"cpu": 256, "memoryMiB": 512},
+      "recommended": {"cpu": 512, "memoryMiB": 1024}
+    }
+  },
+  "budget": {
+    "name": "BADA-Project-Cost-Guardrail",
+    "status": "ACTIVE",
+    "period": "MONTHLY",
+    "limitUsd": 1500,
+    "thresholdBasis": "ACTUAL_COST",
+    "thresholds": [
+      {"percent": 50, "usd": 750},
+      {"percent": 80, "usd": 1200},
+      {"percent": 100, "usd": 1500}
+    ],
+    "calculatedSpendAtVerification": {
+      "actualUsd": 307.421,
+      "actualPercentOfLimit": 20.49,
+      "forecastUsd": 652.421,
+      "forecastPercentOfLimit": 43.49,
+      "notificationState": "OK"
+    },
+    "budgetActionsConfigured": false,
+    "verifiedAt": "2026-07-15T20:56:44+09:00"
+  },
+  "notificationVerification": {
+    "costAnomalySubscriptionStatus": "CONFIRMED",
+    "snsPublishAccepted": true,
+    "emailDeliveryVerified": true,
+    "verificationType": "MANUAL_SNS_PUBLISH_TO_EMAIL",
+    "actualCostAnomalyEventEndToEndVerified": false,
+    "verifiedAt": "2026-07-15T20:27:00+09:00"
+  },
+  "limitations": [
+    "The public-preview content filter blocked one complex prompt; simpler scoped prompts succeeded.",
+    "Manual SNS publish-to-email delivery was verified, but a real Cost Anomaly event has not yet been observed end-to-end.",
+    "The Agent-generated HTML report was excluded from the shared repository; official AWS API results remain canonical."
+  ],
+  "sensitiveIdentifiersRedacted": true
+}

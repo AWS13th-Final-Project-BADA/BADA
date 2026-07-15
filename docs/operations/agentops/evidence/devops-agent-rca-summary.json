@@ -1,0 +1,31 @@
+{
+  "investigation": {
+    "sourceIncidentDate": "2026-07-03",
+    "executedAt": "2026-07-14T06:50:31Z",
+    "durationSeconds": 253,
+    "status": "COMPLETED",
+    "readOnly": true,
+    "newFailureInjected": false
+  },
+  "rootCause": {
+    "summary": "ECS services started before the first Secrets Manager version and AWSCURRENT stage existed",
+    "configurationGap": "Terraform resource dependency did not guarantee that the secret value version existed before Backend and Worker startup",
+    "affectedServices": ["bada-prod-backend", "bada-prod-worker"]
+  },
+  "timeline": [
+    {"timeUtc": "07:07:53", "event": "Secret shell created without a value version"},
+    {"timeUtc": "07:09:18/07:11:56", "event": "Worker and Backend task startup failures began"},
+    {"timeUtc": "07:15:43/07:17:46", "event": "Worker and Backend deployment circuit breakers failed"},
+    {"timeUtc": "07:34:44", "event": "PutSecretValue created the first AWSCURRENT version"},
+    {"timeUtc": "07:52:47/07:52:48", "event": "Backend and Worker force-new-deployment calls verified"},
+    {"timeUtc": "07:54:03/07:54:15", "event": "Worker and Backend reached steady state"}
+  ],
+  "crossValidation": {
+    "agentRootCauseMatchedOperationsLog": true,
+    "cloudTrailVerifiedEvents": ["PutSecretValue", "UpdateService(forceNewDeployment=true)"],
+    "agentCouldNotDetermine": "The actor that initiated the recovery deployment",
+    "finalVerificationStatus": "CONFIRMED_WITH_HUMAN_CROSS_CHECK"
+  },
+  "operationalPolicy": "Agent investigation -> evidence review -> CloudTrail and operations-log cross-check -> human approval",
+  "sensitiveIdentifiersRedacted": true
+}
