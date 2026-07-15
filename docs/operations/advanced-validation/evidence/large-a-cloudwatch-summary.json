@@ -1,0 +1,35 @@
+{
+  "experiment": "10000vu-large-a-stabilization",
+  "window_utc": {
+    "start": "2026-07-08T08:55:57Z",
+    "end": "2026-07-08T09:05:20Z"
+  },
+  "ecs_backend": {
+    "cpu_average_datapoint_max_percent": 46.845,
+    "cpu_average_percent": 21.191,
+    "cpu_maximum_stat_max_percent": 50.403,
+    "memory_average_datapoint_max_percent": 6.303,
+    "desired_running_baseline": 8,
+    "healthy_target_observation": "8 healthy before test; transient observations ranged roughly 5~14 during the load window, then recovered"
+  },
+  "alb": {
+    "request_count_sum": 636801,
+    "target_5xx_sum": null,
+    "elb_5xx_sum": 44720,
+    "elb_5xx_max_per_minute": 18908,
+    "target_response_time_average_max_seconds": 1.93,
+    "target_response_time_max_seconds": 47.356
+  },
+  "rds": {
+    "cpu_average_datapoint_max_percent": 3.783,
+    "cpu_average_percent": 3.192,
+    "database_connections_average_max": 16
+  },
+  "cleanup": {
+    "runner_resources_deleted": true,
+    "perf_destroy_completed": true,
+    "destroyed_resource_count": 101,
+    "dev_plan_after_destroy": "No changes",
+    "dev_health_db_after_destroy": 200
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "experiment": "valid analyze_case E2E throughput recovery",
+  "measurement_window": {
+    "start": "2026-07-14T12:25:00Z",
+    "end": "2026-07-14T12:50:00Z"
+  },
+  "case_contract": {
+    "prefix": "성능검증사업장-",
+    "expected": 1000,
+    "found": 1000,
+    "status_counts": {
+      "completed": 1000
+    }
+  },
+  "worker_logs": {
+    "started": "1000",
+    "first_start": "2026-07-14 12:30:43.834",
+    "last_start": "2026-07-14 12:45:41.583",
+    "completed": "1000",
+    "first_complete": "2026-07-14 12:31:00.318",
+    "last_complete": "2026-07-14 12:45:57.510",
+    "first_completion_after_first_start_seconds": 16.484,
+    "first_start_to_last_completion_seconds": 913.676,
+    "completed_throughput_per_second": 1.094
+  },
+  "sqs_metrics": {
+    "NumberOfMessagesSent": 1000,
+    "NumberOfMessagesReceived": 1000,
+    "NumberOfMessagesDeleted": 1000
+  },
+  "worker_autoscaling": {
+    "baseline_tasks": 2,
+    "peak_tasks": 30,
+    "scale_out_started_at": "2026-07-14T12:35:57.926000+00:00",
+    "scale_out_completed_at": "2026-07-14T12:37:01.262000+00:00"
+  },
+  "analysis_result_sample": {
+    "sampled": 100,
+    "http_200": 100,
+    "errors": []
+  },
+  "pdf_reports": {
+    "expected": 1000,
+    "found": 1000,
+    "total_bytes": 2973128790,
+    "average_bytes": 2973128.8
+  },
+  "final_queue": {
+    "visible": 0,
+    "not_visible": 0
+  },
+  "final_dlq": {
+    "visible": 0,
+    "not_visible": 0
+  },
+  "pass": true,
+  "limitations": [
+    "Cases use realistic wage-dispute metadata but contain no uploaded evidence.",
+    "AI providers are local/mock, so Bedrock, OCR, Transcribe, and Translate latency is excluded.",
+    "Authentication is demo mode because this experiment targets the queue/Worker/DB/PDF business path.",
+    "The original observer process lost one polling connection after the workload completed; this recovery revalidated independent API, logs, SQS, DB status, and S3 evidence."
+  ]
+}

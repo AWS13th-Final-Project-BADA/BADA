@@ -1,0 +1,64 @@
+{
+  "experiment": "backend CPU single-variable A/B",
+  "date_utc": "2026-07-14",
+  "fixed_conditions": {
+    "backend_tasks": 4,
+    "backend_memory_mib_per_task": 4096,
+    "rds": "bada-perf-postgres-multiaz / db.m6g.large / Multi-AZ",
+    "endpoint": "/version",
+    "target_arrival_rate_per_second": 1500,
+    "profile": "1m ramp-up + 2m hold + 1m ramp-down",
+    "load_generator": "same local k6 runner"
+  },
+  "only_changed_variable": "backend CPU units per task",
+  "A": {
+    "backend_cpu_units_per_task": 1024,
+    "backend_vcpu_per_task": 1,
+    "requests": 241121,
+    "total_rps": 1004.564,
+    "successful_http_200": 190131,
+    "successful_rps": 792.129,
+    "failure_rate_percent": 21.147,
+    "median_latency_ms": 740.874,
+    "average_latency_ms": 2730.543,
+    "p95_latency_ms": 10000.199,
+    "dropped_iterations": 31878,
+    "backend_cpu_mean_percent": 35.761,
+    "backend_cpu_peak_percent": 99.747,
+    "rds_cpu_mean_percent": 3.692,
+    "rds_cpu_peak_percent": 4.45
+  },
+  "B": {
+    "backend_cpu_units_per_task": 2048,
+    "backend_vcpu_per_task": 2,
+    "requests": 237240,
+    "total_rps": 988.413,
+    "successful_http_200": 194046,
+    "successful_rps": 808.454,
+    "failure_rate_percent": 18.207,
+    "median_latency_ms": 234.713,
+    "average_latency_ms": 2341.874,
+    "p95_latency_ms": 10000.166,
+    "dropped_iterations": 35759,
+    "backend_cpu_mean_percent": 17.821,
+    "backend_cpu_peak_percent": 60.349,
+    "rds_cpu_mean_percent": 3.227,
+    "rds_cpu_peak_percent": 3.925
+  },
+  "delta_B_vs_A": {
+    "successful_rps_percent": 2.061,
+    "failure_rate_percentage_points": -2.94,
+    "median_latency_percent": -68.319,
+    "average_latency_percent": -14.233,
+    "backend_cpu_peak_percentage_points": -39.398,
+    "dropped_iterations_percent": 12.174
+  },
+  "verdict": "Increasing only Backend CPU from 1 to 2 vCPU reduced CPU saturation, median latency, and failure rate, but p95 remained at the 10-second timeout and dropped iterations increased. It is an efficiency improvement, not proof of stable 1,500 RPS capacity.",
+  "evidence": [
+    "ab-a-1vcpu.json",
+    "ab-b-2vcpu.json",
+    "CloudWatch ECS/ContainerInsights CpuUtilized and MemoryUtilized",
+    "CloudWatch AWS/ApplicationELB TargetResponseTime",
+    "CloudWatch AWS/RDS CPUUtilization"
+  ]
+}
