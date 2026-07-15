@@ -1,5 +1,22 @@
 // ===== 분석·결과·법정점검 렌더 (OCR/분석 소유) =====
 const lines=s=>(s||"").split("\n").map(x=>x.trim()).filter(Boolean);
+
+// 분석 직전에 DB에 쌓인 GPS 근무지·핑을 가져와 캐시한다(수동 입력 불필요).
+// 홈 토글로 수집된 핑(/gps/logs)과 등록된 근무지(/gps/workplace)를 사용.
+async function loadGpsForAnalysis(){
+  S.gpsAnalysis = null;
+  if(!document.getElementById("n_gchk").checked) return;
+  const _h=(typeof getToken==="function"&&getToken())?{Authorization:"Bearer "+getToken()}:{};
+  try{
+    let workplace = null, logs = [];
+    const wr = await fetch(apiUrl('/cases/'+S.caseId+'/gps/workplace'),{headers:_h});
+    if(wr.ok){ const w = await wr.json(); workplace = {lat:w.center_lat, lng:w.center_lng, radius_m:w.radius_m}; }
+    const lr = await fetch(apiUrl('/cases/'+S.caseId+'/gps/logs'),{headers:_h});
+    if(lr.ok){ const d = await lr.json(); logs = (d.logs||[]).map(l=>({ts:l.ts, lat:l.lat, lng:l.lng, is_mocked:false})); }
+    S.gpsAnalysis = {workplace, logs};
+  }catch(e){ /* 실패 시 수동 입력값으로 폴백 */ }
+}
+
 function buildReq(){
   const hours=(document.getElementById("n_hrs").value||"").split(",").map(s=>parseFloat(s.trim())).filter(x=>!isNaN(x));
   const deposits=lines(document.getElementById("n_dep").value).map(l=>{const p=l.split(",");return{date:(p[0]||"").trim()||null,amount:parseInt((p[1]||"").replace(/[^0-9]/g,""))||0};});
@@ -7,10 +24,18 @@ function buildReq(){
   const req={worked_hours:hours,deposits,deductions};
   const hw=parseInt(document.getElementById("n_hw").value); if(hw) req.agreed_hourly_wage=hw;
   if(document.getElementById("n_gchk").checked){
-    const w=(document.getElementById("n_wp").value||"").split(",").map(s=>s.trim());
-    if(w[0])req.workplace={lat:parseFloat(w[0]),lng:parseFloat(w[1]),radius_m:parseInt(w[2])||50};
-    req.gps_logs=lines(document.getElementById("n_png").value).map(l=>{const p=l.split(",").map(s=>s.trim());return{ts:p[0],lat:parseFloat(p[1]),lng:parseFloat(p[2]),is_mocked:(p[3]||"").toLowerCase()==="true"};});
-    req.chat_arrivals=lines(document.getElementById("n_arr").value);
+    if(S.gpsAnalysis){
+      // DB에서 자동 수집한 근무지·핑 사용 (사용자 수동 입력 제거)
+      if(S.gpsAnalysis.workplace) req.workplace=S.gpsAnalysis.workplace;
+      req.gps_logs=S.gpsAnalysis.logs||[];
+      req.chat_arrivals=lines(document.getElementById("n_arr").value);
+    }else{
+      // 폴백: 수동 입력값(예전 방식)
+      const w=(document.getElementById("n_wp").value||"").split(",").map(s=>s.trim());
+      if(w[0])req.workplace={lat:parseFloat(w[0]),lng:parseFloat(w[1]),radius_m:parseInt(w[2])||50};
+      req.gps_logs=lines(document.getElementById("n_png").value).map(l=>{const p=l.split(",").map(s=>s.trim());return{ts:p[0],lat:parseFloat(p[1]),lng:parseFloat(p[2]),is_mocked:(p[3]||"").toLowerCase()==="true"};});
+      req.chat_arrivals=lines(document.getElementById("n_arr").value);
+    }
   }
   return req;
 }
@@ -25,8 +50,9 @@ function startAnalysis(){
   const setStep=k=>steps.forEach((s,i)=>s.classList.toggle("active",i===k));
   let v=0,done=false;
   fill.style.width="0%";pct.textContent="0%";setStep(0);
-  // 실제 분석 요청 — 응답이 오면 done 플래그(진행바 완료는 이 시점에 종속)
-  const apiP=api("POST","/cases/"+S.caseId+"/analyze?lang="+S.lang,buildReq())
+  // GPS 핑·근무지를 DB에서 자동 수집한 뒤 분석 요청
+  const apiP=loadGpsForAnalysis()
+    .then(()=>api("POST","/cases/"+S.caseId+"/analyze?lang="+S.lang,buildReq()))
     .then(a=>{done=true;return a;})
     .catch(e=>{done=true;return {__err:e.message};});
   const timer=setInterval(async()=>{
@@ -86,9 +112,26 @@ function renderResult(){
     return `<tr><td>${_esc(d.name)} <span class="need">${_esc(d.category)}${srcs} · ${t("need")}</span></td><td>${won(d.amount)}</td></tr>`;
   }).join("")||`<tr><td>-</td><td>-</td></tr>`;
   const g=a.gps;
-  document.getElementById("r_gps").innerHTML=g
-    ?`<p style="margin:0;font-size:14px">${t("gps_pings")} ${g.tagged_count} · ${t("gps_cross")} <b>${g.cross_matches}</b> <span class="need">${t("gps_mocked_excluded")}</span></p>`
-    :`<p class="small-muted" style="margin:0">${t("gps_none")}</p>`;
+  (function(){
+    const box=document.getElementById("r_gps");
+    if(!g){ box.innerHTML=`<p class="small-muted" style="margin:0">${t("gps_none")}</p>`; return; }
+    let html=`<p style="margin:0 0 6px;font-size:14px">${t("gps_pings")} ${g.tagged_count}`
+      +` <span class="small-muted">(안 ${g.in_count||0} · 밖 ${g.out_count||0}`
+      +(g.excluded_count?` · 배제 ${g.excluded_count}`:"")+`)</span>`
+      +` · ${t("gps_cross")} <b>${g.cross_matches}</b>`
+      +(g.cross_mismatches?` <span class="need">· 불일치 ${g.cross_mismatches}</span>`:"")
+      +` <span class="need">${t("gps_mocked_excluded")}</span></p>`;
+    const daily=g.daily||[];
+    if(daily.length){
+      html+=`<table class="mini-table" style="margin-top:4px"><tr>`
+        +`<th>날짜</th><th>근무지</th><th>체류시간</th></tr>`
+        +daily.map(d=>`<tr><td>${_esc(d.work_date)}</td>`
+          +`<td>${d.in_count}회</td>`
+          +`<td>${d.estimated_hours}h${d.hours_method==="actual_intervals"?"":' <span class="need">핑부족</span>'}</td></tr>`).join("")
+        +`</table>`;
+    }
+    box.innerHTML=html;
+  })();
 
   // 카카오맵 GPS 핑 시각화
   if (g && typeof renderGpsMap === 'function') {

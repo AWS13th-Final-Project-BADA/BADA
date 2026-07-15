@@ -95,7 +95,7 @@ def _row(ev: Evidence, cross: dict | None = None):
 
 
 def _eligible(ev: Evidence) -> bool:
-    return ev.file_type in ("image", "pdf") and bool(ev.file_key)
+    return ev.file_type in ("image", "pdf", "audio") and bool(ev.file_key)
 
 
 def collect(db: Session, case_id: str) -> dict:
@@ -167,6 +167,11 @@ def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
     for ev in targets:
         ev.ocr_status = "processing"
 
+    # 오디오: 전사 완료(ocr_text 있음) 후 엔티티 미추출 → 텍스트 기반 추출 대상
+    audio_targets = [ev for ev in evs
+                     if ev.file_type == "audio" and ev.ocr_status == "done"
+                     and ev.ocr_text and not ev.extracted_entities]
+
     # 느린 부분(파일읽기 + 분류 + Bedrock OCR)만 스레드로 동시 실행 — ORM/DB는 손대지 않는다.
     def _extract_one(args):
         eid, category, file_key = args
@@ -195,7 +200,7 @@ def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
     results: dict = {}
     job_args = [(ev.id, ev.category, ev.file_key) for ev in targets]
     if job_args:
-        with ThreadPoolExecutor(max_workers=min(len(job_args), 4), thread_name_prefix="ocr-ex") as ex:
+        with ThreadPoolExecutor(max_workers=min(len(job_args), 30), thread_name_prefix="ocr-ex") as ex:
             for eid, res in ex.map(_extract_one, job_args):
                 results[eid] = res
 
@@ -230,6 +235,24 @@ def run_ocr_on_case(db: Session, case_id: str, force: bool = False) -> dict:
             collected.append((ev, res["err"]))
 
     db.commit()
+
+    # 오디오 엔티티 추출: 전사 텍스트 → Claude Text → 구조화 (원문 ocr_text는 변형 없이 보존)
+    for ev in audio_targets:
+        try:
+            from providers.ocr import _structure_text
+            res = _structure_text(ev.ocr_text, "audio")
+            ev.extracted_entities = res.get("entities", {})
+            log.info("Audio entity extraction done for %s", ev.id)
+        except Exception as e:
+            log.warning("Audio entity extraction failed for %s: %s", ev.id, e)
+            ev.extracted_entities = {}
+    if audio_targets:
+        db.commit()
+
+    # 오디오도 collected에 포함 (결과 행 생성용)
+    for ev in audio_targets:
+        collected.append(ev)
+
     # 모든 추출이 끝난 뒤 교차 신호 계산 → 행 생성(근거 confidence 반영)
     cross = _cross_for_case(evs)
     rows = []

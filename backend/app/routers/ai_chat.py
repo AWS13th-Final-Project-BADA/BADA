@@ -38,11 +38,10 @@ async def _read_chat_payload(request: Request) -> ChatMessageRequest:
     if not message or not str(message).strip():
         raise HTTPException(status_code=400, detail="message is required")
 
-    case_id = data.get("case_id") or data.get("caseId") or 1
-    try:
-        case_id = int(case_id)
-    except (TypeError, ValueError):
-        case_id = 1
+    # 사건 ID는 UUID 문자열. 미지정/빈값이면 None → 일반 상담(스펙).
+    # (과거: int() 강제 → UUID가 들어오면 항상 1로 폴백되어 사건 컨텍스트가 무시됐음)
+    case_id = data.get("case_id") or data.get("caseId")
+    case_id = str(case_id) if case_id not in ("", None) else None
 
     session_id = data.get("session_id") or data.get("sessionId")
     if session_id in ("", None):

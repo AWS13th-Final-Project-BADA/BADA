@@ -1,0 +1,86 @@
+name: Rollback Dev Backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      task_definition:
+        description: "Rollback target task definition ARN or family:revision, e.g. bada-dev-backend:9"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-dev-backend
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-2
+  AWS_ROLE_ARN: arn:aws:iam::165749212250:role/bada-dev-github-actions-deploy-role
+  ECS_CLUSTER: bada-dev-cluster
+  ECS_SERVICE: bada-dev-backend
+  BACKEND_HEALTH_URL: https://api.badasoft.com/health
+
+jobs:
+  rollback-backend:
+    name: Roll back backend ECS service
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate rollback target
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws ecs describe-task-definition \
+            --task-definition "${{ inputs.task_definition }}" \
+            --query "taskDefinition.{family:family,revision:revision,status:status,taskDefinitionArn:taskDefinitionArn}" \
+            --output table
+
+      - name: Roll back backend service
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws ecs update-service \
+            --cluster "${ECS_CLUSTER}" \
+            --service "${ECS_SERVICE}" \
+            --task-definition "${{ inputs.task_definition }}"
+
+          aws ecs wait services-stable \
+            --cluster "${ECS_CLUSTER}" \
+            --services "${ECS_SERVICE}"
+
+      - name: Verify ALB health after rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..30}; do
+            status_code="$(curl \
+              --silent \
+              --show-error \
+              --max-time 10 \
+              --output health-response.json \
+              --write-out "%{http_code}" \
+              "${BACKEND_HEALTH_URL}" || true)"
+
+            if [[ "${status_code}" == "200" ]]; then
+              cat health-response.json
+              echo
+              echo "Rollback Backend HTTPS health check succeeded."
+              exit 0
+            fi
+            echo "Rollback Backend HTTPS health check returned ${status_code:-curl-error}. Retry ${attempt}/30..."
+            sleep 10
+          done
+
+          echo "Rollback Backend HTTPS health check failed after retries."
+          exit 1

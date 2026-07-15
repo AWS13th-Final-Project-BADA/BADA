@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "BADA",
+    "slug": "bada-mobile-native",
+    "scheme": "bada",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/bada-splash.png",
+      "backgroundColor": "#ffffff",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.bada.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "근무지 출입 증거를 기록하기 위해 위치 정보를 사용합니다.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "근무 중 출근 증거를 남기기 위해 백그라운드에서도 위치를 기록할 수 있습니다.",
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "NSCameraUsageDescription": "증거 문서를 촬영하기 위해 카메라를 사용합니다.",
+        "NSPhotoLibraryUsageDescription": "증거 이미지를 업로드하기 위해 사진 접근 권한이 필요합니다.",
+        "NSPhotoLibraryAddUsageDescription": "증거 파일을 저장하기 위해 사진 라이브러리 접근이 필요합니다."
+      }
+    },
+    "android": {
+      "package": "com.bada.app",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-media-library",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "근무 중 출근 증거를 남기기 위해 백그라운드에서도 위치를 기록할 수 있습니다.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      "expo-image-picker"
+    ],
+    "extra": {
+      "apiBase": "https://api.badasoft.com",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "408a599f-0456-4df3-91fe-64ee5d898f89"
+      }
+    },
+    "owner": "dkdevelop"
+  }
+}

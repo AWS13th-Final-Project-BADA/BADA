@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<title>BADA Evidence Pack — {{ case_id[:8] }}</title>
+<style>
+@page { size: A4; margin: 2cm; }
+body { font-family: 'Noto Sans KR', 'Noto Sans', sans-serif; font-size: 10pt; line-height: 1.6; color: #222; }
+:lang(km) { font-family: 'Noto Sans Khmer', sans-serif; }
+:lang(ne) { font-family: 'Noto Sans Devanagari', sans-serif; }
+:lang(vi) { font-family: 'Noto Sans', sans-serif; }
+h1 { font-size: 16pt; border-bottom: 2px solid #1a237e; padding-bottom: 4pt; }
+h2 { font-size: 13pt; color: #1a237e; margin-top: 1.5em; }
+h3 { font-size: 11pt; margin-top: 1em; }
+table { width: 100%; border-collapse: collapse; margin: 0.5em 0; }
+th, td { border: 1px solid #ccc; padding: 4pt 6pt; text-align: left; font-size: 9pt; }
+th { background: #e8eaf6; font-weight: bold; }
+.disclaimer { background: #fff3e0; border: 1px solid #ff9800; padding: 8pt; margin: 1em 0; font-size: 9pt; }
+.amount { text-align: right; font-family: monospace; }
+.badge { display: inline-block; padding: 1pt 5pt; border-radius: 3pt; font-size: 8pt; font-weight: bold; }
+.badge-high { background: #ffcdd2; color: #b71c1c; }
+.badge-medium { background: #fff9c4; color: #f57f17; }
+.footer { margin-top: 2em; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding-top: 4pt; }
+</style>
+</head>
+<body>
+
+<h1>📋 상담 준비용 증거 정리 자료</h1>
+
+<div class="disclaimer">⚠️ {{ disclaimer }}</div>
+
+<h2>1. 사건 정보</h2>
+<table>
+<tr><th>사업장</th><td>{{ case.workplace_name or '미입력' }}</td></tr>
+<tr><th>사업주</th><td>{{ case.employer_name or '미입력' }}</td></tr>
+<tr><th>근무기간</th><td>{{ case.work_start_date or '?' }} ~ {{ case.work_end_date or '현재' }}</td></tr>
+</table>
+
+<h2>2. 급여 분석</h2>
+<table>
+<tr><th>기대 급여</th><td class="amount">{{ "{:,}".format(result.total_expected_wage or 0) }}원</td></tr>
+<tr><th>실수령액</th><td class="amount">{{ "{:,}".format(result.total_received_wage or 0) }}원</td></tr>
+<tr><th>미지급 의심</th><td class="amount"><strong>{{ "{:,}".format(result.suspected_unpaid or 0) }}원</strong></td></tr>
+</table>
+
+{% if result.deduction_items %}
+<h2>3. 공제 항목</h2>
+<table>
+<tr><th>항목</th><th>금액</th><th>확인 필요</th></tr>
+{% for d in result.deduction_items %}
+<tr><td>{{ d.name }}</td><td class="amount">{{ "{:,}".format(d.amount or 0) }}원</td><td>{{ d.get('check', '') }}</td></tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if result.timeline %}
+<h2>4. 사건 타임라인</h2>
+<table>
+<tr><th>날짜</th><th>유형</th><th>내용</th></tr>
+{% for ev in result.timeline %}
+<tr>
+<td>{{ ev.get('date', '?') }}</td>
+<td>{{ ev.get('type', '') }}</td>
+<td>{{ ev.get('description', '') }}</td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if result.gps %}
+<h2>5. GPS 근무지 교차검증</h2>
+<table>
+<tr><th>총 핑 수</th><td>{{ result.gps.tagged_count }}</td></tr>
+<tr><th>근무지 내(IN)</th><td>{{ result.gps.in_count }}</td></tr>
+<tr><th>근무지 외(OUT)</th><td>{{ result.gps.out_count }}</td></tr>
+<tr><th>교차검증 일치</th><td>{{ result.gps.cross_matches }}</td></tr>
+<tr><th>배제(위조/지연)</th><td>{{ result.gps.excluded_count }}</td></tr>
+</table>
+{% endif %}
+
+{% if result.missing_evidences %}
+<h2>6. 추가 필요 증거</h2>
+<ul>
+{% for m in result.missing_evidences %}
+<li>{{ m.get('item', '') }} — {{ m.get('reason', '') }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+{% if result.timeline_summary %}
+<h2>7. 요약</h2>
+<p>{{ result.timeline_summary }}</p>
+{% endif %}
+
+<div class="footer">
+생성일: {{ generated_at }} | BADA Evidence Pack | 사건 ID: {{ case_id[:8] }}...
+</div>
+
+</body>
+</html>

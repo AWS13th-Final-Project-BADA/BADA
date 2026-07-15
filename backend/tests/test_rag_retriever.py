@@ -1,5 +1,5 @@
 from app.models import RagChunk, RagDocument
-from app.services.rag_retriever import retrieve_rag_context
+from app.services.rag_retriever import RetrievedChunk, retrieve_rag_context
 from app.services.embedding_service import embed_text
 
 
@@ -48,3 +48,22 @@ def test_keyword_rag_retrieval(client, monkeypatch):
     assert chunks
     assert chunks[0].source_id == "test-consult-prep"
     assert chunks[0].section == "상담 순서"
+
+def test_rag_source_includes_bounded_excerpt_and_retrieval_method():
+    chunk = RetrievedChunk(
+        source_id="official-guide",
+        title="상담 준비 안내",
+        source_org="고용노동부",
+        section="준비 자료",
+        text="  급여명세서와\n입금내역을 같은 기간으로 정리하세요.  " + ("추가 자료 " * 80),
+        score=10.0,
+        retrieval_method="hybrid",
+    )
+
+    source = chunk.to_source()
+
+    assert source["excerpt"].startswith("급여명세서와 입금내역")
+    assert "\n" not in source["excerpt"]
+    assert len(source["excerpt"]) <= 323
+    assert source["excerpt"].endswith("...")
+    assert source["retrieval_method"] == "hybrid"

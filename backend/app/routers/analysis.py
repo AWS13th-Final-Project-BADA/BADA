@@ -7,7 +7,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -15,7 +15,8 @@ from ..db import get_db
 from ..models import AnalysisResult, Case, TimelineEvent, TranslationPair
 from ..schemas_analyze import AnalyzeRequest
 from ..schemas_report import AnalysisReport
-from ..services import analysis_service, report_builder
+from ..services import analysis_service, report_builder, s3
+from ..services.queue import send_analysis_job
 
 router = APIRouter(prefix="/cases/{case_id}", tags=["analysis"])
 
@@ -29,17 +30,40 @@ def _date(s):
         return None
 
 
-@router.post("/analyze", response_model=AnalysisReport)
+@router.post("/analyze")
 def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("ko"), db: Session = Depends(get_db)):
+    """분석 요청 — SQS에 작업을 발행하고 즉시 응답. Worker가 비동기로 처리."""
     case = db.get(Case, case_id)
     if not case:
         raise HTTPException(404, "case not found")
+
+    # 이미 진행 중이면 중복 요청 방지
+    if case.status == "analyzing":
+        return {"status": "analyzing", "message": "이미 분석이 진행 중입니다."}
+
+    # SQS 발행 시도
+    if settings.sqs_queue_url:
+        send_analysis_job(case_id, lang=lang)
+        case.status = "analyzing"
+        db.commit()
+        return {"status": "analyzing", "message": "분석 요청이 접수되었습니다. 잠시 후 결과를 확인할 수 있습니다."}
+
+    # SQS 미설정 (로컬) → 동기 실행 폴백
+    import time as _time
+    from ..middleware.prometheus import ANALYSIS_RUNS, ANALYSIS_DURATION
     req = req or AnalyzeRequest()
-    result = analysis_service.run_analysis(db, case, req, target_lang=lang)
+    _start = _time.perf_counter()
+    try:
+        result = analysis_service.run_analysis(db, case, req, target_lang=lang)
+    except Exception:
+        ANALYSIS_RUNS.labels(status="error").inc()
+        raise
+    ANALYSIS_RUNS.labels(status="success").inc()
+    ANALYSIS_DURATION.observe(_time.perf_counter() - _start)
+
     report = report_builder.build_report(case, result, lang=lang, provider_mode=settings.provider_mode)
     report_dict = report.model_dump()
 
-    # 영속화 — 표준 리포트 전체 + 조회/리포트용 보조 컬럼
     db.query(AnalysisResult).filter(AnalysisResult.case_id == case_id).delete()
     db.query(TimelineEvent).filter(TimelineEvent.case_id == case_id).delete()
     db.query(TranslationPair).filter(TranslationPair.case_id == case_id).delete()
@@ -50,7 +74,7 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
         total_received_wage=result["total_received_wage"],
         suspected_unpaid=result["suspected_unpaid"],
         deduction_items=result["deduction_items"],
-        calculation_detail={"report": report_dict},   # 표준 스키마를 그대로 보관 → /analysis 동일 반환
+        calculation_detail={"report": report_dict},
         missing_evidences=result["missing_evidences"],
         timeline_summary=result.get("timeline_summary", ""),
     ))
@@ -63,7 +87,9 @@ def analyze(case_id: str, req: AnalyzeRequest | None = None, lang: str = Query("
                                evidence_type=p.get("evidence_type"), related_issue=p.get("related_issue")))
     case.status = "completed"
     db.commit()
-    return report
+    from .notifications import create_notification
+    create_notification(db, case.user_id, "analysis_complete", "분석이 완료되었습니다", case_id=case_id)
+    return report_dict
 
 
 def _load_report(case_id: str, db: Session) -> dict:
@@ -76,10 +102,58 @@ def _load_report(case_id: str, db: Session) -> dict:
     return rep
 
 
-@router.get("/analysis", response_model=AnalysisReport)
-def get_analysis(case_id: str, db: Session = Depends(get_db)):
-    """저장된 분석을 /analyze 와 동일한 표준 스키마로 반환."""
-    return AnalysisReport.model_validate(_load_report(case_id, db))
+@router.get("/analysis")
+def get_analysis(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_db)):
+    """저장된 분석을 표준 스키마로 반환. lang!=ko면 summary/timeline을 실시간 번역."""
+    ar = db.query(AnalysisResult).filter(AnalysisResult.case_id == case_id).first()
+    if not ar:
+        raise HTTPException(404, "no analysis yet")
+
+    def _translate(text: str) -> str:
+        """한국어 원문을 요청 lang으로 번역. ko이거나 실패면 원문 그대로."""
+        if lang == "ko" or not text:
+            return text
+        try:
+            from ..services.translation import get_translator
+            return get_translator().translate(text, lang)
+        except Exception:
+            return text
+
+    rep = (ar.calculation_detail or {}).get("report")
+    if rep:
+        rep["pdf_ready"] = bool(ar.pdf_ko_s3_key)
+        if lang != "ko":
+            if rep.get("narrative", {}).get("summary"):
+                rep["narrative"]["summary"] = _translate(rep["narrative"]["summary"])
+            for t_item in rep.get("timeline", []):
+                if t_item.get("text"):
+                    t_item["text"] = _translate(t_item["text"])
+        return rep
+    # Worker가 저장한 형식 (report 키 없음) → 원시 AR 데이터 반환
+    timeline_events = db.query(TimelineEvent).filter(TimelineEvent.case_id == case_id).all()
+    summary = ar.timeline_summary or ""
+    if lang != "ko":
+        summary = _translate(summary)
+
+    return {
+        "wage": {
+            "expected": ar.total_expected_wage,
+            "received": ar.total_received_wage,
+            "suspected_unpaid": ar.suspected_unpaid,
+        },
+        "deduction_items": ar.deduction_items or [],
+        "missing": ar.missing_evidences or [],
+        "timeline": [
+            {"date": str(e.event_date) if e.event_date else None, "type": e.event_type,
+             "text": _translate(e.description) if lang != "ko" else e.description,
+             "text_translated": e.description_translated,
+             "confidence": e.confidence}
+            for e in timeline_events
+        ],
+        "narrative": {"summary": summary, "disclaimer": ""},
+        "calculation_detail": ar.calculation_detail or {},
+        "pdf_ready": bool(ar.pdf_ko_s3_key),
+    }
 
 
 @router.get("/timeline")
@@ -182,8 +256,30 @@ def report(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_db))
 
     miss = "".join(f"<li>[{tr(m.get('item',''))}] {tr(m.get('reason',''))}</li>" for m in r.get("missing", []))
     gps = r.get("gps") or {}
-    gps_html = (f"<p>GPS 핑 {gps.get('tagged_count',0)}건 · 카톡-근무지 교차일치 <b>{gps.get('cross_matches',0)}건</b></p>"
-                if gps else "<p class='muted'>GPS 데이터 없음</p>")
+    if gps:
+        _gps_head = (f"<p>GPS 핑 {gps.get('tagged_count',0)}건 "
+                     f"(근무지 안 {gps.get('in_count',0)} · 밖 {gps.get('out_count',0)} · 배제 {gps.get('excluded_count',0)}) · "
+                     f"카톡-근무지 교차일치 <b>{gps.get('cross_matches',0)}건</b>"
+                     + (f" · 불일치 {gps.get('cross_mismatches',0)}건" if gps.get('cross_mismatches') else "")
+                     + "</p>")
+        _daily = gps.get("daily") or []
+        if _daily:
+            _rows = "".join(
+                f"<tr><td>{d.get('work_date','')}</td>"
+                f"<td style='text-align:center'>{d.get('in_count',0)}</td>"
+                f"<td>{(d.get('first_in') or '-')}</td>"
+                f"<td>{(d.get('last_out') or '-')}</td>"
+                f"<td style='text-align:right'>{d.get('estimated_hours',0)}h"
+                + ("" if d.get('hours_method')=='actual_intervals' else " <span class='muted'>(핑 부족)</span>")
+                + "</td></tr>"
+                for d in _daily)
+            _gps_table = (f"<table><tr><th>날짜</th><th>근무지 핑</th><th>최초 체류</th>"
+                          f"<th>최종 체류</th><th>추정 체류시간</th></tr>{_rows}</table>")
+        else:
+            _gps_table = ""
+        gps_html = _gps_head + _gps_table
+    else:
+        gps_html = "<p class='muted'>GPS 데이터 없음</p>"
 
     computable = wage.get("computable")
 
@@ -273,3 +369,36 @@ def report(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_db))
 <div class="foot">BADA · schema {meta.get('schema_version','')} · 언어 {meta.get('lang','')} · 본 문서는 상담 준비용이며 법적 효력을 갖지 않습니다.</div>
 </body></html>"""
     return HTMLResponse(html)
+
+
+@router.get("/report.pdf")
+def report_pdf(case_id: str, lang: str = Query("ko"), db: Session = Depends(get_db)):
+    """제출용 PDF 다운로드 — 워커가 S3에 저장한 Evidence Pack PDF로 302 redirect(모바일 연동).
+
+    - lang=ko → pdf_ko_s3_key, 그 외(native) → pdf_native_s3_key(없으면 ko 폴백).
+    - presigned GET URL은 짧은 만료(security.md §5). PUT 아닌 GET이라 ContentType 불일치 없음.
+    - PDF 미생성 시 404 → 모바일은 기존 GET /report.html 로 폴백 가능.
+    - 사건 존재만 확인(report.html과 동일 패턴). 행수준 인가는 엔드포인트 공통 과제(security.md §5).
+    """
+    case = db.get(Case, case_id)
+    if not case:
+        raise HTTPException(404, "case not found")
+    ar = db.query(AnalysisResult).filter(AnalysisResult.case_id == case_id).first()
+    if not ar:
+        raise HTTPException(404, "no analysis yet")
+    key = ar.pdf_native_s3_key if (lang != "ko" and ar.pdf_native_s3_key) else ar.pdf_ko_s3_key
+    if not key:
+        # 워커가 아직 PDF를 생성하지 않음 → 모바일은 report.html 로 폴백
+        raise HTTPException(404, "report pdf not generated yet")
+    if not settings.s3_bucket:
+        raise HTTPException(409, "s3 not configured")
+    import os, boto3
+    # report 버킷: S3_REPORT_BUCKET 환경변수 → 없으면 evidence 버킷명에서 추론
+    report_bucket = os.environ.get("S3_REPORT_BUCKET") or settings.s3_bucket.replace("-evidence", "-report")
+    s3_client = boto3.client("s3", region_name=settings.aws_region)
+    url = s3_client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": report_bucket, "Key": key},
+        ExpiresIn=300,
+    )
+    return RedirectResponse(url, status_code=302)

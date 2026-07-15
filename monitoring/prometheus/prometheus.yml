@@ -1,0 +1,49 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "bada-backend"
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api.${domain_name}:443"]
+        labels:
+          service: "backend"
+          env: "dev"
+
+  - job_name: "bada-worker"
+    scheme: http
+    metrics_path: /metrics
+    dns_sd_configs:
+      - names: ["worker.${service_discovery_namespace}"]
+        type: A
+        port: 9090
+    relabel_configs:
+      - target_label: env
+        replacement: "dev"
+%{ if prod_backend_target_enabled ~}
+
+  # ── prod backend (크로스 환경) ───────────────────────────────────────────
+  # prod는 dev와 분리된 별도 VPC/Terraform state지만, backend /metrics는 공인 ALB로
+  # 노출되므로 이 Prometheus가 인터넷(NAT egress) 경유로 스크랩할 수 있다.
+  # ⚠️ prod worker는 다른 VPC의 Cloud Map(worker.bada-prod.local)이라 크로스-VPC로
+  #    스크랩 불가 → prod worker는 CloudWatch(Container Insights) 대시보드로 관측한다.
+  # env="prod" 라벨로 dev와 구분한다. 특정 환경만 보려면 쿼리에 {env="dev"} / {env="prod"}.
+  - job_name: "bada-backend-prod"
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api.${prod_domain_name}:443"]
+        labels:
+          service: "backend"
+          env: "prod"
+%{ endif ~}

@@ -52,8 +52,12 @@ def process_case(case_id: str, ctx: dict) -> dict:
         # 버그#6 수정 반영: cross_check는 match=False도 반환하므로 match=True만 카운트
         gps_result = {
             "tagged_count": len(tagged),
+            "excluded_count": sum(1 for t in tagged if t.get("excluded")),
+            "in_count": sum(1 for t in tagged if t.get("status") == "IN_WORKPLACE"),
+            "out_count": sum(1 for t in tagged if t.get("status") == "OUTSIDE"),
             "cross_matches": sum(1 for r in results if r["match"]),
             "cross_mismatches": sum(1 for r in results if not r["match"]),
+            "daily": geofence.summarize_by_day(tagged),
         }
 
     result = {
@@ -78,13 +82,13 @@ def process_case(case_id: str, ctx: dict) -> dict:
     result["translation_pairs"] = tr.build_translation_pairs(ctx, result, translator, target_lang)
 
     # 5단계: 타임라인 (규칙 정렬 + 카톡 발화 이벤트 + 문장화/번역)
-    result["timeline"] = tl.build_timeline(ctx, result, llm, translator, target_lang)
+    result["timeline"] = tl.build_timeline(ctx, result, llm, translator, "ko")
 
     # 6단계: 요약 (LLM, 실패/빈값 시 폴백) → 가드레일로 단정 표현 차단
     descs = [e["description"] for e in result["timeline"]]
     src = " ".join(descs)
     try:
-        summary = (llm.summarize_case(descs) or "").strip()
+        summary = (llm.summarize_case(descs, lang="ko") or "").strip()
     except Exception:
         summary = ""
     # 숫자 환각 가드: 요약이 사실 목록에 없는 금액을 단정하면 결정론적 사실로 되돌림

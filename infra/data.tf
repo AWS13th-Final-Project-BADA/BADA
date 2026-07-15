@@ -1,0 +1,453 @@
+# ─── Data: RDS / S3 / KMS / SQS / Secrets / SSM / Cognito ─────────────────
+resource "aws_kms_key" "evidence" {
+  description         = "${local.name_prefix} evidence encryption key"
+  enable_key_rotation = true
+
+  tags = local.common_tags
+}
+
+resource "aws_kms_alias" "evidence" {
+  name          = "alias/${local.name_prefix}-evidence"
+  target_key_id = aws_kms_key.evidence.key_id
+}
+
+resource "aws_s3_bucket" "evidence" {
+  bucket = "${local.name_prefix}-evidence"
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-evidence" })
+}
+
+resource "aws_s3_bucket" "report" {
+  bucket = "${local.name_prefix}-report"
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-report" })
+}
+
+resource "aws_s3_bucket_public_access_block" "evidence" {
+  bucket = aws_s3_bucket.evidence.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_public_access_block" "report" {
+  bucket = aws_s3_bucket.report.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "evidence" {
+  bucket = aws_s3_bucket.evidence.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.evidence.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "report" {
+  bucket = aws_s3_bucket.report.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.evidence.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
+# ─── S3 Lifecycle: Evidence / Report ────────────────────────────────────
+# 비용 최적화용 스토리지 계층 전환(STANDARD → IA → GLACIER)과 미완료 MPU 정리.
+# ⚠️ 만료(파기)는 두지 않는다. 법정 보관(사건 종료 후 3년) 후 파기는
+#    사건 단위 애플리케이션 로직(태스크 A-4)으로 처리하며, 버킷 전역 age 기반
+#    expiration과 의미가 다르므로 여기서 삭제하지 않는다.
+# 종료 시 되돌리기: var.s3_lifecycle_enabled = false → 룰 제거(객체는 보존).
+resource "aws_s3_bucket_lifecycle_configuration" "evidence" {
+  count  = var.s3_lifecycle_enabled ? 1 : 0
+  bucket = aws_s3_bucket.evidence.id
+
+  rule {
+    id     = "tiering-evidence"
+    status = "Enabled"
+
+    # 실제 업로드 키는 전부 cases/{case_id}/... 이다(backend/app/routers/evidences.py).
+    # gps-archive/ prefix와 겹치지 않게 명시적으로 scope해, 아래 GPS 룰과의
+    # 스토리지 클래스 전환 순서 충돌(IA→GLACIER vs 즉시 GLACIER_IR)을 방지한다.
+    filter {
+      prefix = "cases/"
+    }
+
+    transition {
+      days          = var.s3_ia_transition_days
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = var.s3_glacier_transition_days
+      storage_class = "GLACIER"
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = var.s3_abort_incomplete_mpu_days
+    }
+  }
+
+  # GPS 로그 아카이브 prefix — 선반영, 아직 이 prefix에 쓰는 애플리케이션 코드 없음.
+  # architecture.md GPS 아카이빙 설계 참고. 구현 전까지는 대상 객체가 없는 inert 룰.
+  dynamic "rule" {
+    for_each = var.gps_archive_lifecycle_enabled ? [1] : []
+    content {
+      id     = "gps-archive-glacier-ir"
+      status = "Enabled"
+
+      filter {
+        prefix = var.gps_archive_prefix
+      }
+
+      # 보관 기간 내 조회가 한두 번뿐일 것으로 예상 → 즉시조회 가능한 저가 등급으로 바로 전환.
+      # (Standard-IA를 거치지 않는 이유: 접근 빈도가 이보다 더 낮아 Glacier IR이 더 경제적)
+      transition {
+        days          = var.gps_archive_glacier_ir_transition_days
+        storage_class = "GLACIER_IR"
+      }
+
+      abort_incomplete_multipart_upload {
+        days_after_initiation = var.s3_abort_incomplete_mpu_days
+      }
+    }
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "report" {
+  count  = var.s3_lifecycle_enabled ? 1 : 0
+  bucket = aws_s3_bucket.report.id
+
+  rule {
+    id     = "tiering-report"
+    status = "Enabled"
+
+    filter {} # 버킷 전체 객체
+
+    transition {
+      days          = var.s3_ia_transition_days
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = var.s3_glacier_transition_days
+      storage_class = "GLACIER"
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = var.s3_abort_incomplete_mpu_days
+    }
+  }
+}
+
+resource "aws_sqs_queue" "analysis_dlq" {
+  name = "${local.name_prefix}-analysis-dlq"
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-analysis-dlq" })
+}
+
+resource "aws_sqs_queue" "analysis" {
+  name                       = "${local.name_prefix}-analysis"
+  visibility_timeout_seconds = var.sqs_visibility_timeout_seconds
+  receive_wait_time_seconds  = var.sqs_receive_wait_time_seconds
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.analysis_dlq.arn
+    maxReceiveCount     = 5
+  })
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-analysis" })
+}
+
+resource "aws_db_instance" "postgres" {
+  identifier              = "${local.name_prefix}-postgres"
+  engine                  = "postgres"
+  engine_version          = "16"
+  instance_class          = var.db_instance_class
+  allocated_storage       = var.db_allocated_storage
+  db_name                 = "bada"
+  username                = var.db_username
+  password                = var.db_password
+  db_subnet_group_name    = aws_db_subnet_group.main.name
+  vpc_security_group_ids  = [aws_security_group.rds.id]
+  backup_retention_period = var.db_backup_retention_period
+  deletion_protection     = var.db_deletion_protection
+  skip_final_snapshot     = var.db_skip_final_snapshot
+  final_snapshot_identifier = (
+    var.db_skip_final_snapshot ? null : var.db_final_snapshot_identifier
+  )
+  apply_immediately   = var.db_apply_immediately
+  publicly_accessible = false
+  multi_az            = false
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-postgres" })
+}
+
+resource "aws_db_instance" "postgres_rehearsal" {
+  count = var.enable_rehearsal_multiaz_db ? 1 : 0
+
+  identifier              = var.rehearsal_db_identifier
+  engine                  = "postgres"
+  engine_version          = "16"
+  instance_class          = var.db_instance_class
+  allocated_storage       = var.db_allocated_storage
+  storage_encrypted       = true
+  kms_key_id              = var.rehearsal_db_kms_key_arn
+  db_name                 = "bada"
+  username                = var.db_username
+  password                = var.db_password
+  db_subnet_group_name    = aws_db_subnet_group.main.name
+  vpc_security_group_ids  = [aws_security_group.rds.id]
+  backup_retention_period = var.db_backup_retention_period
+  deletion_protection     = false
+  skip_final_snapshot     = var.rehearsal_db_skip_final_snapshot
+  final_snapshot_identifier = (
+    var.rehearsal_db_skip_final_snapshot ? null : var.rehearsal_db_final_snapshot_identifier
+  )
+  apply_immediately   = var.db_apply_immediately
+  publicly_accessible = false
+  multi_az            = true
+
+  tags = merge(local.common_tags, {
+    Name    = var.rehearsal_db_identifier
+    Purpose = "multi-az-rehearsal"
+  })
+}
+
+locals {
+  app_db_address = (
+    var.use_rehearsal_multiaz_db_as_app_db
+    ? aws_db_instance.postgres_rehearsal[0].address
+    : aws_db_instance.postgres.address
+  )
+}
+
+resource "aws_cognito_user_pool" "main" {
+  name = "${local.name_prefix}-user-pool"
+
+  tags = local.common_tags
+}
+
+resource "aws_cognito_identity_provider" "google" {
+  count = var.enable_google_identity_provider ? 1 : 0
+
+  user_pool_id  = aws_cognito_user_pool.main.id
+  provider_name = "Google"
+  provider_type = "Google"
+
+  provider_details = {
+    attributes_url                = "https://people.googleapis.com/v1/people/me?personFields="
+    attributes_url_add_attributes = "true"
+    authorize_scopes              = join(" ", var.cognito_oauth_scopes)
+    authorize_url                 = "https://accounts.google.com/o/oauth2/v2/auth"
+    client_id                     = var.google_oauth_client_id
+    client_secret                 = var.google_oauth_client_secret
+    oidc_issuer                   = "https://accounts.google.com"
+    token_request_method          = "POST"
+    token_url                     = "https://www.googleapis.com/oauth2/v4/token"
+  }
+
+  attribute_mapping = {
+    email          = "email"
+    email_verified = "email_verified"
+    name           = "name"
+    username       = "sub"
+  }
+
+  lifecycle {
+    precondition {
+      condition = (
+        !var.enable_google_identity_provider ||
+        (
+          var.google_oauth_client_id != null &&
+          var.google_oauth_client_secret != null &&
+          try(trimspace(var.google_oauth_client_id), "") != "" &&
+          try(trimspace(var.google_oauth_client_secret), "") != ""
+        )
+      )
+      error_message = "Google OAuth client ID and client secret are required when enable_google_identity_provider is true."
+    }
+  }
+}
+
+resource "aws_cognito_user_pool_client" "app" {
+  name                                 = "${local.name_prefix}-app-client"
+  user_pool_id                         = aws_cognito_user_pool.main.id
+  callback_urls                        = var.cognito_callback_urls
+  logout_urls                          = var.cognito_logout_urls
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = var.cognito_oauth_scopes
+  allowed_oauth_flows_user_pool_client = true
+  supported_identity_providers = concat(
+    ["COGNITO"],
+    var.enable_google_identity_provider ? ["Google"] : []
+  )
+  prevent_user_existence_errors = "ENABLED"
+
+  depends_on = [aws_cognito_identity_provider.google]
+}
+
+resource "aws_cognito_user_pool_domain" "main" {
+  domain       = var.cognito_domain_prefix
+  user_pool_id = aws_cognito_user_pool.main.id
+}
+
+# force_destroy: perf 환경에서만 true. perf는 일회성 부하테스트 환경이라
+# destroy 시 ALB access log 객체가 남아 있어도 버킷째 정리되도록 한다.
+# dev/prod(environment != "perf")는 false로 유지 → 기존 동작 불변(plan 무변화).
+resource "aws_s3_bucket" "alb_logs" {
+  bucket        = "${local.name_prefix}-alb-logs"
+  force_destroy = var.environment == "perf"
+  tags          = merge(local.common_tags, { Name = "${local.name_prefix}-alb-logs" })
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "alb_logs" {
+  bucket = aws_s3_bucket.alb_logs.id
+
+  rule {
+    id     = "expire-alb-access-logs"
+    status = "Enabled"
+
+    filter {
+      prefix = "alb/"
+    }
+
+    expiration {
+      days = var.alb_log_retention_days
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "alb_logs" {
+  bucket = aws_s3_bucket.alb_logs.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "logdelivery.elasticloadbalancing.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.alb_logs.arn}/alb/*"
+      }
+    ]
+  })
+}
+
+resource "aws_secretsmanager_secret" "app" {
+  name = "${local.name_prefix}/app-secrets"
+
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-app-secrets" })
+}
+
+resource "aws_secretsmanager_secret_version" "app" {
+  secret_id = aws_secretsmanager_secret.app.id
+  secret_string = jsonencode({
+    db_username  = var.db_username
+    db_password  = var.db_password
+    database_url = "postgresql+psycopg://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${local.app_db_address}:5432/bada"
+
+    # 소셜 OAuth (구글/카카오/네이버) + 자체 JWT 서명 — 값은 prod tfvars로 주입
+    google_client_id     = var.google_client_id
+    google_client_secret = var.google_client_secret
+    kakao_rest_api_key   = var.kakao_rest_api_key
+    kakao_client_secret  = var.kakao_client_secret
+    naver_client_id      = var.naver_client_id
+    naver_client_secret  = var.naver_client_secret
+    jwt_secret           = var.jwt_secret
+  })
+}
+
+resource "aws_ssm_parameter" "s3_evidence_bucket" {
+  name  = "/${local.name_prefix}/s3/evidence_bucket"
+  type  = "String"
+  value = aws_s3_bucket.evidence.bucket
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "s3_report_bucket" {
+  name  = "/${local.name_prefix}/s3/report_bucket"
+  type  = "String"
+  value = aws_s3_bucket.report.bucket
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "analysis_queue_url" {
+  name  = "/${local.name_prefix}/sqs/analysis_queue_url"
+  type  = "String"
+  value = aws_sqs_queue.analysis.url
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "aws_region" {
+  name  = "/${local.name_prefix}/config/aws_region"
+  type  = "String"
+  value = var.aws_region
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_user_pool_id" {
+  name  = "/${local.name_prefix}/cognito/user_pool_id"
+  type  = "String"
+  value = aws_cognito_user_pool.main.id
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_client_id" {
+  name  = "/${local.name_prefix}/cognito/client_id"
+  type  = "String"
+  value = aws_cognito_user_pool_client.app.id
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_domain" {
+  name  = "/${local.name_prefix}/cognito/domain"
+  type  = "String"
+  value = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com/"
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_redirect_uri" {
+  name  = "/${local.name_prefix}/cognito/redirect_uri"
+  type  = "String"
+  value = var.cognito_callback_urls[0]
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_logout_uri" {
+  name  = "/${local.name_prefix}/cognito/logout_uri"
+  type  = "String"
+  value = var.cognito_logout_urls[0]
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "cognito_scopes" {
+  name  = "/${local.name_prefix}/cognito/scopes"
+  type  = "String"
+  value = join(" ", var.cognito_oauth_scopes)
+
+  tags = local.common_tags
+}

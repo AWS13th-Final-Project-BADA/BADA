@@ -17,10 +17,10 @@ def _sqs():
     return _client
 
 
-def send_analysis_job(case_id: str) -> None:
+def send_analysis_job(case_id: str, lang: str = "ko") -> None:
     if not settings.sqs_queue_url:
         return  # 로컬: 큐 미설정이면 no-op
     _sqs().send_message(
         QueueUrl=settings.sqs_queue_url,
-        MessageBody=json.dumps({"type": "analyze_case", "case_id": case_id}),
+        MessageBody=json.dumps({"type": "analyze_case", "case_id": case_id, "lang": lang}),
     )

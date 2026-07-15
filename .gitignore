@@ -27,6 +27,8 @@ infra/*.tfstate
 infra/*.tfstate.*
 infra/terraform.tfvars
 infra/*.auto.tfvars
+infra/env/*.tfvars
+!infra/env/*.tfvars.example
 infra/crash.log
 infra/override.tf
 infra/override.tf.json
@@ -46,8 +48,13 @@ Thumbs.db
 
 # Data (민감 — 절대 커밋 금지)
 eval/dataset/raw/
+eval/dataset/benchmark/
 *.local.json
 uploads/
 
 # 개인 작업 메모 (협업 저장소에 올리지 않음)
 evidence-agent-context.md
+
+# 개인 Kiro steering (팀 공유 제외)
+
+.hypothesis/

@@ -3,26 +3,22 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# .env 는 항상 backend/.env 에서 읽는다 (uvicorn 실행 폴더와 무관하게 동작).
 _ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=str(_ENV_FILE), env_file_encoding="utf-8", extra="ignore")
 
-    # 로컬 기본: SQLite. Postgres로 바꾸려면 이 값만 교체.
     database_url: str = "sqlite:///./bada.db"
     database_auto_create: bool = True
-    database_ssl_mode: str = ""     # RDS Postgres 권장: require
+    database_ssl_mode: str = ""
     database_pool_size: int = 5
     database_max_overflow: int = 10
 
-    # 동작 모드 (기능 담당자가 전환)
-    #   provider_mode: local=Mock / aws=실제 OCR·AI·번역(Bedrock/Upstage/Translate)
     provider_mode: str = "local"
-    structured_engine: str = "vision"    # 정형문서 OCR: vision(기본) | upstage | parseur
-    auth_mode: str = "demo"        # demo | cognito
-    storage_mode: str = "local"    # local | s3
+    structured_engine: str = "vision"
+    auth_mode: str = "demo"  # demo | oauth  (Cognito 제거됨 — 소셜 OAuth로 단일화)
+    storage_mode: str = "local"  # local | s3
     upload_dir: str = "./uploads"
 
     aws_region: str = "ap-northeast-2"
@@ -30,38 +26,40 @@ class Settings(BaseSettings):
     s3_bucket: str = ""
     kms_key_id: str = ""
     sqs_queue_url: str = ""
-    # Claude Sonnet 4.6 (Global 추론 프로파일, 비전 지원). 텍스트·비전 공용.
+    transcription_dispatch_mode: str = "inline"  # inline | sqs
+    transcribe_mode: str = ""
+
     bedrock_model_id: str = "global.anthropic.claude-sonnet-4-6"
     bedrock_vision_model_id: str = "global.anthropic.claude-sonnet-4-6"
-    ai_chat_mode: str = "mock"     # mock | bedrock
+    ai_chat_mode: str = "mock"
     ai_chat_max_tokens: int = 700
+
     rag_enabled: bool = True
     rag_use_vector: bool = True
     rag_top_k: int = 4
     rag_min_keyword_score: int = 1
-    embedding_mode: str = "mock"    # mock | bedrock
+    embedding_mode: str = "mock"
     embedding_model_id: str = "amazon.titan-embed-text-v2:0"
     embedding_dimension: int = 1024
     upstage_api_key: str = ""
     parseur_api_key: str = ""
-    cognito_user_pool_id: str = ""
-    cognito_client_id: str = ""
-    retention_days: int = 90
 
-    # ── 소셜 로그인(JWT) ──
-    auth_jwt_enabled: bool = True   # Authorization: Bearer JWT 허용. 토큰 없으면 데모 유저 폴백.
-    jwt_secret: str = "dev-insecure-change-me"   # 운영 시 .env로 반드시 교체
-    jwt_expire_minutes: int = 60 * 24 * 7        # 7일
-    app_base_url: str = "http://localhost:8000"  # 로그인 후 프론트 리다이렉트 대상
-    # 카카오
+    retention_days: int = 90  # 일반 데이터(증거파일 등) 기본 보존. GPS는 예외로 3년 — security.md 3항 참조
+    gps_retention_days: int = 1095  # GPS 로그 전용 보존 (3년, 임금채권 소멸시효 기준)
+
+    auth_jwt_enabled: bool = True
+    jwt_secret: str = "dev-insecure-change-me"
+    jwt_expire_minutes: int = 60 * 24 * 7
+    app_base_url: str = "http://localhost:8000"
+
     kakao_rest_api_key: str = ""
-    kakao_client_secret: str = ""   # 선택(보안 강화 시)
+    kakao_client_secret: str = ""
     kakao_redirect_uri: str = "http://localhost:8000/auth/kakao/callback"
-    # 구글
+
     google_client_id: str = ""
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
-    # 네이버
+
     naver_client_id: str = ""
     naver_client_secret: str = ""
     naver_redirect_uri: str = "http://localhost:8000/auth/naver/callback"
@@ -69,9 +67,8 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# .env 설정을 worker(providers)가 읽는 환경변수로 브리지.
-# → .env 한 곳에서 provider_mode=aws + 키만 넣으면 OCR·AI·번역이 실제로 전환됨.
 os.environ.setdefault("PROVIDER_MODE", settings.provider_mode)
+os.environ.setdefault("TRANSCRIBE_MODE", settings.transcribe_mode or settings.provider_mode)
 os.environ.setdefault("STRUCTURED_ENGINE", settings.structured_engine)
 os.environ.setdefault("AWS_REGION", settings.aws_region)
 os.environ.setdefault("BEDROCK_MODEL_ID", settings.bedrock_model_id)

@@ -13,10 +13,8 @@ function googleLogin(){ location.href = apiUrl("/auth/google/login"); }
 function goLogin(){ if(typeof goPage==="function") goPage("login"); }
 
 async function logout(){
-  try{ await fetch(apiUrl("/auth/logout"), {method:"POST"}); }catch(e){}
   clearToken();
-  if(typeof toast==="function") toast("로그아웃되었습니다.");
-  renderAuth();
+  if(typeof goPage==="function") goPage("home",0);
 }
 
 // 콜백 리다이렉트(#token=...)에서 토큰 회수 → 저장 → URL 정리.
@@ -25,6 +23,7 @@ function captureTokenFromUrl(){
     const t = new URLSearchParams(location.hash.slice(1)).get("token");
     if(t){
       setToken(t);
+      window.__badaTokenCaptured = true;
       history.replaceState(null, "", location.pathname + location.search);
       if(typeof toast==="function") setTimeout(()=>toast("로그인되었습니다."),300);
     }
@@ -61,4 +60,7 @@ async function renderAuth(){
 }
 
 captureTokenFromUrl();
-document.addEventListener("DOMContentLoaded", renderAuth);
+document.addEventListener("DOMContentLoaded", async ()=>{
+  await renderAuth();
+  if(window.__badaTokenCaptured && typeof goPage==="function") goPage("home",0);
+});

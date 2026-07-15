@@ -1,0 +1,39 @@
+{
+  "mcpServers": {
+    "aws-docs": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false
+    },
+    "aws-iac": {
+      "command": "uvx",
+      "args": ["awslabs.aws-iac-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false
+    },
+    "aws-pricing": {
+      "command": "uvx",
+      "args": ["awslabs.aws-pricing-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_REGION": "ap-northeast-2"
+      },
+      "disabled": false
+    },
+    "terraform": {
+      "command": "npx",
+      "args": ["-y", "@hashicorp/terraform-mcp-server"],
+      "disabled": false
+    },
+    "mermaid": {
+      "command": "npx",
+      "args": ["-y", "mermaid-mcp-server"],
+      "disabled": false
+    }
+  }
+}

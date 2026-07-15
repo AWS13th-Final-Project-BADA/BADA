@@ -71,7 +71,7 @@ def _get_last_chain_hash(case_id: str, db: Session) -> str | None:
     last = (
         db.query(GpsLog)
         .filter(GpsLog.case_id == case_id)
-        .order_by(GpsLog.server_ts.desc())
+        .order_by(GpsLog.ts.desc())
         .first()
     )
     return last.chain_hash if last else None
@@ -223,6 +223,62 @@ def get_logs(
              "lng": float(l.lng), "status": l.status, "source": l.source}
             for l in logs
         ],
+    }
+
+
+@router.get("/verify", summary="GPS 체인 무결성 검증 — 중간 조작 탐지")
+def verify_chain(
+    case_id: str,
+    db:      Session = Depends(get_db),
+    user:    User    = Depends(get_current_user),
+):
+    """저장된 GPS 로그의 chain_hash 체인이 손상되지 않았는지 검증.
+
+    각 행의 chain_hash를 prev_hash + 원본 데이터로 재계산해 DB 값과 비교.
+    중간 행이 조작되면 그 행 이후 모든 hash가 깨져 탐지된다.
+    """
+    _get_case_or_404(case_id, user, db)
+
+    logs = (
+        db.query(GpsLog)
+        .filter(GpsLog.case_id == case_id)
+        .order_by(GpsLog.ts.asc())
+        .all()
+    )
+    if not logs:
+        raise HTTPException(status_code=404, detail="GPS 데이터가 없습니다.")
+
+    broken_at: list[dict] = []
+    prev_hash: str | None = None
+
+    for log in logs:
+        ts = log.ts if log.ts.tzinfo else log.ts.replace(tzinfo=timezone.utc)
+        expected = _compute_chain_hash(prev_hash, ts, float(log.lat), float(log.lng), log.status)
+
+        if log.chain_hash != expected:
+            broken_at.append({
+                "log_id":   log.id,
+                "ts":       ts.isoformat(),
+                "stored":   log.chain_hash,
+                "expected": expected,
+            })
+
+        # 다음 행 검증을 위해 prev_hash를 DB 저장값으로 진행
+        # (손상된 행 이후도 계속 검증해 전체 손상 범위 파악)
+        prev_hash = log.chain_hash
+
+    ok = len(broken_at) == 0
+    return {
+        "case_id":       case_id,
+        "total_logs":    len(logs),
+        "chain_intact":  ok,
+        "broken_count":  len(broken_at),
+        "broken_at":     broken_at,
+        "verified_at":   datetime.now(timezone.utc).isoformat(),
+        "note": (
+            "체인이 손상되지 않았습니다." if ok
+            else f"{len(broken_at)}건의 조작 또는 데이터 불일치가 탐지됐습니다. 상담 시 확인이 필요합니다."
+        ),
     }
 
 

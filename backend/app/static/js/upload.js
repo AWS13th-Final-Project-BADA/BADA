@@ -4,7 +4,8 @@ const ROWS=[
  {cat:"statement",icon:'<i class="ti ti-receipt"></i>',bg:"soft-green",tk:"up_statement",sk:"up_statement_desc"},
  {cat:"payment",icon:'<i class="ti ti-building-bank"></i>',bg:"soft-orange",tk:"up_payment",sk:"up_payment_desc"},
  {cat:"chat",icon:'<i class="ti ti-message"></i>',bg:"soft-blue",tk:"up_chat",sk:"up_chat_desc"},
- {cat:"other",icon:'<i class="ti ti-world"></i>',bg:"soft-green",tk:"up_other",sk:"up_other_desc"}
+ {cat:"other",icon:'<i class="ti ti-world"></i>',bg:"soft-green",tk:"up_other",sk:"up_other_desc"},
+ {cat:"audio",icon:'<i class="ti ti-microphone"></i>',bg:"soft-orange",tk:"up_audio",sk:"up_audio_desc"}
 ];
 
 
@@ -110,8 +111,17 @@ function buildUpload(){
       <span class="need"></span>
       <input type="file" accept="image/*,application/pdf" class="i-up" style="display:none">`;
     const inp=card.querySelector(".i-up"), st=card.querySelector(".up-state"), warnEl=card.querySelector(".need");
+    if(r.cat==="audio"){ inp.accept="audio/*,.mp3,.mp4,.m4a,.wav,.flac,.ogg,.amr,.webm"; inp.multiple=true; }
     card.onclick=(e)=>{ if(e.target.tagName!=="INPUT") inp.click(); };
-    inp.onchange=()=>{ if(inp.files.length) doUpload(r.cat, inp.files[0], st, warnEl); };
+    inp.onchange=async()=>{
+      if(!inp.files.length) return;
+      const files=[...inp.files];
+      for(let i=0;i<files.length;i++){
+        st.innerHTML=files.length>1?`<i class="ti ti-loader"></i> ${i+1}/${files.length} 업로드 중...`:"업로드 중...";
+        await doUpload(r.cat, files[i], st, warnEl);
+      }
+      if(files.length>1){ st.innerHTML='<i class="ti ti-check"></i> '+files.length+'개 완료'; st.classList.add("done"); }
+    };
     c.appendChild(card);
   });
 }
@@ -150,11 +160,21 @@ function _fld(eid,key,labelTxt,val,type){
 
 function renderCardBody(e){
   if(e.ocr_status==="processing"||e.ocr_status==="pending"){
-    return "<p class='small-muted'>⏳ 읽는 중...</p>";
+    const msg = e.file_type==="audio" ? "⏳ 음성을 텍스트로 변환 중입니다" : "⏳ 읽는 중...";
+    return "<p class='small-muted'>"+msg+"</p>";
   }
   if(e.ocr_status!=="done"){
     return "<p class='small-muted'>"+_esc(e.error||e.ocr_text||"읽기 실패")+"</p>"+
       "<button class='upload-chip' style='margin-top:8px' onclick=\"runExtract()\">다시 시도</button>";
+  }
+  // Audio transcription result with speaker diarization
+  if(e.file_type==="audio" && e.ocr_text){
+    const formatted = e.ocr_text.split("\n").map(line => {
+      const m = line.match(/^(Speaker \d+): (.+)$/);
+      if(m) return `<div class="speaker-line"><span class="speaker-label">${m[1]}</span> ${_esc(m[2])}</div>`;
+      return `<p>${_esc(line)}</p>`;
+    }).join("");
+    return `<div class="transcript-result">${formatted}</div>`;
   }
   const en=e.entities||{}, eid=e.evidence_id, cm=_confMap(e);
   S.ext[eid]=en;
@@ -290,13 +310,241 @@ async function runExtract(){
     setTimeout(poll,1200);
   }catch(e){ st.textContent="추출 실패: "+e.message; }
 }
-function fillDemo(){
-  document.getElementById("n_hrs").value="174,168,180,176";
-  document.getElementById("n_dep").value="2026-01-15, 1500000\n2026-02-15, 1600000\n2026-03-15, 1550000\n2026-04-15, 1600000";
-  document.getElementById("n_ded").value="기숙사비, 250000\n식비, 150000\n작업복비, 80000\n관리비 명목, 50000";
-  document.getElementById("n_gchk").checked=true;document.getElementById("gbox").style.display="block";
-  document.getElementById("n_wp").value="37.5000,127.0000,50";
-  document.getElementById("n_png").value="2026-01-15T09:05:00, 37.50003, 127.00003, false\n2026-01-15T13:00:00, 37.50300, 127.00300, false\n2026-01-15T09:00:00, 37.50003, 127.00003, true";
-  document.getElementById("n_arr").value="2026-01-15T09:00:00";
-}
 document.getElementById("n_gchk").addEventListener("change",e=>{document.getElementById("gbox").style.display=e.target.checked?"block":"none";});
+
+
+// ===== 증거 수집 에이전트 — 추천 카드 UI (에이전트 담당 소유) =====
+
+/**
+ * 에이전트 스캔 실행: 선택한 파일들을 /scan에 보내 후보를 받아옴(OCR X, 분류만).
+ * 결과를 추천 카드로 렌더, 사용자가 체크/승인하면 agent-upload로 등록.
+ */
+async function agentScan(files) {
+  if (!S.caseId) { alert("먼저 사건을 만들어주세요."); return; }
+  const container = document.getElementById("agentRecommend");
+  if (!container) return;
+  container.innerHTML = '<p class="small-muted"><i class="ti ti-loader-2 spin"></i> 에이전트가 증거를 찾고 있어요...</p>';
+
+  const fd = new FormData();
+  for (const f of files) {
+    const { blob, name } = await preprocessImage(f);
+    fd.append("files", blob, name);
+  }
+
+  try {
+    const res = await fetch(apiUrl("/cases/" + S.caseId + "/evidences/scan"), { method: "POST", body: fd });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    _renderAgentCards(container, data, files);
+  } catch (e) {
+    container.innerHTML = '<p class="small-muted" style="color:#b91c1c">스캔 실패: ' + _esc(e.message) + '</p>';
+  }
+}
+
+function _renderAgentCards(container, data, originalFiles) {
+  const { candidates, summary, recommended } = data;
+  if (!candidates || !candidates.length) {
+    container.innerHTML = '<p class="small-muted">증거로 쓸 만한 파일을 못 찾았어요.</p>';
+    return;
+  }
+
+  const recCount = recommended.length;
+  const rejCount = summary.rejected || 0;
+
+  let html = `<div style="margin:12px 0 8px;padding:10px 14px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0">
+    <strong style="font-size:13px"><i class="ti ti-sparkles"></i> 에이전트 추천</strong>
+    <span class="small-muted" style="margin-left:8px">${recCount}장 추천 · ${rejCount}장 제외</span>
+  </div>`;
+
+  html += '<div id="agentCandidates" style="display:flex;flex-direction:column;gap:8px">';
+  for (const c of candidates) {
+    const isRec = c.decision !== "rejected";
+    const icon = isRec ? (c.decision === "auto_accept" ? "ti-check-circle" : "ti-help-circle") : "ti-circle-x";
+    const color = isRec ? (c.decision === "auto_accept" ? "#047857" : "#b45309") : "#6b7280";
+    const label = c.decision === "auto_accept" ? "추천" : c.decision === "needs_review" ? "확인 필요" : "제외";
+    const checked = isRec ? "checked" : "";
+    const opacity = isRec ? "1" : "0.5";
+
+    html += `<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;cursor:pointer;opacity:${opacity}">
+      <input type="checkbox" class="agent-chk" data-fn="${_esc(c.file_name)}" ${checked} style="margin-top:3px;width:18px;height:18px"/>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px">
+          <i class="ti ${icon}" style="color:${color}"></i>
+          <strong style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(c.file_name)}</strong>
+          <span class="tag" style="font-size:11px;background:#f3f4f6">${_esc(label)}</span>
+        </div>
+        <div class="small-muted" style="margin-top:4px">${(c.reasons || []).map(r => _esc(r)).join(" · ")}</div>
+      </div>
+    </label>`;
+  }
+  html += '</div>';
+
+  html += `<div style="margin-top:12px;display:flex;gap:8px">
+    <button class="primary-btn" style="flex:1;padding:12px" onclick="_agentApprove()">
+      <i class="ti ti-upload"></i> 선택한 파일 등록
+    </button>
+    <button class="upload-chip" style="padding:12px" onclick="document.getElementById('agentRecommend').innerHTML=''">
+      취소
+    </button>
+  </div>`;
+
+  container.innerHTML = html;
+
+  // 원본 파일을 나중에 업로드할 때 쓸 수 있게 보관
+  container._originalFiles = originalFiles;
+}
+
+async function _agentApprove() {
+  const container = document.getElementById("agentRecommend");
+  if (!container) return;
+  const checks = container.querySelectorAll(".agent-chk:checked");
+  if (!checks.length) { toast("등록할 파일을 선택해주세요."); return; }
+
+  const selectedNames = new Set([...checks].map(c => c.dataset.fn));
+  const originalFiles = container._originalFiles || [];
+
+  // 선택된 이름에 해당하는 원본 파일만 골라 agent-upload로 전송
+  const filesToUpload = originalFiles.filter(f => selectedNames.has(f.name));
+  if (!filesToUpload.length) {
+    // 원본이 없으면(이미 해제됨) 이름만으로 category=auto 업로드
+    toast("파일을 다시 선택해주세요.");
+    return;
+  }
+
+  container.innerHTML = '<p class="small-muted"><i class="ti ti-loader-2 spin"></i> 등록 중...</p>';
+
+  try {
+    const fd = new FormData();
+    for (const f of filesToUpload) {
+      const { blob, name } = await preprocessImage(f);
+      fd.append("files", blob, name);
+    }
+    const res = await fetch(apiUrl("/cases/" + S.caseId + "/evidences/agent-upload"), { method: "POST", body: fd });
+    if (!res.ok) throw new Error(await res.text());
+    const result = await res.json();
+
+    container.innerHTML = `<div style="padding:12px 14px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0">
+      <strong><i class="ti ti-check"></i> ${result.uploaded}장 등록 완료</strong>
+      <p class="small-muted" style="margin-top:4px">자동으로 분류·OCR이 시작됩니다.</p>
+    </div>`;
+
+    // 등록 후 자동으로 extract 시작
+    if (typeof runExtract === "function") runExtract();
+  } catch (e) {
+    container.innerHTML = '<p class="small-muted" style="color:#b91c1c">등록 실패: ' + _esc(e.message) + '</p>';
+  }
+}
+
+// buildUpload에 에이전트 스캔 카드 추가 (기존 buildUpload 후 호출)
+function _injectAgentScanCard() {
+  const c = document.getElementById("uploadCard");
+  if (!c) return;
+
+  // 이미 있으면 중복 방지
+  if (document.getElementById("agentScanCard")) return;
+
+  const card = document.createElement("div");
+  card.id = "agentScanCard";
+  card.className = "up-card";
+  card.style = "grid-column:1/-1;border:2px solid #a78bfa;background:#faf5ff";
+  card.innerHTML = `<div class="file-icon" style="background:#f3e8ff"><i class="ti ti-robot" style="color:#7c3aed"></i></div>
+    <strong>에이전트 스캔</strong>
+    <span class="up-state" id="agentScanState"><i class="ti ti-search"></i> 파일을 선택하면 증거를 찾아요</span>
+    <input type="file" accept="image/*,application/pdf" multiple class="i-agent-scan" style="display:none">`;
+
+  const inp = card.querySelector(".i-agent-scan");
+  // 에이전트 스캔은 디바이스 파일을 읽으므로, 클릭 시 먼저 동의를 받는다(HITL + PIPA).
+  card.onclick = (e) => {
+    if (e.target.tagName === "INPUT") return;
+    _agentConsent(() => inp.click());
+  };
+  inp.onchange = () => { if (inp.files.length) agentScan([...inp.files]); };
+
+  // 맨 앞에 삽입
+  c.insertBefore(card, c.firstChild);
+
+  // 추천 결과 영역
+  if (!document.getElementById("agentRecommend")) {
+    const rec = document.createElement("div");
+    rec.id = "agentRecommend";
+    rec.style = "grid-column:1/-1";
+    c.insertBefore(rec, card.nextSibling);
+  }
+}
+
+// 기존 buildUpload를 래핑해서 에이전트 카드 주입
+const _origBuildUpload = buildUpload;
+buildUpload = function () {
+  _origBuildUpload();
+  _injectAgentScanCard();
+};
+
+
+/**
+ * 에이전트 스캔 동의 모달 (PIPA / 최소수집 / HITL).
+ * 디바이스 파일을 읽기 전 사용자 동의를 받는다. 동의 시 onAgree() 실행.
+ * security.md의 동의 문구 기준 — "본인 자료만, 정리 목적, 민감정보 자동 가림, 법률자문 아님".
+ */
+function _agentConsent(onAgree) {
+  // 이미 떠 있으면 중복 방지
+  if (document.getElementById("agentConsentOverlay")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "agentConsentOverlay";
+  overlay.style = "position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px";
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;max-width:380px;width:100%;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.25)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:40px;height:40px;border-radius:10px;background:#f3e8ff;display:flex;align-items:center;justify-content:center">
+          <i class="ti ti-shield-check" style="color:#7c3aed;font-size:22px"></i>
+        </div>
+        <strong style="font-size:16px">사진·파일 접근 동의</strong>
+      </div>
+
+      <p style="font-size:13px;color:#374151;line-height:1.6;margin:0 0 12px">
+        에이전트가 증거가 될 만한 자료(급여명세서·계약서·통장·대화 캡처)를 찾기 위해
+        선택한 사진·파일을 읽습니다.
+      </p>
+
+      <ul style="font-size:12px;color:#4b5563;line-height:1.7;margin:0 0 14px;padding-left:18px">
+        <li><b>본인이 직접 참여한 대화·본인 자료만</b> 올려주세요.</li>
+        <li>증거 정리 목적으로만 사용되며, 계좌·주민번호 등 민감정보는 자동으로 가립니다.</li>
+        <li>추천된 자료는 <b>회원님이 확인·선택해야</b> 등록됩니다(자동 등록 안 함).</li>
+        <li>본 도구는 법률자문이 아니라 상담 준비용 정리 도구입니다.</li>
+      </ul>
+
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="agentConsentChk" style="width:18px;height:18px"/>
+        위 내용에 동의합니다.
+      </label>
+
+      <div style="display:flex;gap:8px">
+        <button id="agentConsentCancel" class="upload-chip" style="flex:1;padding:12px">취소</button>
+        <button id="agentConsentOk" class="primary-btn" style="flex:1.5;padding:12px;opacity:.5" disabled>
+          <i class="ti ti-search"></i> 동의하고 스캔
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  const chk = overlay.querySelector("#agentConsentChk");
+  const okBtn = overlay.querySelector("#agentConsentOk");
+  const cancelBtn = overlay.querySelector("#agentConsentCancel");
+  const close = () => overlay.remove();
+
+  // 체크해야 동의 버튼 활성화
+  chk.onchange = () => {
+    okBtn.disabled = !chk.checked;
+    okBtn.style.opacity = chk.checked ? "1" : ".5";
+  };
+  cancelBtn.onclick = close;
+  // 바깥 클릭 시 닫기
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  okBtn.onclick = () => {
+    if (!chk.checked) return;
+    close();
+    onAgree();
+  };
+}

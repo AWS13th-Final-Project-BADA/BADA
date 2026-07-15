@@ -1,0 +1,310 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: BADA Service Health
+    folder: BADA
+    interval: 1m
+    rules:
+      # G1: 에러율 급증 (5xx > 5%)
+      - uid: bada-g1-error-rate
+        title: "에러율 급증 (5xx > 5%)"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(http_requests_total{status=~"5.."}[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(http_requests_total[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: math
+              expression: "$A / $B * 100"
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [5]
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Backend 5xx 에러율이 5%를 초과했습니다 (현재: {{ $values.C }}%)"
+        labels:
+          severity: critical
+
+      # G2: 응답 지연 P95 > 3초
+      - uid: bada-g2-latency-p95
+        title: "응답 지연 (P95 > 3초)"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 3
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "P95 응답시간이 3초를 초과했습니다"
+        labels:
+          severity: warning
+
+      # G3: 트래픽 제로 (10분간 요청 없음)
+      - uid: bada-g3-no-traffic
+        title: "트래픽 제로 (10분간 요청 없음)"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(http_requests_total[10m])) == 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: Alerting
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "10분간 HTTP 요청이 0건입니다. 서비스 다운 의심."
+        labels:
+          severity: critical
+
+  - orgId: 1
+    name: BADA Worker
+    folder: BADA
+    interval: 1m
+    rules:
+      # G4: Worker 실패율 > 10%
+      - uid: bada-g4-worker-failure
+        title: "Worker 실패율 > 10%"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(worker_messages_processed_total{status="failed"}[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(worker_messages_processed_total[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: math
+              expression: "$A / $B * 100"
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [10]
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Worker 메시지 처리 실패율이 10%를 초과 (현재: {{ $values.C }}%)"
+        labels:
+          severity: warning
+
+      # G5: Worker 처리 지연 P95 > 60초
+      - uid: bada-g5-worker-latency
+        title: "Worker 처리 지연 (P95 > 60초)"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: histogram_quantile(0.95, sum(rate(worker_message_duration_seconds_bucket[5m])) by (le)) > 60
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Worker P95 처리시간이 60초를 초과했습니다"
+        labels:
+          severity: warning
+
+  - orgId: 1
+    name: BADA Database
+    folder: BADA
+    interval: 1m
+    rules:
+      # G6: RDS 커넥션 포화 >= 80
+      - uid: bada-g6-rds-connections
+        title: "RDS 커넥션 포화 (≥80)"
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: cloudwatch
+            model:
+              dimensions:
+                DBInstanceIdentifier: ["${rds_instance_id}"]
+              metricName: DatabaseConnections
+              namespace: AWS/RDS
+              period: "300"
+              region: ${aws_region}
+              statistic: Maximum
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [80]
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "RDS 커넥션 수가 80을 초과 (max ~100). 커넥션 풀 고갈 위험."
+        labels:
+          severity: critical
+
+  - orgId: 1
+    name: BADA Business
+    folder: BADA
+    interval: 1m
+    rules:
+      # G7: 분석 실패 연속 (15분간 실패만 발생)
+      - uid: bada-g7-analysis-failures
+        title: "분석 실패 연속 (15분)"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(increase(analysis_runs_total{status="failed"}[15m])) > 0 and sum(increase(analysis_runs_total{status="success"}[15m])) == 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 15m
+        annotations:
+          summary: "15분간 분석 성공 없이 실패만 발생. 핵심 기능 장애 의심."
+        labels:
+          severity: critical
+
+      # G8: OCR 실패율 > 30%
+      - uid: bada-g8-ocr-failure
+        title: "OCR 실패율 > 30%"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(ocr_requests_total{status="failed"}[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(ocr_requests_total[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: math
+              expression: "$A / $B * 100"
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [30]
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "OCR 실패율이 30%를 초과 (현재: {{ $values.C }}%). 외부 서비스 장애 의심."
+        labels:
+          severity: warning
+
+
+      # G9: 가용성 SLO 위반 (< 99% over 1h)
+      - uid: bada-g9-availability-slo
+        title: "SLO 위반: 가용성 < 99% (1시간)"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (sum(rate(http_requests_total{status=~"2..|3.."}[1h])) / sum(rate(http_requests_total[1h]))) < 0.99
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "1시간 가용성이 99% 미만입니다. 에러 버짓 소진 중."
+        labels:
+          severity: critical
+
+      # G10: 분석 성공률 저하 (< 90%)
+      - uid: bada-g10-analysis-success-rate
+        title: "분석 성공률 < 90%"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (sum(rate(bada_analysis_runs_total{status="success"}[30m])) / sum(rate(bada_analysis_runs_total[30m]))) < 0.9
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "분석 성공률이 90% 미만입니다 (30분 윈도우)."
+        labels:
+          severity: critical

@@ -4,6 +4,7 @@ import os
 # 테스트는 격리된 SQLite + 결정적 local(Mock) 모드 (AWS 호출 없이 재현 가능)
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 os.environ["PROVIDER_MODE"] = "local"
+os.environ["AUTH_MODE"] = "demo"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

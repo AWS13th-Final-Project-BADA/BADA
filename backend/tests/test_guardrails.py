@@ -47,4 +47,18 @@ def test_output_guardrail_returns_localized_fallback():
 
     assert result == "failed"
     assert fallback_used is True
-    assert "đánh giá pháp lý" in answer
+    assert "Tôi hiểu" in answer
+
+
+def test_output_guardrail_returns_empathetic_localized_fallbacks():
+    examples = [
+        ("This is illegal. You will definitely receive the money.", "en", "understand"),
+        ("이 사안은 불법입니다. 바로 신고하세요.", "ko", "걱정되거나 억울하게"),
+        ("Đây là bất hợp pháp. Hãy kiện ngay.", "vi", "Tôi hiểu"),
+    ]
+
+    for answer, language, expected in examples:
+        fallback, result, fallback_used = apply_output_guardrail(answer, language)
+        assert result == "failed"
+        assert fallback_used is True
+        assert expected in fallback

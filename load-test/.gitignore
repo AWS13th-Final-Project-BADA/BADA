@@ -1,0 +1,8 @@
+# k6 실행 산출물 (리포트 첨부용, 추적 안 함)
+k6/last-run-summary.json
+k6/last-journey-summary.json
+*.summary.json
+
+# 분산 k6 runner 로컬 산출물 (setup-infra.sh 생성물 / 수집 결과)
+k6-runner/run/runner-env.sh
+k6-runner/run/runner-results/

@@ -1,0 +1,173 @@
+{
+  "uid": "bada-prod-worker",
+  "title": "BADA Prod Worker",
+  "tags": ["bada", "worker", "prod"],
+  "timezone": "Asia/Seoul",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 100,
+      "title": "Prod Worker (CloudWatch · 크로스 환경)",
+      "type": "text",
+      "gridPos": {"h": 3, "w": 24, "x": 0, "y": 0},
+      "options": {
+        "mode": "markdown",
+        "content": "prod worker는 다른 VPC의 Cloud Map이라 **Prometheus 크로스-VPC 스크랩이 불가**합니다. 따라서 처리량·처리시간·실패율 같은 애플리케이션 지표(dev worker에는 있음) 대신, **CloudWatch로 관측 가능한 운영 지표**(ECS CPU/메모리, SQS 적체·In-Flight·최고 대기시간, Task Count)를 표시합니다.\n\n앱 레벨 처리 지표가 필요하면 prod worker에 원격 쓰기(remote_write) 또는 VPC 피어링을 도입해야 합니다(현재 범위 밖)."
+      }
+    },
+    {
+      "id": 1,
+      "title": "Worker CPU %",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 3},
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
+      "targets": [{
+        "refId": "A",
+        "namespace": "AWS/ECS",
+        "metricName": "CPUUtilization",
+        "statistic": "Average",
+        "metricQueryType": 0,
+        "metricEditorMode": 0,
+        "period": "60",
+        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+        "matchExact": true,
+        "region": "${aws_region}"
+      }],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
+    },
+    {
+      "id": 2,
+      "title": "Worker Memory %",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 3},
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
+      "targets": [{
+        "refId": "A",
+        "namespace": "AWS/ECS",
+        "metricName": "MemoryUtilization",
+        "statistic": "Average",
+        "metricQueryType": 0,
+        "metricEditorMode": 0,
+        "period": "60",
+        "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+        "matchExact": true,
+        "region": "${aws_region}"
+      }],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
+    },
+    {
+      "id": 3,
+      "title": "SQS 대기 메시지 (Main / DLQ)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 11},
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
+      "targets": [
+        {
+          "refId": "A",
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "statistic": "Average",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "60",
+          "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+          "matchExact": true,
+          "region": "${aws_region}",
+          "label": "Main"
+        },
+        {
+          "refId": "B",
+          "namespace": "AWS/SQS",
+          "metricName": "ApproximateNumberOfMessagesVisible",
+          "statistic": "Average",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "60",
+          "dimensions": {"QueueName": ["${sqs_dlq_name}"]},
+          "matchExact": true,
+          "region": "${aws_region}",
+          "label": "DLQ"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "SQS 처리 중 (In-Flight)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 11},
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
+      "targets": [{
+        "refId": "A",
+        "namespace": "AWS/SQS",
+        "metricName": "ApproximateNumberOfMessagesNotVisible",
+        "statistic": "Average",
+        "metricQueryType": 0,
+        "metricEditorMode": 0,
+        "period": "60",
+        "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+        "matchExact": true,
+        "region": "${aws_region}"
+      }]
+    },
+    {
+      "id": 5,
+      "title": "SQS 최고 대기시간 (Oldest Age)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 19},
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
+      "targets": [{
+        "refId": "A",
+        "namespace": "AWS/SQS",
+        "metricName": "ApproximateAgeOfOldestMessage",
+        "statistic": "Maximum",
+        "metricQueryType": 0,
+        "metricEditorMode": 0,
+        "period": "60",
+        "dimensions": {"QueueName": ["${sqs_queue_name}"]},
+        "matchExact": true,
+        "region": "${aws_region}"
+      }],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "id": 6,
+      "title": "Worker Task Count (scale-out)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19},
+      "datasource": {"type": "cloudwatch", "uid": "cloudwatch"},
+      "targets": [
+        {
+          "refId": "A",
+          "namespace": "ECS/ContainerInsights",
+          "metricName": "RunningTaskCount",
+          "statistic": "Maximum",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "60",
+          "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+          "matchExact": true,
+          "region": "${aws_region}",
+          "label": "Running"
+        },
+        {
+          "refId": "B",
+          "namespace": "ECS/ContainerInsights",
+          "metricName": "DesiredTaskCount",
+          "statistic": "Maximum",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "60",
+          "dimensions": {"ClusterName": ["${ecs_cluster}"], "ServiceName": ["${worker_service}"]},
+          "matchExact": true,
+          "region": "${aws_region}",
+          "label": "Desired"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "min": 0, "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 10}}}
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

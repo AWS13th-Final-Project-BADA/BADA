@@ -226,7 +226,8 @@ class TimelineEvent(Base):
     event_date: Mapped[date | None] = mapped_column(Date, index=True)
     event_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     date_precision: Mapped[str] = mapped_column(String(20), default="unknown", nullable=False)
-    confidence: Mapped[float | None] = mapped_column(Numeric(5, 4))
+    # confidence는 high/medium/low enum 문자열(domain.md). 점수화(Numeric)는 Phase 2.
+    confidence: Mapped[str | None] = mapped_column(String(20))
     source: Mapped[str] = mapped_column(String(30), default="ai", nullable=False)
     source_evidence_id: Mapped[str | None] = mapped_column(ForeignKey("evidences.id", ondelete="SET NULL"))
     metadata_json: Mapped[dict | None] = mapped_column("metadata", _json_type())
@@ -395,6 +396,20 @@ class ChatMessageSource(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
+class Notification(Base):
+    """사용자 알림 (분석 완료, 댓글, 시스템 공지 등)."""
+    __tablename__ = "notifications"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    type: Mapped[str] = mapped_column(String(50), nullable=False)  # analysis_complete, comment, system
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    body: Mapped[str | None] = mapped_column(Text)
+    case_id: Mapped[str | None] = mapped_column(ForeignKey("cases.id", ondelete="SET NULL"))
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+
 class Job(Base):
     __tablename__ = "jobs"
 
@@ -426,6 +441,96 @@ class AuditLog(Base):
     user_agent: Mapped[str | None] = mapped_column(Text)
     metadata_json: Mapped[dict | None] = mapped_column("metadata", _json_type())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+
+class CommunityPost(Base):
+    __tablename__ = "community_posts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    anonymous_name: Mapped[str] = mapped_column(String(50), default="익명 근로자", nullable=False)
+    category: Mapped[str] = mapped_column(String(40), default="free", nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    language_code: Mapped[str] = mapped_column(String(10), default="ko", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(30), default="published", nullable=False, index=True)
+    moderation_status: Mapped[str] = mapped_column(String(30), default="passed", nullable=False, index=True)
+    risk_level: Mapped[str] = mapped_column(String(30), default="safe", nullable=False, index=True)
+    like_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    comment_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    saved_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    report_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    view_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    metadata_json: Mapped[dict | None] = mapped_column("metadata", _json_type())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CommunityComment(Base):
+    __tablename__ = "community_comments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    post_id: Mapped[str] = mapped_column(ForeignKey("community_posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    parent_comment_id: Mapped[str | None] = mapped_column(ForeignKey("community_comments.id", ondelete="CASCADE"), index=True)
+    anonymous_name: Mapped[str] = mapped_column(String(50), default="익명", nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    language_code: Mapped[str] = mapped_column(String(10), default="ko", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(30), default="published", nullable=False, index=True)
+    moderation_status: Mapped[str] = mapped_column(String(30), default="passed", nullable=False, index=True)
+    risk_level: Mapped[str] = mapped_column(String(30), default="safe", nullable=False, index=True)
+    like_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    reply_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    report_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    metadata_json: Mapped[dict | None] = mapped_column("metadata", _json_type())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CommunityTranslation(Base):
+    __tablename__ = "community_translations"
+    __table_args__ = (
+        UniqueConstraint("target_type", "target_id", "target_language", name="uq_community_translations_target_language"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    target_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    target_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    source_language: Mapped[str] = mapped_column(String(10), nullable=False)
+    target_language: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
+    translated_text: Mapped[str] = mapped_column(Text, nullable=False)
+    provider: Mapped[str] = mapped_column(String(50), default="fallback", nullable=False)
+    cached: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class CommunityReaction(Base):
+    __tablename__ = "community_reactions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "target_type", "target_id", "reaction_type", name="uq_community_reactions_user_target_type"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    target_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    target_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    reaction_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class CommunityReport(Base):
+    __tablename__ = "community_reports"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    reporter_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    target_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    target_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    reason: Mapped[str] = mapped_column(String(80), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), default="open", nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class Workplace(Base):
@@ -461,3 +566,22 @@ class GpsLog(Base):
     device_os: Mapped[str | None] = mapped_column(String(30))
     app_version: Mapped[str | None] = mapped_column(String(20))
     source: Mapped[str] = mapped_column(String(20), default="app")
+
+
+class KakaoLink(Base):
+    """카카오톡 봇 사용자 ↔ BADA 계정 매핑 (로그인 연동)."""
+    __tablename__ = "kakao_links"
+
+    kakao_user_id: Mapped[str] = mapped_column(String(120), primary_key=True)  # 카카오 스킬 userRequest.user.id
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    linked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class KakaoLinkCode(Base):
+    """앱에서 발급하는 일회용 연동 코드. 카톡에 입력하면 매핑 생성."""
+    __tablename__ = "kakao_link_codes"
+
+    code: Mapped[str] = mapped_column(String(12), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

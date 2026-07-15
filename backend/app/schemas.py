@@ -29,6 +29,7 @@ class PresignedUploadRequest(BaseModel):
     file_name: str
     file_type: Literal["image", "pdf", "text"]
     category: Category
+    content_type: Optional[str] = None  # 실제 MIME(예: image/jpeg). 미지정 시 file_type에서 추론(기존 동작)
 
 
 # ---------- LLM 출력 스키마 (검증 강제) ----------

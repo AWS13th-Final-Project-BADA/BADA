@@ -1,7 +1,7 @@
-"""스토리지 seam — 증거 원본 파일 저장/조회. 로컬 FS / S3 교체.
+"""Evidence file storage seam.
 
-로컬: ./uploads 에 저장. AWS: S3+KMS(스토리지 담당).
-업로드·OCR 기능은 이 인터페이스만 쓰므로 교체가 라우터에 영향을 주지 않는다.
+Local development stores files under ``settings.upload_dir``. Production can
+switch to S3 by setting ``STORAGE_MODE=s3`` and ``S3_BUCKET``.
 """
 from __future__ import annotations
 
@@ -28,9 +28,9 @@ class LocalStorage(Storage):
         self.root.mkdir(parents=True, exist_ok=True)
 
     def save(self, key: str, data: bytes) -> str:
-        p = self.root / key
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_bytes(data)
+        path = self.root / key
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
         return key
 
     def read(self, key: str) -> bytes:
@@ -41,10 +41,9 @@ class LocalStorage(Storage):
 
 
 class S3Storage(Storage):
-    """스토리지 담당 구현 지점 — KMS 암호화 버킷(security.md)."""
-
     def __init__(self, bucket: str, region: str):
-        import boto3  # 지연 임포트
+        import boto3  # Deferred import so local mode does not require boto3.
+
         self.bucket = bucket
         self.client = boto3.client("s3", region_name=region)
 
@@ -57,7 +56,10 @@ class S3Storage(Storage):
 
     def url(self, key: str) -> str:  # pragma: no cover
         return self.client.generate_presigned_url(
-            "get_object", Params={"Bucket": self.bucket, "Key": key}, ExpiresIn=300)
+            "get_object",
+            Params={"Bucket": self.bucket, "Key": key},
+            ExpiresIn=300,
+        )
 
 
 def get_storage() -> Storage:

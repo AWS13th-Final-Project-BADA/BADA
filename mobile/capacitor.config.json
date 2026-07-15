@@ -3,14 +3,17 @@
   "appName": "BADA",
   "webDir": "www",
   "server": {
-    "androidScheme": "http",
-    "cleartext": true
+    "url": "https://badasoft.com",
+    "cleartext": false
   },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 1200,
       "backgroundColor": "#2563eb",
       "showSpinner": false
+    },
+    "BackgroundGeolocation": {
+      "license": "trial"
     }
   }
 }

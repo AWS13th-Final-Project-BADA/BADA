@@ -1,0 +1,49 @@
+[tool.pytest.ini_options]
+testpaths = ["backend", "worker"]
+addopts = "--cov=backend/app --cov=worker --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=30"
+
+[tool.coverage.run]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/static/*",
+    "*/alembic/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "pass",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "__pycache__", "eval"]
+skips = ["B101"]  # assert 사용 허용 (테스트 코드 패턴)
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["backend", "worker"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "S",    # flake8-bandit (security)
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+]
+ignore = [
+    "E501",   # line too long (formatter handles)
+    "S101",   # assert (tests)
+    "S105",   # hardcoded password (false positives on variable names)
+    "S106",   # hardcoded password
+    "B008",   # function call in default arg (FastAPI Depends pattern)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests/*" = ["S101", "S106"]
+"eval/*" = ["S101"]

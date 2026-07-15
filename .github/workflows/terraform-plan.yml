@@ -1,0 +1,160 @@
+name: Terraform Plan (PR)
+
+# infra/*.tf 를 바꾸는 PR에서 fmt/validate/plan을 자동 실행하고 결과를 PR 코멘트로 남긴다.
+# 읽기 전용 역할(bada-dev-github-actions-plan-role)을 OIDC로 assume한다. apply는 하지 않는다.
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-plan.yml"
+
+permissions:
+  id-token: write       # OIDC AssumeRole
+  contents: read
+  pull-requests: write  # plan 결과 코멘트 작성
+
+concurrency:
+  group: tf-plan-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: ap-northeast-2
+  AWS_PLAN_ROLE_ARN: arn:aws:iam::165749212250:role/bada-dev-github-actions-plan-role
+  WORKDIR: infra
+  # 필수 민감 변수는 PR plan에서도 모두 주입해야 한다.
+  # 실제 값이 없으면 terraform plan 자체가 실패한다.
+  # 실제 값과 다르면 secret_version diff 노이즈가 발생할 수 있다.
+  TF_VAR_db_password: ${{ secrets.TF_DB_PASSWORD }}
+  TF_VAR_google_client_id: ${{ secrets.TF_GOOGLE_CLIENT_ID }}
+  TF_VAR_google_client_secret: ${{ secrets.TF_GOOGLE_CLIENT_SECRET }}
+  TF_VAR_kakao_rest_api_key: ${{ secrets.TF_KAKAO_REST_API_KEY }}
+  TF_VAR_kakao_client_secret: ${{ secrets.TF_KAKAO_CLIENT_SECRET }}
+  TF_VAR_naver_client_id: ${{ secrets.TF_NAVER_CLIENT_ID }}
+  TF_VAR_naver_client_secret: ${{ secrets.TF_NAVER_CLIENT_SECRET }}
+  TF_VAR_jwt_secret: ${{ secrets.TF_JWT_SECRET }}
+  # 운영 dev state와 동일한 비민감 변수. PR plan이 기본값으로 되돌아가며
+  # HTTPS/모니터링/서비스 수량 drift를 오탐하지 않도록 맞춘다.
+  TF_VAR_domain_name: badasoft.com
+  TF_VAR_frontend_enabled: "false"
+  TF_VAR_frontend_desired_count: "0"
+  TF_VAR_monitoring_enabled: "true"
+  TF_VAR_api_container_image: 165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-backend:latest
+  TF_VAR_worker_container_image: 165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-worker:latest
+  TF_VAR_backend_desired_count: "1"
+  TF_VAR_worker_desired_count: "1"
+  # X-Ray: 프로덕션 apply 값(true)과 일치시켜 PR 플랜의 태스크 정의 drift 오탐 방지.
+  # 이 변수가 없으면 기본값(backend=false)으로 plan이 돌아 X-Ray 사이드카가 제거되는 것처럼 보인다.
+  TF_VAR_backend_xray_enabled: "true"
+  TF_VAR_worker_xray_enabled: "true"
+  TF_VAR_worker_task_cpu: "512"
+  TF_VAR_worker_task_memory: "1024"
+  TF_VAR_cognito_callback_urls: '["https://api.badasoft.com/auth/cognito/callback"]'
+  TF_VAR_cognito_logout_urls: '["https://badasoft.com/"]'
+  TF_VAR_alarm_email_endpoints: '["badajoa0710@gmail.com"]'
+  TF_VAR_enable_google_identity_provider: "true"
+  TF_VAR_google_oauth_client_id: ${{ secrets.TF_GOOGLE_OAUTH_CLIENT_ID }}
+  TF_VAR_google_oauth_client_secret: ${{ secrets.TF_GOOGLE_OAUTH_CLIENT_SECRET }}
+  TF_VAR_backend_auth_mode: oauth
+  TF_VAR_backend_app_base_url: https://badasoft.com/
+  TF_VAR_backend_cors_allowed_origins: '["https://badasoft.com","https://www.badasoft.com"]'
+  TF_VAR_backend_transcription_dispatch_mode: sqs
+  TF_VAR_backend_provider_mode: aws
+  TF_VAR_backend_ai_chat_mode: bedrock
+  TF_VAR_backend_embedding_mode: mock
+  TF_VAR_backend_transcribe_mode: aws
+  TF_VAR_worker_provider_mode: aws
+  TF_VAR_worker_transcribe_mode: aws
+  TF_VAR_worker_translate_mode: aws
+  TF_VAR_worker_structured_engine: vision
+  TF_VAR_enable_rehearsal_multiaz_db: "true"
+  TF_VAR_use_rehearsal_multiaz_db_as_app_db: "true"
+
+jobs:
+  plan:
+    name: terraform plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (read-only plan role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.0"
+
+      - name: Terraform fmt check
+        id: fmt
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+
+      - name: Terraform init
+        id: init
+        working-directory: ${{ env.WORKDIR }}
+        # Partial backend config: backend "s3"에 key가 없으므로 env별 backend 파일을 넘긴다.
+        # PR plan은 dev state 기준으로 검증한다.
+        run: terraform init -input=false -backend-config=backends/dev.hcl
+
+      - name: Terraform validate
+        id: validate
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform validate -no-color
+
+      - name: Terraform plan
+        id: plan
+        working-directory: ${{ env.WORKDIR }}
+        # -lock=false: 읽기 전용 역할이라 S3 lockfile 쓰기 권한이 없다. PR plan 검토용으로 안전.
+        run: |
+          set -o pipefail
+          terraform plan -input=false -lock=false -no-color 2>&1 | tee plan_output.txt
+        continue-on-error: true
+
+      - name: Comment plan on PR
+        uses: actions/github-script@v7
+        env:
+          FMT: ${{ steps.fmt.outcome }}
+          VALIDATE: ${{ steps.validate.outcome }}
+          PLAN: ${{ steps.plan.outcome }}
+        with:
+          script: |
+            const fs = require('fs');
+            let plan = '';
+            try { plan = fs.readFileSync('infra/plan_output.txt', 'utf8'); } catch (e) { plan = '(plan output 없음)'; }
+            const max = 60000;
+            if (plan.length > max) plan = plan.slice(0, max) + '\n... (truncated)';
+            const body = [
+              '## Terraform Plan',
+              '',
+              `- fmt: \`${process.env.FMT}\``,
+              `- validate: \`${process.env.VALIDATE}\``,
+              `- plan: \`${process.env.PLAN}\``,
+              '',
+              '<details><summary>plan output</summary>',
+              '',
+              '```',
+              plan,
+              '```',
+              '',
+              '</details>',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+      - name: Fail if plan errored
+        if: steps.plan.outcome == 'failure'
+        run: |
+          echo "terraform plan failed. PR 코멘트의 plan output을 확인하세요."
+          exit 1

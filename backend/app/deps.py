@@ -49,6 +49,17 @@ def get_current_user(
         user = _user_from_bearer(db, authorization)
         if user:
             return user
-    if settings.auth_mode == "cognito":
-        raise NotImplementedError("Cognito JWT 검증 구현 (인증 담당)")
-    return _demo_user(db)  # 토큰 없으면 데모 유저(전환기 호환)
+    if settings.auth_mode == "demo":
+        return _demo_user(db)  # 로컬 개발/테스트 전용
+    raise HTTPException(status_code=401, detail="login required")
+
+
+def verify_case_owner(case_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> User:
+    """case_id의 소유자가 현재 사용자인지 검증. 아니면 403."""
+    from .models import Case
+    case = db.get(Case, case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="case not found")
+    if case.user_id != user.id:
+        raise HTTPException(status_code=403, detail="이 사건에 접근할 권한이 없습니다")
+    return user

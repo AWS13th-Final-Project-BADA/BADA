@@ -64,3 +64,11 @@
 ## 라우팅 메모
 - category가 contract/schedule/statement/payment(PDF) → Upstage 경로(정형). 외부 전송 전 PII 마스킹.
 - category가 chat/other, payment(앱 캡처), 사진/손메모 → Bedrock Claude Vision.
+
+## 절대 규칙 (반드시 지켜야 합니다)
+- raw_text에 금액(숫자+원)이 보이면 **반드시** amounts 또는 hourly_wage/monthly_wage에 넣으세요.
+- raw_text에 날짜가 보이면 **반드시** dates에 넣으세요.
+- raw_text에 사업장/사업주 이름이 보이면 **반드시** workplace_name/employer_name에 넣으세요.
+- raw_text에 계약 시작/종료일이 보이면 **반드시** contract_start/contract_end에 넣으세요.
+- raw_text에 서명/도장이 보이면 signed=true, 빈 칸이면 signed=false로 넣으세요.
+- entities를 전부 null/빈 배열로 반환하는 것은 **금지**입니다. raw_text에 정보가 있으면 반드시 추출하세요.

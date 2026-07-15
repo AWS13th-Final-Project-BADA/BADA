@@ -127,6 +127,20 @@ class ExtractedEntities(BaseModel):
     def _b(cls, v):
         return _to_bool(v)
 
+    @field_validator("workplace_name", "employer_name", "pay_date",
+                     "contract_start", "contract_end", mode="before")
+    @classmethod
+    def _s(cls, v):
+        """모델이 {value:..}/{promised:..} 객체로 줄 때 대표 문자열만 뽑는다(검증 실패 방지)."""
+        if v is None or isinstance(v, str):
+            return v
+        if isinstance(v, dict):
+            for k in ("value", "promised", "date", "text", "name"):
+                if isinstance(v.get(k), str):
+                    return v[k]
+            return None
+        return str(v)
+
     @field_validator("hours", mode="before")
     @classmethod
     def _h(cls, v):

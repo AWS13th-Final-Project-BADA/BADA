@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from math import asin, cos, radians, sin, sqrt
 
 EARTH_RADIUS_M = 6_371_000
@@ -68,3 +68,60 @@ def cross_check(
             # 버그#6 수정: 매칭 실패 케이스도 반환해 "정황 불일치" 추적 가능하게 함
             results.append({"chat_ts": chat_ts, "gps_ts": None, "match": False})
     return results
+
+
+# KST(UTC+9). gps.py와 동일 — 자정 근처 핑이 전날로 기록되는 문제 방지.
+_KST = timezone(timedelta(hours=9))
+
+
+def _kst_date(ts: datetime) -> str:
+    t = ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+    return t.astimezone(_KST).strftime("%Y-%m-%d")
+
+
+def summarize_by_day(tagged_logs: list[dict], max_gap_min: int = 30) -> list[dict]:
+    """tag_logs() 결과를 일(Day) 단위로 요약 — Evidence Pack용 (규칙 기반).
+
+    배제된 핑(mocked/delayed)은 집계에서 제외한다.
+    체류시간은 IN_WORKPLACE 핑 간 실제 간격을 합산하되,
+    간격이 max_gap_min(기본 30분)을 넘으면 연속으로 보지 않는다(핑 끊김 구간 배제).
+
+    반환: [{"work_date","in_count","out_count","first_in","last_out","estimated_hours","hours_method"}]
+    날짜 내림차순 정렬.
+    """
+    by_date: dict[str, list[dict]] = {}
+    for lg in tagged_logs:
+        if lg.get("excluded"):
+            continue
+        ts = lg.get("ts")
+        if not isinstance(ts, datetime):
+            continue
+        by_date.setdefault(_kst_date(ts), []).append(lg)
+
+    summary: list[dict] = []
+    for date_key in sorted(by_date.keys(), reverse=True):
+        day = by_date[date_key]
+        in_logs = sorted(
+            [l for l in day if l.get("status") == "IN_WORKPLACE"],
+            key=lambda l: l["ts"],
+        )
+        total_in_sec = 0.0
+        for i in range(1, len(in_logs)):
+            gap = (in_logs[i]["ts"] - in_logs[i - 1]["ts"]).total_seconds()
+            if gap <= max_gap_min * 60:
+                total_in_sec += gap
+        summary.append({
+            "work_date":       date_key,
+            "in_count":        len(in_logs),
+            "out_count":       sum(1 for l in day if l.get("status") == "OUTSIDE"),
+            "first_in":        _kst_date_time(in_logs[0]["ts"]) if in_logs else None,
+            "last_out":        _kst_date_time(in_logs[-1]["ts"]) if in_logs else None,
+            "estimated_hours": round(total_in_sec / 3600, 1),
+            "hours_method":    "actual_intervals" if len(in_logs) > 1 else "insufficient_pings",
+        })
+    return summary
+
+
+def _kst_date_time(ts: datetime) -> str:
+    t = ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+    return t.astimezone(_KST).strftime("%Y-%m-%d %H:%M")

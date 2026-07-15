@@ -2,12 +2,12 @@
   "name": "bada-mobile",
   "version": "0.1.0",
   "private": true,
-  "description": "BADA 모바일 앱 (Capacitor 래퍼) — 웹 프론트를 그대로 네이티브 앱으로",
+  "description": "BADA 모바일 앱 (Capacitor) — Next.js 웹앱을 네이티브 앱으로",
   "scripts": {
-    "build": "node sync-web.mjs",
-    "assets": "capacitor-assets generate --android",
-    "sync": "node sync-web.mjs && cap sync",
-    "android": "node sync-web.mjs && cap sync android && cap open android"
+    "build:web": "cd ../frontend && npm run build && npx next export -o ../mobile/www",
+    "sync": "npm run build:web && cap sync",
+    "android": "npm run sync && cap open android",
+    "android:run": "npm run sync && cap run android"
   },
   "dependencies": {
     "@capacitor/android": "^6.1.2",

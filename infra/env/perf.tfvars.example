@@ -1,0 +1,108 @@
+# ─── BADA perf 환경 tfvars (예시/템플릿) ────────────────────────────────────
+# 실제 값이 담긴 infra/env/perf.tfvars 는 .gitignore 대상(시크릿/로컬 실행용).
+# perf = dev/prod와 완전히 분리된 일회성 성능 검증 환경. 테스트 후 destroy 원칙.
+#
+# 사용:
+#   terraform init -reconfigure -backend-config=backends/perf.hcl
+#   terraform plan  -var-file=env/perf.tfvars
+#   terraform apply -var-file=env/perf.tfvars
+#
+# ⚠️ 실제 실행 전 반드시 확인할 것:
+#   1) 계정 서비스 쿼터 — Fargate On-Demand/Spot vCPU, EIP, RDS 인스턴스 여유
+#      (perf-test-plan.md §3 실행 전 점검 참고)
+#   2) 도메인 — perf.badasoft.com / api.perf.badasoft.com 이 부모 존(badasoft.com)에
+#      additive 레코드로 생성됨 (dev/prod 레코드와 겹치지 않음)
+#   3) 시크릿 값 — db_password, OAuth(google/kakao/naver), jwt_secret 은
+#      infra/terraform.tfvars 또는 TF_VAR_* 환경변수로 주입 (이 파일에 넣지 말 것)
+
+environment = "perf"
+
+# ── 도메인: 부모 존(badasoft.com)에 서브도메인 레코드 생성 ──
+domain_name       = "perf.badasoft.com"
+route53_zone_name = "badasoft.com"
+
+# ── 네트워크: dev(10.0)/prod(10.10)와 CIDR 분리 ──
+vpc_cidr             = "10.20.0.0/16"
+public_subnet_cidrs  = ["10.20.1.0/24", "10.20.2.0/24"]
+private_subnet_cidrs = ["10.20.11.0/24", "10.20.12.0/24"]
+
+# ── 네트워크 구성 선택 (perf-test-plan.md 본실행 Option A/B 참고) ──
+# Option A(리허설 구조·기본): public 서브넷 ECS + NAT 없음 → EIP 미사용, 단순/저비용
+# Option B(prod-like): ecs_in_private_subnets=true + nat_gateway_enabled=true
+#   → EIP/NAT 소비. 선택 시 EIP·Fargate vCPU·RDS 쿼터 재확인 필수.
+ecs_in_private_subnets      = false
+nat_gateway_enabled         = false
+s3_gateway_endpoint_enabled = true
+
+# ── 부가 스택: perf 최소 구성 ──
+frontend_enabled            = false
+monitoring_enabled          = false # Grafana/Prometheus. 지표 캡처를 Grafana로 하려면 true
+security_monitoring_enabled = false # GuardDuty/SecurityHub는 계정 싱글톤(dev state 소유) → perf는 false
+
+# ── 외부 AI 대량 호출 방지: 대규모 부하는 local/mock 중심 ──
+# 실제 Bedrock/Transcribe는 계정+리전 쿼터를 데모와 공유하므로 부하테스트에선 호출하지 않는다.
+backend_provider_mode               = "local"
+backend_ai_chat_mode                = "mock"
+backend_embedding_mode              = "mock"
+backend_transcribe_mode             = "local"
+backend_transcription_dispatch_mode = "sqs" # 큐/Worker 부하 시나리오용
+worker_provider_mode                = "local"
+worker_transcribe_mode              = "local"
+worker_translate_mode               = "mock"
+worker_structured_engine            = "mock"
+
+# ── 컨테이너 이미지: 기존 dev ECR latest 재사용 (perf 전용 CD 없음) ──
+api_container_image    = "165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-backend:latest"
+worker_container_image = "165749212250.dkr.ecr.ap-northeast-2.amazonaws.com/bada-dev-worker:latest"
+
+# ── ECS 태스크 사이즈 / 초기 desired ──
+# 기립 검증: desired 1/1, 작게. 본 성능 검증: desired 2/2 + 아래 max 상향.
+backend_desired_count  = 2
+worker_desired_count   = 2
+frontend_desired_count = 0
+
+backend_task_cpu    = 512
+backend_task_memory = 1024
+worker_task_cpu     = 1024
+worker_task_memory  = 2048
+
+# ── Auto Scaling min/max (본 성능 검증 예시) ──
+# scale-out을 관측하려면 max를 넉넉히. 단, 계정 Fargate vCPU 쿼터 내로 캡.
+backend_autoscaling_enabled = true
+worker_autoscaling_enabled  = true
+backend_min_capacity        = 2
+backend_max_capacity        = 20
+worker_min_capacity         = 2
+worker_max_capacity         = 30
+
+# ── RDS: perf 전용 식별자 + 즉시 destroy 용이 ──
+# 처리량 검증은 Single-AZ 사이즈업이 적합(Multi-AZ는 쓰기지연만↑). 필요 시 db_instance_class override.
+# db_instance_class = "db.r6g.xlarge"   # variables.tf 기본은 db.t4g.micro. 본실행 시 상향 권장
+db_final_snapshot_identifier           = "bada-perf-postgres-final-snapshot"
+enable_rehearsal_multiaz_db            = false
+rehearsal_db_identifier                = "bada-perf-postgres-multiaz"
+rehearsal_db_final_snapshot_identifier = "bada-perf-postgres-multiaz-final-snapshot"
+db_deletion_protection                 = false
+db_skip_final_snapshot                 = true
+rehearsal_db_skip_final_snapshot       = true
+use_rehearsal_multiaz_db_as_app_db     = false
+
+# ── Cognito: perf 전용 도메인 prefix + 콜백/로그아웃 URL ──
+cognito_domain_prefix           = "bada-perf-165749212250"
+enable_google_identity_provider = false
+cognito_callback_urls           = ["https://api.perf.badasoft.com/auth/cognito/callback"]
+cognito_logout_urls             = ["https://perf.badasoft.com/"]
+
+# ── 알림: perf는 구독 생성하지 않음 ──
+alarm_email_endpoints = []
+alarm_actions         = []
+
+# ── 시크릿 (실제 perf.tfvars 또는 TF_VAR_* 로 주입, git 커밋 금지) ──
+# db_password          = "..."
+# google_client_id     = "..."
+# google_client_secret = "..."
+# kakao_rest_api_key   = "..."
+# kakao_client_secret  = "..."
+# naver_client_id      = "..."
+# naver_client_secret  = "..."
+# jwt_secret           = "..."
