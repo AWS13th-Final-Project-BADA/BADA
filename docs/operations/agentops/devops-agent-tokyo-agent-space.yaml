@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: BADA AWS DevOps Agent - Tokyo Agent Space with IAM roles, operator app, and AWS association
+
+Parameters:
+  AgentSpaceName:
+    Type: String
+    Default: BADA-DevOps-Agent-Space
+    Description: Name for the BADA DevOps Agent Space
+  AgentSpaceDescription:
+    Type: String
+    Default: DevOps Agent Space for BADA operational investigation from Tokyo region
+    Description: Description for the BADA DevOps Agent Space
+
+Resources:
+  DevOpsAgentSpaceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: BADA-DevOpsAgentRole-AgentSpace
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: aidevops.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub arn:aws:aidevops:${AWS::Region}:${AWS::AccountId}:agentspace/*
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AIDevOpsAgentAccessPolicy
+      Policies:
+        - PolicyName: AllowCreateServiceLinkedRoles
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: AllowCreateServiceLinkedRoles
+                Effect: Allow
+                Action:
+                  - iam:CreateServiceLinkedRole
+                Resource:
+                  - !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/resource-explorer-2.amazonaws.com/AWSServiceRoleForResourceExplorer
+
+  DevOpsOperatorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: BADA-DevOpsAgentRole-WebappAdmin
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: aidevops.amazonaws.com
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub arn:aws:aidevops:${AWS::Region}:${AWS::AccountId}:agentspace/*
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AIDevOpsOperatorAppAccessPolicy
+
+  AgentSpace:
+    Type: AWS::DevOpsAgent::AgentSpace
+    DependsOn:
+      - DevOpsAgentSpaceRole
+      - DevOpsOperatorRole
+    Properties:
+      Name: !Ref AgentSpaceName
+      Description: !Ref AgentSpaceDescription
+      OperatorApp:
+        Iam:
+          OperatorAppRoleArn: !GetAtt DevOpsOperatorRole.Arn
+
+  MonitorAssociation:
+    Type: AWS::DevOpsAgent::Association
+    Properties:
+      AgentSpaceId: !GetAtt AgentSpace.AgentSpaceId
+      ServiceId: aws
+      Configuration:
+        Aws:
+          AssumableRoleArn: !GetAtt DevOpsAgentSpaceRole.Arn
+          AccountId: !Ref AWS::AccountId
+          AccountType: monitor
+
+Outputs:
+  AgentSpaceId:
+    Description: The BADA DevOps Agent Space ID
+    Value: !GetAtt AgentSpace.AgentSpaceId
+  AgentSpaceArn:
+    Description: The BADA DevOps Agent Space ARN
+    Value: !GetAtt AgentSpace.Arn
+  AgentSpaceRoleArn:
+    Description: The BADA DevOps Agent Space IAM role ARN
+    Value: !GetAtt DevOpsAgentSpaceRole.Arn
+  OperatorRoleArn:
+    Description: The BADA DevOps Agent operator app IAM role ARN
+    Value: !GetAtt DevOpsOperatorRole.Arn
