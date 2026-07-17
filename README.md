@@ -9,9 +9,9 @@
 
 ## 데모 영상
 
-[![BADA 데모 영상](https://img.youtube.com/vi/Dni_dIvfBhw/maxresdefault.jpg?2)](https://youtu.be/Dni_dIvfBhw)
+[![BADA 데모 영상](https://img.youtube.com/vi/Dni_dIvfBhw/maxresdefault.jpg?3)](https://youtu.be/Dni_dIvfBhw)
 
-▶️ 위 이미지를 클릭하면 유튜브에서 데모 영상을 볼 수 있습니다: https://youtu.be/Dni_dIvfBhw
+위 이미지를 클릭하면 데모 영상을 볼 수 있습니다: https://youtu.be/Dni_dIvfBhw
 
 ## 설계 원칙 (한 줄)
 
