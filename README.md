@@ -7,6 +7,12 @@
 > ⚖️ BADA는 법률자문이 아니라 **상담 준비용 증거 정리 도구**입니다.
 > 위법·체불 여부, 받을 금액을 확정하지 않습니다.
 
+## 데모 영상
+
+[![BADA 데모 영상](https://img.youtube.com/vi/Dni_dIvfBhw/hqdefault.jpg)](https://youtu.be/Dni_dIvfBhw)
+
+▶️ 위 이미지를 클릭하면 유튜브에서 데모 영상을 볼 수 있습니다: https://youtu.be/Dni_dIvfBhw
+
 ## 설계 원칙 (한 줄)
 
 **계산·비교·정렬·판정은 규칙 기반 코드. 문장화·요약·OCR만 LLM.**
